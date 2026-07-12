@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderStatus {
+  PENDING
+  EXECUTED
+  FAILED
+  CANCELLED
+}
+
+enum TransactionType {
+  BUY
+  SELL
+  DIVIDEND
+}
+
+model User {
+  id                 String              @id @default(uuid()) @db.Uuid
+  email              String              @unique @db.VarChar(255)
+  name               String?             @db.VarChar(255)
+  passwordHash       String?
+  authProviderId     String?             @db.VarChar(255)
+  activeFrameworkId  String?             @db.Uuid
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  portfolio           Portfolio?
+  frameworkOverrides  FrameworkOverride[]
+  watchlists          Watchlist[]
+
+  @@index([email])
+}
+
+model Portfolio {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  availableCashCents BigInt   @default(10000000)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  positions    Position[]
+  orders       Order[]
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Position {
+  id               String        @id @default(uuid()) @db.Uuid
+  portfolioId      String        @db.Uuid
+  assetTicker      String        @db.VarChar(10)
+  quantity         Decimal       @db.Decimal(15, 6)
+  averagePriceCents BigInt
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id])
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+
+  @@unique([portfolioId, assetTicker])
+  @@index([portfolioId, assetTicker])
+}
+
+model Order {
+  id                  String       @id @default(uuid()) @db.Uuid
+  portfolioId         String       @db.Uuid
+  assetTicker         String       @db.VarChar(10)
+  side                OrderSide
+  quantity            Decimal      @db.Decimal(15, 6)
+  targetPriceCents    BigInt?
+  executedPriceCents  BigInt?
+  status              OrderStatus  @default(PENDING)
+  executedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  portfolio    Portfolio    @relation(fields: [portfolioId], references: [id])
+  asset        Asset        @relation(fields: [assetTicker], references: [ticker])
+  transaction  Transaction?
+
+  @@index([portfolioId, status])
+  @@index([portfolioId, createdAt])
+}
+
+model Transaction {
+  id                String          @id @default(uuid()) @db.Uuid
+  portfolioId       String          @db.Uuid
+  orderId           String          @unique @db.Uuid
+  transactionType   TransactionType
+  assetTicker       String          @db.VarChar(10)
+  quantity          Decimal         @db.Decimal(15, 6)
+  pricePerShareCents BigInt
+  totalAmountCents  BigInt
+  executedAt        DateTime        @default(now())
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+
+  @@index([portfolioId, executedAt])
+}
+
+model Asset {
+  ticker    String   @id @db.VarChar(10)
+  name      String   @db.VarChar(255)
+  sector    String   @db.VarChar(100)
+  industry  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  positions       Position[]
+  orders          Order[]
+  transactions    Transaction[]
+  watchlistItems  WatchlistItem[]
+
+  @@index([sector])
+}
+
+model Framework {
+  id            String   @id @default(uuid()) @db.Uuid
+  slug          String   @unique @db.VarChar(50)
+  name          String   @db.VarChar(100)
+  defaultRules  Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  overrides FrameworkOverride[]
+}
+
+model FrameworkOverride {
+  id               String @id @default(uuid()) @db.Uuid
+  userId           String @db.Uuid
+  frameworkId      String @db.Uuid
+  customThresholds Json
+
+  user      User      @relation(fields: [userId], references: [id])
+  framework Framework @relation(fields: [frameworkId], references: [id])
+
+  @@unique([userId, frameworkId])
+}
+
+model Watchlist {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id])
+  items     WatchlistItem[]
+
+  @@index([userId])
+}
+
+model WatchlistItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  watchlistId String @db.Uuid
+  assetTicker String @db.VarChar(10)
+  addedAt   DateTime @default(now())
+
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id])
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+
+  @@unique([watchlistId, assetTicker])
+}
