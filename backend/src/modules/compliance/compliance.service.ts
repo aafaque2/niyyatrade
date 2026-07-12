@@ -1,0 +1,129 @@
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import Redis from 'ioredis';
+import { PrismaService } from '../prisma/prisma.service';
+import { MarketDataService } from '../market-data/market-data.service';
+import type {
+  IRuleEvaluator,
+  RuleSpec,
+} from './engine/interfaces/rule-evaluator.interface';
+import type { RuleResult } from './engine/interfaces/rule-result.interface';
+import type {
+  EvaluationReport,
+  Verdict,
+} from './engine/interfaces/evaluation-report.interface';
+import { generateExplanations } from './engine/template-engine';
+
+const CACHE_TTL_EVALUATION = 86400;
+
+@Injectable()
+export class ComplianceService {
+  private readonly logger = new Logger(ComplianceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly marketDataService: MarketDataService,
+    @Inject('REDIS_CLIENT')
+    private readonly redis: Redis,
+    @Inject('COMPLIANCE_RULE_PLUGINS')
+    private readonly plugins: IRuleEvaluator[],
+  ) {}
+
+  private async cacheGet<T>(key: string): Promise<T | null> {
+    try {
+      const cached = await this.redis.get(key);
+      return cached ? (JSON.parse(cached) as T) : null;
+    } catch (err) {
+      this.logger.warn(
+        `Redis get failed for key ${key}: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    ttl: number,
+    data: unknown,
+  ): Promise<void> {
+    try {
+      await this.redis.setex(key, ttl, JSON.stringify(data));
+    } catch (err) {
+      this.logger.warn(
+        `Redis set failed for key ${key}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async evaluate(
+    ticker: string,
+    frameworkId?: string,
+  ): Promise<EvaluationReport> {
+    const cacheKey = `compliance:eval:${ticker.toUpperCase()}:${frameworkId ?? 'default'}`;
+
+    const cached = await this.cacheGet<EvaluationReport>(cacheKey);
+    if (cached) return cached;
+
+    const [fundamentals, framework] = await Promise.all([
+      this.marketDataService.getFundamentals(ticker),
+      this.resolveFramework(frameworkId),
+    ]);
+
+    const rulesSpecs = framework.defaultRules as unknown as {
+      rules: Record<string, RuleSpec>;
+    };
+    const ruleEntries = Object.entries(rulesSpecs.rules);
+
+    const ruleResults: RuleResult[] = [];
+    for (const [ruleId, spec] of ruleEntries) {
+      const plugin = this.plugins.find((p) => p.canEvaluate(spec));
+      if (!plugin) {
+        this.logger.warn(`No plugin found for rule: ${ruleId}`);
+        continue;
+      }
+
+      const result = plugin.evaluate(fundamentals, spec);
+      ruleResults.push(result);
+    }
+
+    const enrichedResults = generateExplanations(
+      ruleResults,
+      fundamentals,
+      rulesSpecs.rules,
+    );
+
+    const verdict: Verdict = enrichedResults.every((r) => r.passed)
+      ? 'COMPLIANT'
+      : 'NON_COMPLIANT';
+
+    const report: EvaluationReport = {
+      assetId: ticker.toUpperCase(),
+      frameworkId: framework.id,
+      verdict,
+      rules: enrichedResults,
+    };
+
+    await this.cacheSet(cacheKey, CACHE_TTL_EVALUATION, report);
+
+    return report;
+  }
+
+  private async resolveFramework(frameworkId?: string) {
+    if (frameworkId) {
+      const framework = await this.prisma.framework.findUnique({
+        where: { id: frameworkId },
+      });
+      if (!framework) {
+        throw new NotFoundException(`Framework ${frameworkId} not found`);
+      }
+      return framework;
+    }
+
+    const framework = await this.prisma.framework.findFirst({
+      where: { slug: 'halal-aaoifi' },
+    });
+    if (!framework) {
+      throw new NotFoundException('No default framework found');
+    }
+    return framework;
+  }
+}
