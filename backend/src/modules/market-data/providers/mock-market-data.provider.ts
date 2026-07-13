@@ -95,6 +95,11 @@ export class MockMarketDataProvider implements IMarketDataProvider {
         totalRevenue: 30_000_000_000,
         sector: 'Other' as const,
         industry: null,
+        peRatio: null,
+        dividendYield: null,
+        volume: null,
+        week52High: null,
+        week52Low: null,
       });
     }
 
@@ -108,6 +113,11 @@ export class MockMarketDataProvider implements IMarketDataProvider {
       totalRevenue: 383_000_000_000,
       sector: asset.sector as FinancialFundamentals['sector'],
       industry: asset.industry,
+      peRatio: 28.5,
+      dividendYield: 0.005,
+      volume: 45_000_000,
+      week52High: 198.23,
+      week52Low: 142.15,
     });
   }
 
