@@ -57,6 +57,32 @@ export function generateExplanations(
       }`;
     }
 
+    if (result.ruleId === 'esg_carbon') {
+      const highCarbon = ['Energy', 'Utilities', 'Basic Materials'];
+      const isHighCarbon = highCarbon.includes(fundamentals.sector);
+      explanation = `The company operates in the "${fundamentals.sector}" sector. ${
+        isHighCarbon
+          ? `This sector is considered high-carbon (${fundamentals.sector}). The ESG framework excludes companies with significant carbon exposure.`
+          : `This sector (${fundamentals.sector}) is not classified as high-carbon. The company passes the carbon emissions screen.`
+      }`;
+    }
+
+    if (result.ruleId === 'esg_weapons') {
+      explanation = `The company operates in the "${fundamentals.sector}" sector. ${
+        result.passed
+          ? 'This sector does not indicate direct involvement in weapons or defense manufacturing.'
+          : 'The Industrials sector may include companies involved in weapons or defense contracting. This screen flags such exposure.'
+      }`;
+    }
+
+    if (result.ruleId === 'esg_tobacco_alcohol') {
+      explanation = `The company operates in the "${fundamentals.sector}" sector. ${
+        result.passed
+          ? 'This sector does not indicate involvement in tobacco or alcohol production.'
+          : 'The Consumer Defensive sector may include companies involved in tobacco or alcohol production. This screen flags such exposure.'
+      }`;
+    }
+
     return { ...result, explanation };
   });
 }
