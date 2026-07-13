@@ -7,26 +7,32 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuote } from "@/lib/hooks/use-quote";
 import { usePlaceOrder } from "@/lib/hooks/use-place-order";
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
+import { formatCents } from "@/lib/utils";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 
 export function OrderTicket({ ticker }: { ticker: string }) {
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
+  const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
   const [quantity, setQuantity] = useState("");
+  const [limitPrice, setLimitPrice] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { data: quote, isLoading: quoteLoading } = useQuote(ticker);
   const { mutate, isPending, isSuccess, error } = usePlaceOrder();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const priceCents = quote?.priceCents ?? 0;
   const qty = parseFloat(quantity) || 0;
-  const estimatedCost = qty * priceCents;
+  const effectivePriceCents =
+    orderType === "LIMIT" ? Math.round(parseFloat(limitPrice || "0") * 100) : priceCents;
+  const estimatedCost = qty * effectivePriceCents;
 
   const handleSubmit = () => {
     if (qty <= 0) return;
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     mutate({
       assetTicker: ticker,
       side,
@@ -42,45 +48,93 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         value={side}
         onValueChange={(v) => setSide(v as "BUY" | "SELL")}
         className="mb-4"
+        aria-label={`Order side: ${side === "BUY" ? "Buy" : "Sell"}`}
       >
         <TabsList className="w-full">
-          <TabsTrigger value="BUY" className="flex-1">
+          <TabsTrigger value="BUY" className="flex-1" aria-label="Buy order">
             Buy
           </TabsTrigger>
-          <TabsTrigger value="SELL" className="flex-1">
+          <TabsTrigger value="SELL" className="flex-1" aria-label="Sell order">
             Sell
           </TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <div className="mb-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setOrderType("MARKET")}
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+            orderType === "MARKET"
+              ? "border-primary/50 bg-primary/5 text-foreground"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Market
+        </button>
+        <button
+          type="button"
+          onClick={() => setOrderType("LIMIT")}
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+            orderType === "LIMIT"
+              ? "border-primary/50 bg-primary/5 text-foreground"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Limit
+        </button>
+      </div>
 
       <div className="space-y-3">
         {quoteLoading ? (
           <Skeleton className="h-4 w-28" />
         ) : (
           <p className="text-sm">
-            Current price:{" "}
-            <span className="font-medium">
+            {orderType === "MARKET" ? "Market price:" : "Last price:"}{" "}
+            <span className="font-medium font-mono">
               {priceCents > 0 ? formatCents(priceCents) : "N/A"}
             </span>
           </p>
         )}
 
+        {orderType === "LIMIT" && (
+          <div>
+            <label htmlFor="limit-price" className="text-xs text-muted-foreground">
+              Limit Price
+            </label>
+            <Input
+              id="limit-price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={limitPrice}
+              onChange={(e) => setLimitPrice(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
         <div>
-          <label className="text-xs text-muted-foreground">Quantity</label>
+          <label htmlFor="order-quantity" className="text-xs text-muted-foreground">
+            Quantity
+          </label>
           <Input
+            id="order-quantity"
             type="number"
             min="0"
             step="0.0001"
             placeholder="0.00"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
+            required
           />
         </div>
 
-        {qty > 0 && priceCents > 0 && (
+        {qty > 0 && effectivePriceCents > 0 && (
           <p className="text-sm text-muted-foreground">
             Estimated {side === "BUY" ? "cost" : "proceeds"}:{" "}
-            <span className="font-medium text-foreground">
+            <span className="font-medium font-mono text-foreground">
               {formatCents(estimatedCost)}
             </span>
           </p>
@@ -93,15 +147,13 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         )}
 
         {isSuccess && (
-          <p className="text-xs text-emerald-500">
-            Order executed successfully!
-          </p>
+          <p className="text-xs text-success">Order executed successfully!</p>
         )}
 
         <Button
           className="w-full"
           variant={side === "BUY" ? "default" : "destructive"}
-          disabled={qty <= 0 || isPending || priceCents <= 0}
+          disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
           onClick={handleSubmit}
         >
           {isPending
@@ -109,6 +161,12 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             : `${side === "BUY" ? "Buy" : "Sell"} ${ticker.toUpperCase()}`}
         </Button>
       </div>
+
+      <AuthInterceptModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        ticker={ticker}
+      />
     </div>
   );
 }

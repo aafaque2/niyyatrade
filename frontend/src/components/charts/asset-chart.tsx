@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createChart, ColorType, CandlestickSeries } from "lightweight-charts";
 import type { IChartApi, CandlestickData, Time } from "lightweight-charts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCandles } from "@/lib/hooks/use-candles";
+import { cn } from "@/lib/utils";
+
+const TIMEFRAMES = [
+  { label: "1D", resolution: "1D" },
+  { label: "1W", resolution: "1W" },
+  { label: "1M", resolution: "1M" },
+  { label: "1Y", resolution: "1Y" },
+  { label: "ALL", resolution: "ALL" },
+] as const;
 
 export function AssetChart({ ticker }: { ticker: string }) {
-  const { data: candles, isLoading, isError } = useCandles(ticker, "1M");
+  const [resolution, setResolution] = useState("1M");
+  const { data: candles, isLoading, isError } = useCandles(ticker, resolution);
 
   if (isLoading) {
     return (
@@ -19,18 +29,51 @@ export function AssetChart({ ticker }: { ticker: string }) {
 
   if (isError || !candles?.length) {
     return (
-      <div className="flex h-[400px] items-center justify-center rounded-lg border text-sm text-muted-foreground">
+      <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
         Chart data unavailable
       </div>
     );
   }
 
-  return <ChartInner candles={candles} />;
+  return (
+    <div>
+      <ChartInner candles={candles} />
+      <div className="mt-2 flex items-center gap-1">
+        {TIMEFRAMES.map((tf) => (
+          <button
+            key={tf.resolution}
+            type="button"
+            onClick={() => setResolution(tf.resolution)}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              resolution === tf.resolution
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tf.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function ChartInner({ candles }: { candles: [number, number, number, number, number, number][] }) {
+function ChartInner({
+  candles,
+}: {
+  candles: [number, number, number, number, number, number][];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+
+  const handleResize = useCallback(() => {
+    if (containerRef.current && chartRef.current) {
+      chartRef.current.applyOptions({
+        width: containerRef.current.clientWidth,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -68,23 +111,18 @@ function ChartInner({ candles }: { candles: [number, number, number, number, num
       wickUpColor: "#22c55e",
     });
 
-    const chartData: CandlestickData<Time>[] = candles.map((c) => ({
-      time: c[0] as Time,
-      open: c[1] / 100,
-      high: c[2] / 100,
-      low: c[3] / 100,
-      close: c[4] / 100,
-    }));
+    const chartData: CandlestickData<Time>[] = candles
+      .map((c) => ({
+        time: c[0] as Time,
+        open: c[1] / 100,
+        high: c[2] / 100,
+        low: c[3] / 100,
+        close: c[4] / 100,
+      }))
+      .sort((a, b) => (a.time as number) - (b.time as number));
 
     series.setData(chartData);
-
-    const handleResize = () => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-        });
-      }
-    };
+    chart.timeScale().fitContent();
 
     window.addEventListener("resize", handleResize);
 
@@ -93,7 +131,7 @@ function ChartInner({ candles }: { candles: [number, number, number, number, num
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles]);
+  }, [candles, handleResize]);
 
   return <div ref={containerRef} className="w-full" />;
 }
