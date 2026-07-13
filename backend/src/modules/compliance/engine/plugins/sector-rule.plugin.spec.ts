@@ -12,6 +12,11 @@ const fundamentals = (sector: string): FinancialFundamentals => ({
   totalRevenue: 1_000_000_000,
   sector: sector as FinancialFundamentals['sector'],
   industry: 'Test Industry',
+  peRatio: null,
+  dividendYield: null,
+  volume: null,
+  week52High: null,
+  week52Low: null,
 });
 
 describe('SectorRulePlugin', () => {

@@ -57,8 +57,9 @@ export class ComplianceService {
   async evaluate(
     ticker: string,
     frameworkId?: string,
+    userId?: string,
   ): Promise<EvaluationReport> {
-    const cacheKey = `compliance:eval:${ticker.toUpperCase()}:${frameworkId ?? 'default'}`;
+    const cacheKey = `compliance:eval:${ticker.toUpperCase()}:${frameworkId ?? 'default'}:${userId ?? 'anon'}`;
 
     const cached = await this.cacheGet<EvaluationReport>(cacheKey);
     if (cached) return cached;
@@ -73,15 +74,29 @@ export class ComplianceService {
     };
     const ruleEntries = Object.entries(rulesSpecs.rules);
 
+    let overrides: Record<string, number> | null = null;
+    if (userId) {
+      const userOverride = await this.prisma.frameworkOverride.findUnique({
+        where: { userId_frameworkId: { userId, frameworkId: framework.id } },
+      });
+      if (userOverride) {
+        overrides = userOverride.customThresholds as Record<string, number>;
+      }
+    }
+
     const ruleResults: RuleResult[] = [];
     for (const [ruleId, spec] of ruleEntries) {
-      const plugin = this.plugins.find((p) => p.canEvaluate(spec));
+      const mergedSpec = overrides && overrides[ruleId] != null
+        ? { ...spec, threshold: overrides[ruleId] }
+        : spec;
+
+      const plugin = this.plugins.find((p) => p.canEvaluate(mergedSpec));
       if (!plugin) {
         this.logger.warn(`No plugin found for rule: ${ruleId}`);
         continue;
       }
 
-      const result = plugin.evaluate(fundamentals, spec);
+      const result = plugin.evaluate(fundamentals, mergedSpec);
       ruleResults.push(result);
     }
 
@@ -104,14 +119,39 @@ export class ComplianceService {
 
     await this.cacheSet(cacheKey, CACHE_TTL_EVALUATION, report);
 
+    if (userId) {
+      await this.prisma.complianceAudit.create({
+        data: {
+          userId,
+          assetTicker: ticker.toUpperCase(),
+          frameworkId: framework.id,
+          verdict: report.verdict,
+          rules: JSON.parse(JSON.stringify(report.rules)),
+        },
+      }).catch((err: Error) => {
+        this.logger.warn(`Failed to save compliance audit: ${err.message}`);
+      });
+    }
+
     return report;
+  }
+
+  async listFrameworks() {
+    return this.prisma.framework.findMany({
+      select: { id: true, slug: true, name: true, defaultRules: true },
+    });
   }
 
   private async resolveFramework(frameworkId?: string) {
     if (frameworkId) {
-      const framework = await this.prisma.framework.findUnique({
+      let framework = await this.prisma.framework.findUnique({
         where: { id: frameworkId },
       });
+      if (!framework) {
+        framework = await this.prisma.framework.findFirst({
+          where: { slug: frameworkId },
+        });
+      }
       if (!framework) {
         throw new NotFoundException(`Framework ${frameworkId} not found`);
       }
@@ -119,7 +159,7 @@ export class ComplianceService {
     }
 
     const framework = await this.prisma.framework.findFirst({
-      where: { slug: 'halal-aaoifi' },
+      where: { slug: 'esg' },
     });
     if (!framework) {
       throw new NotFoundException('No default framework found');

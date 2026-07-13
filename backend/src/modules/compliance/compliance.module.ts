@@ -8,6 +8,8 @@ import { ComplianceService } from './compliance.service';
 import { SectorRulePlugin } from './engine/plugins/sector-rule.plugin';
 import { DebtRulePlugin } from './engine/plugins/debt-rule.plugin';
 import { InterestRulePlugin } from './engine/plugins/interest-rule.plugin';
+import { EsgSectorPlugin } from './engine/plugins/esg-sector.plugin';
+import { EsgInsufficientDataPlugin } from './engine/plugins/esg-insufficient-data.plugin';
 
 @Module({
   imports: [PrismaModule, MarketDataModule],
@@ -17,6 +19,8 @@ import { InterestRulePlugin } from './engine/plugins/interest-rule.plugin';
     SectorRulePlugin,
     DebtRulePlugin,
     InterestRulePlugin,
+    EsgSectorPlugin,
+    EsgInsufficientDataPlugin,
     {
       provide: 'REDIS_CLIENT',
       useFactory: (configService: ConfigService) => {
@@ -34,8 +38,16 @@ import { InterestRulePlugin } from './engine/plugins/interest-rule.plugin';
         sector: SectorRulePlugin,
         debt: DebtRulePlugin,
         interest: InterestRulePlugin,
-      ) => [sector, debt, interest],
-      inject: [SectorRulePlugin, DebtRulePlugin, InterestRulePlugin],
+        esgSector: EsgSectorPlugin,
+        esgInsufficient: EsgInsufficientDataPlugin,
+      ) => [sector, debt, interest, esgSector, esgInsufficient],
+      inject: [
+        SectorRulePlugin,
+        DebtRulePlugin,
+        InterestRulePlugin,
+        EsgSectorPlugin,
+        EsgInsufficientDataPlugin,
+      ],
     },
   ],
   exports: [ComplianceService],
