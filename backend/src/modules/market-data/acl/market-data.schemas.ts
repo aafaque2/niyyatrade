@@ -38,6 +38,11 @@ export const FinancialFundamentalsSchema = z.object({
   totalRevenue: z.coerce.number(),
   sector: SectorEnum,
   industry: z.string().nullable(),
+  peRatio: z.coerce.number().nullable(),
+  dividendYield: z.coerce.number().nullable(),
+  volume: z.coerce.number().nullable(),
+  week52High: z.coerce.number().nullable(),
+  week52Low: z.coerce.number().nullable(),
 });
 
 export type FinancialFundamentals = z.infer<typeof FinancialFundamentalsSchema>;
