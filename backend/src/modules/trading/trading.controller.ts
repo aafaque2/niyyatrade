@@ -6,11 +6,13 @@ import {
   Query,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TradingService } from './trading.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PortfolioQueryDto } from './dto/portfolio-query.dto';
+import { ResetPortfolioDto } from './dto/reset-portfolio.dto';
 
 @Controller('portfolio')
 @UseGuards(JwtAuthGuard)
@@ -34,5 +36,17 @@ export class TradingController {
     @Body() body: CreateOrderDto,
   ) {
     return this.tradingService.executeMarketOrder(req.user.sub, body);
+  }
+
+  @Post('reset')
+  async resetPortfolio(
+    @Request() req: { user: { sub: string } },
+    @Body() body: ResetPortfolioDto,
+  ) {
+    if (!body.confirm) {
+      throw new BadRequestException('Reset must be confirmed');
+    }
+    await this.tradingService.resetPortfolio(req.user.sub);
+    return { message: 'Portfolio reset successfully' };
   }
 }
