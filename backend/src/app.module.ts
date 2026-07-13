@@ -9,6 +9,8 @@ import { TradingModule } from './modules/trading/trading.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { HealthModule } from './modules/health/health.module';
 import { MarketDataModule } from './modules/market-data/market-data.module';
+import { WatchlistModule } from './modules/watchlist/watchlist.module';
+import { HistoryModule } from './modules/history/history.module';
 import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.interceptor';
 
@@ -28,6 +30,8 @@ import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.in
     ComplianceModule,
     HealthModule,
     MarketDataModule,
+    WatchlistModule,
+    HistoryModule,
   ],
   providers: [
     {
