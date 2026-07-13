@@ -25,7 +25,7 @@ export function TopNav() {
 
   return (
     <>
-      <header className="fixed left-60 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background px-6">
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background px-6 lg:left-60">
         <div className="flex w-full items-center justify-between">
           <div className="relative w-80">
             <kbd className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -33,6 +33,7 @@ export function TopNav() {
             </kbd>
             <Input
               placeholder="Search assets..."
+              aria-label="Search assets"
               className="pl-12 text-sm"
               readOnly
               onFocus={() => setOpen(true)}
@@ -41,9 +42,9 @@ export function TopNav() {
 
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">
-              Viewing:{" "}
+              Framework:{" "}
               <span className="font-medium text-foreground">
-                Halal Framework
+                ESG
               </span>
             </span>
           </div>
