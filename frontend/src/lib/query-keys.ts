@@ -3,8 +3,8 @@ export const quoteKeys = {
 };
 
 export const complianceKeys = {
-  evaluate: (ticker: string, frameworkId?: string) =>
-    ["compliance", ticker.toUpperCase(), frameworkId] as const,
+  evaluate: (ticker: string, frameworkId?: string, userId?: string) =>
+    ["compliance", ticker.toUpperCase(), frameworkId, userId] as const,
 };
 
 export const portfolioKeys = {
@@ -18,6 +18,8 @@ export const frameworkKeys = {
 export const marketDataKeys = {
   candles: (ticker: string, resolution?: string) =>
     ["market-data", ticker.toUpperCase(), "candles", resolution] as const,
+  fundamentals: (ticker: string) =>
+    ["market-data", ticker.toUpperCase(), "fundamentals"] as const,
 };
 
 export const searchKeys = {
