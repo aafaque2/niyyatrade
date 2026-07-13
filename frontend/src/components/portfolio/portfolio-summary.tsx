@@ -1,19 +1,13 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCents } from "@/lib/utils";
 
 interface PortfolioSummaryProps {
   totalValueCents?: number;
   buyingPowerCents?: number;
   overallComplianceScore?: number;
   isLoading?: boolean;
-}
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
 }
 
 export function PortfolioSummary({
@@ -35,32 +29,35 @@ export function PortfolioSummary({
     );
   }
 
-  const complianceColor =
-    overallComplianceScore != null
-      ? overallComplianceScore >= 80
-        ? "text-emerald-500"
-        : overallComplianceScore >= 50
-          ? "text-amber-500"
-          : "text-red-500"
-      : "";
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-success";
+    if (score >= 50) return "text-warning";
+    return "text-danger";
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className="rounded-lg border p-4">
-        <p className="text-sm text-muted-foreground">Total Value</p>
-        <p className="text-2xl font-semibold">
+      <div className="rounded-lg border bg-surface p-4">
+        <p className="text-xs text-muted-foreground">Total Value</p>
+        <p className="mt-1 text-2xl font-semibold font-mono tracking-tight">
           {totalValueCents != null ? formatCents(totalValueCents) : "--"}
         </p>
       </div>
-      <div className="rounded-lg border p-4">
-        <p className="text-sm text-muted-foreground">Buying Power</p>
-        <p className="text-2xl font-semibold">
+      <div className="rounded-lg border bg-surface p-4">
+        <p className="text-xs text-muted-foreground">Buying Power</p>
+        <p className="mt-1 text-2xl font-semibold font-mono tracking-tight">
           {buyingPowerCents != null ? formatCents(buyingPowerCents) : "--"}
         </p>
       </div>
-      <div className="rounded-lg border p-4">
-        <p className="text-sm text-muted-foreground">Compliance Score</p>
-        <p className={`text-2xl font-semibold ${complianceColor}`}>
+      <div className="rounded-lg border bg-surface p-4">
+        <p className="text-xs text-muted-foreground">Compliance Score</p>
+        <p
+          className={`mt-1 text-2xl font-semibold font-mono tracking-tight ${
+            overallComplianceScore != null
+              ? getScoreColor(overallComplianceScore)
+              : ""
+          }`}
+        >
           {overallComplianceScore != null
             ? `${overallComplianceScore}%`
             : "--"}

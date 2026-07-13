@@ -5,7 +5,19 @@ export interface Position {
   quantity: number;
   avgPriceCents: number;
   currentPriceCents: number;
+  returnCents: number;
+  returnPercent: number;
   complianceVerdict?: string;
+}
+
+export interface RecentOrder {
+  id: string;
+  ticker: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  priceCents: number;
+  status: string;
+  createdAt: string;
 }
 
 export interface Portfolio {
@@ -14,6 +26,7 @@ export interface Portfolio {
   totalValueCents: number;
   overallComplianceScore: number;
   positions: Position[];
+  recentOrders: RecentOrder[];
 }
 
 export interface OrderResult {
