@@ -32,7 +32,7 @@ export class TradingService {
     }
 
     const positions = portfolio.positions ?? [];
-    let totalValueCents = Number(portfolio.availableCashCents);
+    let totalValueCents = new Decimal(portfolio.availableCashCents.toString());
 
     const positionDtos = await Promise.all(
       positions.map(async (pos) => {
@@ -45,11 +45,16 @@ export class TradingService {
         }
 
         const qty = new Decimal(pos.quantity);
-        const marketValue = qty
-          .mul(currentPriceCents)
-          .toDecimalPlaces(0)
-          .toNumber();
-        totalValueCents += marketValue;
+        const marketValue = qty.mul(currentPriceCents).toDecimalPlaces(0);
+        totalValueCents = totalValueCents.add(marketValue);
+
+        const costBasis = qty
+          .mul(Number(pos.averagePriceCents))
+          .toDecimalPlaces(0);
+        const returnCents = marketValue.sub(costBasis);
+        const returnPercent = costBasis.gt(0)
+          ? returnCents.div(costBasis).mul(100).toDecimalPlaces(2).toNumber()
+          : 0;
 
         let complianceVerdict: string | undefined;
         if (includeCompliance) {
@@ -68,6 +73,8 @@ export class TradingService {
           quantity: qty.toNumber(),
           avgPriceCents: Number(pos.averagePriceCents),
           currentPriceCents,
+          returnCents: returnCents.toNumber(),
+          returnPercent,
           complianceVerdict,
         };
       }),
@@ -81,12 +88,36 @@ export class TradingService {
         ? Math.round((compliantCount / positionDtos.length) * 100)
         : 100;
 
+    const recentOrders = await this.prisma.order.findMany({
+      where: { portfolioId: portfolio.id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        assetTicker: true,
+        side: true,
+        quantity: true,
+        executedPriceCents: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
     return {
       id: portfolio.id,
       buyingPowerCents: Number(portfolio.availableCashCents),
-      totalValueCents,
+      totalValueCents: totalValueCents.toNumber(),
       overallComplianceScore,
       positions: positionDtos,
+      recentOrders: recentOrders.map((o) => ({
+        id: o.id,
+        ticker: o.assetTicker,
+        side: o.side,
+        quantity: Number(o.quantity),
+        priceCents: Number(o.executedPriceCents),
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
     };
   }
 
@@ -126,12 +157,9 @@ export class TradingService {
 
     const priceCents = quote.priceCents;
     const quantity = new Decimal(dto.quantity);
-    const totalCostCents = quantity
-      .mul(priceCents)
-      .toDecimalPlaces(0)
-      .toNumber();
+    const totalCostCents = quantity.mul(priceCents).toDecimalPlaces(0);
 
-    if (totalCostCents < 1) {
+    if (totalCostCents.lt(1)) {
       throw new BadRequestException('Order total is less than 1 cent');
     }
 
@@ -146,23 +174,23 @@ export class TradingService {
         const portfolio = await this.lockPortfolio(tx, userId);
 
         if (dto.side === OrderSide.BUY) {
-          return this.executeBuy(
-            tx,
-            portfolio,
-            dto.assetTicker,
-            quantity,
-            priceCents,
-            totalCostCents,
-          );
-        }
-        return this.executeSell(
-          tx,
-          portfolio,
-          dto.assetTicker,
-          quantity,
-          priceCents,
-          totalCostCents,
-        );
+      return this.executeBuy(
+        tx,
+        portfolio,
+        dto.assetTicker,
+        quantity,
+        priceCents,
+        totalCostCents.toNumber(),
+      );
+    }
+    return this.executeSell(
+      tx,
+      portfolio,
+      dto.assetTicker,
+      quantity,
+      priceCents,
+      totalCostCents.toNumber(),
+    );
       });
     } catch (err) {
       this.logger.error(
@@ -198,8 +226,8 @@ export class TradingService {
     priceCents: number,
     totalCostCents: number,
   ) {
-    const cash = Number(portfolio.availableCashCents);
-    if (cash < totalCostCents) {
+    const cash = new Decimal(portfolio.availableCashCents.toString());
+    if (cash.lt(totalCostCents)) {
       throw new BadRequestException('Insufficient buying power');
     }
 
@@ -218,13 +246,13 @@ export class TradingService {
       const totalCost = oldQty
         .mul(Number(existing.averagePriceCents))
         .add(quantity.mul(priceCents));
-      const newAvgPrice = totalCost.div(totalQty).toDecimalPlaces(0).toNumber();
+      const newAvgPrice = totalCost.div(totalQty).toDecimalPlaces(0);
 
       await tx.position.update({
         where: { id: existing.id },
         data: {
           quantity: totalQty.toNumber(),
-          averagePriceCents: newAvgPrice,
+          averagePriceCents: newAvgPrice.toNumber(),
         },
       });
     } else {
@@ -241,7 +269,7 @@ export class TradingService {
     await tx.portfolio.update({
       where: { id: portfolio.id },
       data: {
-        availableCashCents: cash - totalCostCents,
+        availableCashCents: cash.sub(totalCostCents).toNumber(),
       },
     });
 
@@ -311,11 +339,11 @@ export class TradingService {
       );
     }
 
-    const cash = Number(portfolio.availableCashCents);
+    const cash = new Decimal(portfolio.availableCashCents.toString());
     await tx.portfolio.update({
       where: { id: portfolio.id },
       data: {
-        availableCashCents: cash + totalCostCents,
+        availableCashCents: cash.add(totalCostCents).toNumber(),
       },
     });
 
@@ -348,5 +376,30 @@ export class TradingService {
       status: order.status,
       executedPriceCents: priceCents,
     };
+  }
+
+  async resetPortfolio(userId: string) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.transaction.deleteMany({
+        where: { portfolioId: portfolio.id },
+      });
+      await tx.order.deleteMany({
+        where: { portfolioId: portfolio.id },
+      });
+      await tx.position.deleteMany({
+        where: { portfolioId: portfolio.id },
+      });
+      await tx.portfolio.update({
+        where: { id: portfolio.id },
+        data: { availableCashCents: 10000000 },
+      });
+    });
   }
 }
