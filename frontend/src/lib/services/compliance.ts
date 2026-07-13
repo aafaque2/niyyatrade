@@ -23,7 +23,10 @@ export async function evaluateCompliance(
   const { data } = await api.get<{ data: EvaluationReport }>(
     "/compliance/evaluate",
     {
-      params: { ticker, ...(frameworkId ? { frameworkId } : {}) },
+      params: {
+        ticker,
+        ...(frameworkId ? { frameworkId } : {}),
+      },
     },
   );
   return data.data;
