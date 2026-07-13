@@ -68,6 +68,7 @@ export function FrameworkOverrideForm() {
         </p>
         <div className="mt-1 flex items-center gap-2">
           <Input
+            id="debt-threshold"
             type="number"
             step="0.01"
             min="0"
@@ -75,6 +76,7 @@ export function FrameworkOverrideForm() {
             value={debtThreshold}
             onChange={(e) => setDebtThreshold(e.target.value)}
             className="w-24"
+            aria-label="Debt Threshold"
           />
           <span className="text-sm text-muted-foreground">%</span>
         </div>
@@ -87,6 +89,7 @@ export function FrameworkOverrideForm() {
         </p>
         <div className="mt-1 flex items-center gap-2">
           <Input
+            id="interest-threshold"
             type="number"
             step="0.1"
             min="0"
@@ -94,6 +97,7 @@ export function FrameworkOverrideForm() {
             value={interestThreshold}
             onChange={(e) => setInterestThreshold(e.target.value)}
             className="w-24"
+            aria-label="Interest Income Threshold"
           />
           <span className="text-sm text-muted-foreground">%</span>
         </div>

@@ -1,8 +1,12 @@
 "use client";
 
+import { ProfileForm } from "@/components/settings/profile-form";
+import { PasswordForm } from "@/components/settings/password-form";
+import { ResetPortfolioDialog } from "@/components/settings/reset-portfolio-dialog";
 import { FrameworkOverrideForm } from "@/components/settings/framework-override-form";
 
 export default function SettingsPage() {
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,19 +16,13 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Compliance Framework Overrides
-        </h2>
-        <FrameworkOverrideForm />
-      </div>
+      <ProfileForm />
 
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-2 text-sm font-medium">Account</h2>
-        <p className="text-xs text-muted-foreground">
-          Account settings will be available after authentication setup.
-        </p>
-      </div>
+      <PasswordForm />
+
+      <FrameworkOverrideForm />
+
+      <ResetPortfolioDialog />
     </div>
   );
 }
