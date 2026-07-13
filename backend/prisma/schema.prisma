@@ -38,6 +38,7 @@ model User {
   portfolio           Portfolio?
   frameworkOverrides  FrameworkOverride[]
   watchlists          Watchlist[]
+  complianceAudits    ComplianceAudit[]
 
   @@index([email])
 }
@@ -123,6 +124,7 @@ model Asset {
   orders          Order[]
   transactions    Transaction[]
   watchlistItems  WatchlistItem[]
+  complianceAudits ComplianceAudit[]
 
   @@index([sector])
 }
@@ -135,7 +137,8 @@ model Framework {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  overrides FrameworkOverride[]
+  overrides          FrameworkOverride[]
+  complianceAudits   ComplianceAudit[]
 }
 
 model FrameworkOverride {
@@ -173,4 +176,21 @@ model WatchlistItem {
   asset     Asset     @relation(fields: [assetTicker], references: [ticker])
 
   @@unique([watchlistId, assetTicker])
+}
+
+model ComplianceAudit {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  assetTicker   String   @db.VarChar(10)
+  frameworkId   String   @db.Uuid
+  verdict       String   @db.VarChar(20)
+  rules         Json
+  evaluatedAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  framework Framework @relation(fields: [frameworkId], references: [id])
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+
+  @@index([userId, evaluatedAt])
+  @@index([userId, assetTicker])
 }
