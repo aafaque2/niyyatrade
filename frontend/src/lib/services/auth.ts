@@ -4,6 +4,7 @@ import type { User } from "@/lib/stores/auth-store";
 export interface RegisterDto {
   email: string;
   password: string;
+  confirmPassword: string;
   name?: string;
 }
 

@@ -49,17 +49,23 @@ export function LoginDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-dialog-title"
+    >
       <div className="w-full max-w-sm rounded-lg border bg-background p-6 shadow-lg">
-        <h2 className="mb-1 text-lg font-semibold">Sign In</h2>
+        <h2 id="login-dialog-title" className="mb-1 text-lg font-semibold">Sign In</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Sign in to start trading
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground">Email</label>
+            <label htmlFor="login-email" className="text-xs text-muted-foreground">Email</label>
             <Input
+              id="login-email"
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -69,8 +75,9 @@ export function LoginDialog({
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground">Password</label>
+            <label htmlFor="login-password" className="text-xs text-muted-foreground">Password</label>
             <Input
+              id="login-password"
               type="password"
               placeholder="••••••••"
               value={password}
