@@ -26,8 +26,15 @@ export function CommandPalette({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Search">
+      <div
+        className="fixed inset-0 bg-black/50"
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
+        role="button"
+        tabIndex={-1}
+        aria-label="Close"
+      />
       <div className="fixed left-1/2 top-[15%] w-full max-w-lg -translate-x-1/2 rounded-lg border bg-background shadow-xl">
         <CommandPaletteInner onClose={onClose} />
       </div>
@@ -85,6 +92,7 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
         <Input
           ref={inputRef}
           placeholder="Search assets by name or ticker..."
+          aria-label="Search assets"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
