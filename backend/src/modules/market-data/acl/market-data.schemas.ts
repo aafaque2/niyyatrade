@@ -26,8 +26,8 @@ export type MarketQuote = z.infer<typeof MarketQuoteSchema>;
 
 export const FinancialFundamentalsSchema = z.object({
   ticker: z.string().toUpperCase(),
-  marketCap: z.coerce.number().positive(),
-  totalAssets: z.coerce.number().positive(),
+  marketCap: z.coerce.number().nullable().default(0),
+  totalAssets: z.coerce.number().nullable().default(0),
   totalDebt: z.preprocess((val) => {
     if (val === 'N/A' || val === '' || val === undefined || val === null)
       return null;
@@ -35,8 +35,8 @@ export const FinancialFundamentalsSchema = z.object({
   }, z.coerce.number().nullable()),
   cashAndEquivalents: z.coerce.number().nullable(),
   interestIncome: z.coerce.number().nullable(),
-  totalRevenue: z.coerce.number(),
-  sector: SectorEnum,
+  totalRevenue: z.coerce.number().nullable().default(0),
+  sector: SectorEnum.nullable().default('Other'),
   industry: z.string().nullable(),
   peRatio: z.coerce.number().nullable(),
   dividendYield: z.coerce.number().nullable(),
