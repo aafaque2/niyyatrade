@@ -16,6 +16,18 @@ export class SectorRulePlugin implements IRuleEvaluator {
 
   evaluate(fundamentals: FinancialFundamentals, rule: RuleSpec): RuleResult {
     const banned = rule.bannedSectors ?? conventionalSectors;
+
+    if (fundamentals.sector == null) {
+      return {
+        ruleId: rule.ruleId,
+        name: rule.name ?? 'Sector Screening',
+        passed: true,
+        actualValue: 'N/A',
+        thresholdValue: `Not in: ${banned.join(', ')}`,
+        explanation: 'No sector data available. Defaulting to compliant.',
+      };
+    }
+
     const passed = !banned.includes(fundamentals.sector);
 
     return {

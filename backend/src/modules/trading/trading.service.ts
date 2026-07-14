@@ -22,10 +22,16 @@ export class TradingService {
   ) {}
 
   async getPortfolio(userId: string, includeCompliance?: boolean) {
-    const portfolio = await this.prisma.portfolio.findUnique({
-      where: { userId },
-      include: { positions: true },
-    });
+    const [portfolio, user] = await Promise.all([
+      this.prisma.portfolio.findUnique({
+        where: { userId },
+        include: { positions: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { activeFrameworkId: true },
+      }),
+    ]);
 
     if (!portfolio) {
       throw new NotFoundException('Portfolio not found');
@@ -59,7 +65,11 @@ export class TradingService {
         let complianceVerdict: string | undefined;
         if (includeCompliance) {
           try {
-            const report = await this.compliance.evaluate(pos.assetTicker);
+            const report = await this.compliance.evaluate(
+              pos.assetTicker,
+              user?.activeFrameworkId ?? undefined,
+              userId,
+            );
             complianceVerdict = report.verdict;
           } catch {
             this.logger.warn(
@@ -132,7 +142,7 @@ export class TradingService {
     let sector = 'Other';
     try {
       const fundamentals = await this.marketData.getFundamentals(upper);
-      sector = fundamentals.sector;
+      sector = fundamentals.sector ?? 'Other';
       name = fundamentals.industry ?? upper;
     } catch {
       // use defaults

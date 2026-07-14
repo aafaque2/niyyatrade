@@ -15,7 +15,7 @@ export class InterestRulePlugin implements IRuleEvaluator {
   evaluate(fundamentals: FinancialFundamentals, rule: RuleSpec): RuleResult {
     const threshold = rule.threshold ?? 5;
 
-    if (fundamentals.interestIncome == null) {
+    if (fundamentals.interestIncome == null || fundamentals.totalRevenue == null) {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Interest Income',
