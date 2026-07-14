@@ -39,7 +39,7 @@ export class WatchlistService {
     let sector = 'Other';
     try {
       const fundamentals = await this.marketData.getFundamentals(upper);
-      sector = fundamentals.sector;
+      sector = fundamentals.sector ?? 'Other';
       name = fundamentals.industry ?? upper;
     } catch {
       this.logger.warn(`Failed to fetch fundamentals for ${upper}, using defaults`);
