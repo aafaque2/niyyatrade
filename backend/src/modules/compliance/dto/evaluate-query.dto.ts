@@ -1,11 +1,11 @@
-import { IsString, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class EvaluateQueryDto {
   @IsString()
   @IsNotEmpty()
   ticker: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   frameworkId?: string;
 }

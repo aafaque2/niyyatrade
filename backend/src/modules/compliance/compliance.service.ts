@@ -54,6 +54,19 @@ export class ComplianceService {
     }
   }
 
+  async invalidateUserCache(userId: string, frameworkId: string): Promise<void> {
+    try {
+      const pattern = `compliance:eval:*:${frameworkId}:${userId}`;
+      const keys = await this.redis.keys(pattern);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+        this.logger.log(`Invalidated ${keys.length} compliance cache entries for user=${userId} framework=${frameworkId}`);
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to invalidate compliance cache: ${(err as Error).message}`);
+    }
+  }
+
   async evaluate(
     ticker: string,
     frameworkId?: string,
@@ -87,8 +100,8 @@ export class ComplianceService {
     const ruleResults: RuleResult[] = [];
     for (const [ruleId, spec] of ruleEntries) {
       const mergedSpec = overrides && overrides[ruleId] != null
-        ? { ...spec, threshold: overrides[ruleId] }
-        : spec;
+        ? { ...spec, threshold: overrides[ruleId], ruleId }
+        : { ...spec, ruleId };
 
       const plugin = this.plugins.find((p) => p.canEvaluate(mergedSpec));
       if (!plugin) {
@@ -144,9 +157,14 @@ export class ComplianceService {
 
   private async resolveFramework(frameworkId?: string) {
     if (frameworkId) {
-      let framework = await this.prisma.framework.findUnique({
-        where: { id: frameworkId },
-      });
+      let framework: { id: string; slug: string; name: string; defaultRules: unknown } | null = null;
+      try {
+        framework = await this.prisma.framework.findUnique({
+          where: { id: frameworkId },
+        });
+      } catch {
+        // not a valid UUID, try slug
+      }
       if (!framework) {
         framework = await this.prisma.framework.findFirst({
           where: { slug: frameworkId },
