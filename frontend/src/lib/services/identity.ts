@@ -2,7 +2,9 @@ import { api } from "@/lib/api";
 
 export interface RuleSpec {
   type: string;
-  operator: string;
+  operator?: string;
+  name?: string;
+  ruleId?: string;
   threshold?: number;
   bannedSectors?: string[];
   description: string;
@@ -37,7 +39,7 @@ export async function activateFramework(
   frameworkId: string,
 ): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null }> {
   const { data } = await api.put("/users/me/frameworks/active", { frameworkId });
-  return data;
+  return data.data;
 }
 
 export async function updateFrameworkPrefs(

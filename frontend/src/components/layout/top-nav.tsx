@@ -3,8 +3,13 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { CommandPalette } from "./command-palette";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useFrameworks } from "@/lib/hooks/use-frameworks";
 
 export function TopNav() {
+  const user = useAuthStore((s) => s.user);
+  const { data: frameworks } = useFrameworks();
+  const activeFramework = frameworks?.find((f) => f.id === user?.activeFrameworkId);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -44,7 +49,7 @@ export function TopNav() {
             <span className="text-xs text-muted-foreground">
               Framework:{" "}
               <span className="font-medium text-foreground">
-                ESG
+                {activeFramework?.name ?? (user?.activeFrameworkId ? "Loading..." : "None")}
               </span>
             </span>
           </div>
