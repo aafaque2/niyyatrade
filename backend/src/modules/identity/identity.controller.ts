@@ -12,6 +12,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { ComplianceService } from '../compliance/compliance.service';
 import { UpdateFrameworkPrefsDto } from './dto/update-framework-prefs.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -19,7 +20,10 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class IdentityController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly compliance: ComplianceService,
+  ) {}
 
   @Get('me')
   async getProfile(@Request() req: { user: { sub: string } }) {
@@ -151,6 +155,8 @@ export class IdentityController {
         customThresholds: overrides ?? {},
       },
     });
+
+    await this.compliance.invalidateUserCache(req.user.sub, frameworkId);
 
     return { message: 'Framework preferences updated' };
   }
