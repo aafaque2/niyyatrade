@@ -15,7 +15,7 @@ import {
 @Injectable()
 export class FmpMarketDataProvider implements IMarketDataProvider {
   private readonly logger = new Logger(FmpMarketDataProvider.name);
-  private readonly baseUrl = 'https://financialmodelingprep.com/stable';
+  private readonly baseUrl = 'https://financialmodelingprep.com/api/v3';
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -38,7 +38,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
   async getQuote(ticker: string): Promise<MarketQuote> {
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/quote?symbol=${ticker}`,
+      `/quote/${ticker}`,
     );
 
     if (!data || data.length === 0) {
@@ -56,46 +56,67 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
   }
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
-    const [profile, ratios, balanceSheet, incomeStatement] = await Promise.all([
-      this.fetch<Record<string, unknown>[]>(`/profile?symbol=${ticker}`),
-      this.fetch<Record<string, unknown>[]>(`/ratios?symbol=${ticker}`),
+    const settled = await Promise.allSettled([
+      this.fetch<Record<string, unknown>[]>(`/profile/${ticker}`),
+      this.fetch<Record<string, unknown>[]>(`/ratios/${ticker}`),
       this.fetch<Record<string, unknown>[]>(
-        `/balance-sheet-statement?symbol=${ticker}&period=quarter&limit=1`,
+        `/balance-sheet-statement/${ticker}?period=quarter&limit=1`,
       ),
       this.fetch<Record<string, unknown>[]>(
-        `/income-statement?symbol=${ticker}&period=quarter&limit=1`,
+        `/income-statement/${ticker}?period=quarter&limit=1`,
       ),
     ]);
 
-    if (!profile || profile.length === 0) {
-      throw new Error(`No profile found for ${ticker}`);
-    }
+    const extract = (i: number) =>
+      settled[i].status === 'fulfilled' && (settled[i].value as Record<string, unknown>[]).length
+        ? (settled[i].value as Record<string, unknown>[])[0]
+        : ({} as Record<string, unknown>);
 
-    const p = profile[0];
-    const r = ratios?.[0] ?? {};
-    const b = balanceSheet?.[0] ?? {};
-    const i = incomeStatement?.[0] ?? {};
+    const p = extract(0);
+    const r = extract(1);
+    const b = extract(2);
+    const i = extract(3);
 
     const rangeStr = (p.range as string) ?? '';
     const rangeParts = rangeStr.split(' - ');
     const week52Low = rangeParts.length === 2 ? parseFloat(rangeParts[0]) : null;
     const week52High = rangeParts.length === 2 ? parseFloat(rangeParts[1]) : null;
 
-    return FinancialFundamentalsSchema.parse({
+    const result = FinancialFundamentalsSchema.safeParse({
       ticker,
-      marketCap: p.marketCap as number,
+      marketCap: p.marketCap ?? null,
       totalAssets: (b.totalAssets as number) ?? null,
       totalDebt: (b.totalDebt as number) ?? null,
       cashAndEquivalents: (b.cashAndCashEquivalents as number) ?? null,
       interestIncome: (i.interestIncome as number) ?? null,
       totalRevenue: (i.revenue as number) ?? null,
-      sector: p.sector as string,
-      industry: p.industry as string | null,
+      sector: p.sector ?? null,
+      industry: p.industry ?? null,
       peRatio: (r.priceToEarningsRatio as number) ?? null,
       dividendYield: (r.dividendYield as number) ?? null,
       volume: (p.averageVolume as number) ?? null,
       week52High,
       week52Low,
+    });
+
+    if (result.success) return result.data;
+
+    this.logger.warn(`Fundamentals parse failed for ${ticker}: ${result.error.message}`);
+    return FinancialFundamentalsSchema.parse({
+      ticker,
+      marketCap: 0,
+      totalAssets: null,
+      totalDebt: null,
+      cashAndEquivalents: null,
+      interestIncome: null,
+      totalRevenue: 0,
+      sector: 'Other',
+      industry: null,
+      peRatio: null,
+      dividendYield: null,
+      volume: null,
+      week52High: null,
+      week52Low: null,
     });
   }
 
@@ -113,7 +134,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       : new Date().toISOString().split('T')[0];
 
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/historical-price-eod/full?symbol=${ticker}&from=${fromDate}&to=${toDate}`,
+      `/historical-price-eod/full/${ticker}?from=${fromDate}&to=${toDate}`,
     );
 
     return (data ?? []).map((item) => {
@@ -132,7 +153,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
   async search(query: string): Promise<SearchResult[]> {
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/search-symbol?query=${query}&limit=10`,
+      `/search-ticker?query=${query}&limit=10`,
     );
 
     return (data ?? []).map((item) => {
