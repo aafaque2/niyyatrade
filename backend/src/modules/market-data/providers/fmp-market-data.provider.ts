@@ -15,7 +15,7 @@ import {
 @Injectable()
 export class FmpMarketDataProvider implements IMarketDataProvider {
   private readonly logger = new Logger(FmpMarketDataProvider.name);
-  private readonly baseUrl = 'https://financialmodelingprep.com/api/v3';
+  private readonly baseUrl = 'https://financialmodelingprep.com/stable';
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -30,7 +30,15 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
     });
 
     if (!res.ok) {
-      throw new Error(`FMP API error: ${res.status} ${res.statusText}`);
+      const body = await res.text().catch(() => '');
+      this.logger.error(
+        `FMP ${res.status} for ${path} — ${body.slice(0, 300)}`,
+      );
+      const err = new Error(
+        `FMP API error: ${res.status} ${res.statusText}`,
+      ) as Error & { statusCode: number };
+      err.statusCode = res.status;
+      throw err;
     }
 
     return res.json() as Promise<T>;
@@ -38,7 +46,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
   async getQuote(ticker: string): Promise<MarketQuote> {
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/quote/${ticker}`,
+      `/quote?symbol=${ticker}`,
     );
 
     if (!data || data.length === 0) {
@@ -57,13 +65,13 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
     const settled = await Promise.allSettled([
-      this.fetch<Record<string, unknown>[]>(`/profile/${ticker}`),
-      this.fetch<Record<string, unknown>[]>(`/ratios/${ticker}`),
+      this.fetch<Record<string, unknown>[]>(`/profile?symbol=${ticker}`),
+      this.fetch<Record<string, unknown>[]>(`/ratios?symbol=${ticker}`),
       this.fetch<Record<string, unknown>[]>(
-        `/balance-sheet-statement/${ticker}?period=quarter&limit=1`,
+        `/balance-sheet-statement?symbol=${ticker}&period=quarter&limit=1`,
       ),
       this.fetch<Record<string, unknown>[]>(
-        `/income-statement/${ticker}?period=quarter&limit=1`,
+        `/income-statement?symbol=${ticker}&period=quarter&limit=1`,
       ),
     ]);
 
@@ -134,7 +142,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       : new Date().toISOString().split('T')[0];
 
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/historical-price-eod/full/${ticker}?from=${fromDate}&to=${toDate}`,
+      `/historical-price-eod/full?symbol=${ticker}&from=${fromDate}&to=${toDate}`,
     );
 
     return (data ?? []).map((item) => {
@@ -153,7 +161,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
   async search(query: string): Promise<SearchResult[]> {
     const data = await this.fetch<Record<string, unknown>[]>(
-      `/search-ticker?query=${query}&limit=10`,
+      `/search-symbol?query=${query}&limit=10`,
     );
 
     return (data ?? []).map((item) => {
