@@ -50,6 +50,10 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-insufficient: var(--insufficient);
+  --color-emerald: var(--emerald);
+  --color-emerald-light: var(--emerald-light);
+  --color-emerald-muted: var(--emerald-muted);
+  --color-emerald-subtle: var(--emerald-subtle);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -60,44 +64,48 @@
 }
 
 :root {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --surface: oklch(0.205 0.006 285.885);
-  --surface-hover: oklch(0.269 0.007 285.786);
-  --card: oklch(0.205 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0.007 285.786);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0.007 285.786);
-  --muted-foreground: oklch(0.72 0.01 285);
-  --accent: oklch(0.269 0.007 285.786);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.269 0.007 285.786);
-  --input: oklch(0.371 0.007 285.786);
-  --ring: oklch(0.556 0.007 285.786);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.205 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0.007 285.786);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0.007 285.786);
-  --sidebar-ring: oklch(0.556 0.007 285.786);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.704 0.191 22.216);
-  --chart-4: oklch(0.769 0.188 70.08);
-  --chart-5: oklch(0.627 0.265 303.9);
-  --success: oklch(0.77 0.17 162.48);
-  --warning: oklch(0.82 0.18 70.08);
-  --danger: oklch(0.77 0.19 22.216);
-  --insufficient: oklch(0.556 0.007 285.786);
+  --background: #0B0F0E;
+  --foreground: #F8FAFC;
+  --surface: #111827;
+  --surface-hover: #1E293B;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
+  --popover-foreground: #F8FAFC;
+  --primary: #16A34A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F8FAFC;
+  --destructive: #EF4444;
+  --border: #232B35;
+  --input: #334155;
+  --ring: #16A34A;
+  --radius: 0.5rem;
+  --emerald: #16A34A;
+  --emerald-light: #22C55E;
+  --emerald-muted: #15803D;
+  --emerald-subtle: rgba(22, 163, 74, 0.08);
+  --sidebar: #0D1117;
+  --sidebar-foreground: #CBD5E1;
+  --sidebar-primary: #16A34A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #16A34A;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #16A34A;
+  --chart-1: #16A34A;
+  --chart-2: #22C55E;
+  --chart-3: #EF4444;
+  --chart-4: #F59E0B;
+  --chart-5: #8B5CF6;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --insufficient: #64748B;
 }
 
 @layer base {
@@ -110,4 +118,42 @@
   html {
     @apply font-sans;
   }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .animate-count-up {
+    animation: countUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-slide-in-right {
+    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
