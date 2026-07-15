@@ -24,20 +24,21 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--primary)_0%,_transparent_50%)] opacity-[0.07]" />
 
       <div className="relative mx-auto max-w-5xl px-6 pb-24 pt-20 text-center sm:pb-32 sm:pt-28">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse" />
-          Paper trading platform for Indian equities
-        </div>
+        <img
+          src="/logo.png"
+          alt="NiyyaTrade"
+          className="mx-auto h-24 sm:h-32 w-auto"
+        />
 
         <h1 className="mt-8 text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-          Compliance-aware
+          Trade with Intentions.
           <br />
-          <span className="text-primary">paper trading</span> &amp; education
+          Invest with <span className="text-primary">Ethics</span>.
         </h1>
 
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg leading-relaxed">
-          Practice investing with transparent compliance frameworks.
-          Understand <em>why</em> an investment passes or fails before you risk a single rupee.
+          Evaluate investments through ESG, Shariah, or custom compliance frameworks.
+          Understand <em>why</em> an investment passes or fails — before you risk a single rupee.
         </p>
 
         <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-md">
@@ -62,7 +63,7 @@ export function HeroSection() {
         <div className="mt-6 flex items-center justify-center gap-4">
           <Link href="/register">
             <Button size="lg" className="h-11 px-7 text-sm font-medium bg-primary hover:bg-emerald-muted">
-              Start paper trading
+              Start investing
             </Button>
           </Link>
           <Link href="/frameworks">
@@ -77,7 +78,7 @@ export function HeroSection() {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          $100,000 virtual capital. No account required to explore.
+          $100,000 virtual capital. Frameworks explained in plain language.
         </p>
       </div>
     </section>

@@ -5,9 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "HalalTrade - Paper Trading & Compliance Education",
+  title: "NiyyaTrade — Framework-driven investing",
   description:
-    "A compliance-aware paper trading platform for Indian equities. Practice investing with transparent ESG and Shariah compliance frameworks.",
+    "A framework-driven paper trading platform. Evaluate investments through ESG, Shariah, and custom compliance frameworks with transparent, explainable verdicts.",
 };
 
 export default function RootLayout({

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "NiyyaTrade";
 
 export function LandingFooter() {
   return (
@@ -12,7 +12,7 @@ export function LandingFooter() {
           <span className="text-xs font-medium text-foreground">{APP_NAME}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} {APP_NAME}. Paper trading for education only.
+          &copy; {new Date().getFullYear()} {APP_NAME}. Framework-driven investing.
         </p>
         <div className="flex items-center gap-4">
           <Link

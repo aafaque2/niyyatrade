@@ -9,7 +9,6 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TrendingUp } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,18 +42,17 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-foreground"
+            className="inline-flex items-center justify-center text-foreground"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">
-              {process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade"}
-            </span>
+            <img
+              src="/logo.png"
+              alt="NiyyaTrade"
+              className="h-16 w-auto"
+            />
           </Link>
           <h1 className="mt-8 text-xl font-semibold tracking-tight">Welcome back</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Sign in to continue paper trading
+            Sign in to continue
           </p>
         </div>
 

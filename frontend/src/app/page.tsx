@@ -18,7 +18,7 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: "Paper Trading Simulator",
+    title: "Framework-driven investing",
     description:
       "Execute fractional share trades with $100,000 in virtual capital. Track your portfolio and test strategies risk-free.",
   },
@@ -67,10 +67,10 @@ export default function LandingPage() {
       <section className="border-t border-border">
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
           <h2 className="text-xl font-semibold tracking-tight">
-            Ready to start paper trading?
+            Framework-driven investing
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            $100,000 in virtual capital. No real money at risk.
+            $100,000 in virtual capital. Transparent, explainable compliance.
           </p>
           <div className="mt-6 flex items-center justify-center gap-4">
             <a

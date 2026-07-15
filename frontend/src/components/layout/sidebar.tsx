@@ -16,8 +16,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade";
-
 const navItems = [
   { label: "Portfolio", href: "/portfolio", icon: Briefcase },
   { label: "Markets", href: "/markets", icon: TrendingUp },
@@ -71,15 +69,14 @@ export function Sidebar() {
         <div className="flex h-14 items-center border-b border-border px-5">
           <Link
             href="/portfolio"
-            className="flex items-center gap-2.5"
+            className="flex items-center gap-2"
             onClick={() => setOpen(false)}
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15">
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">
-              {APP_NAME}
-            </span>
+            <img
+              src="/logo.png"
+              alt="NiyyaTrade"
+              className="h-10 w-auto"
+            />
           </Link>
         </div>
 
