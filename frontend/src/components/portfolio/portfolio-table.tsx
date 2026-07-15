@@ -16,7 +16,7 @@ function ComplianceBadge({ verdict }: { verdict?: string }) {
 
   if (verdict === "COMPLIANT") {
     return (
-      <Badge variant="default" className="bg-success/10 text-success text-[10px]">
+      <Badge variant="default" className="bg-emerald-subtle text-emerald-light border-emerald/20 text-[10px]">
         Compliant
       </Badge>
     );
@@ -34,7 +34,7 @@ function ReturnDisplay({ cents, percent }: { cents: number; percent: number }) {
   return (
     <span
       className={`font-mono text-xs ${
-        positive ? "text-success" : "text-danger"
+        positive ? "text-emerald-light" : "text-danger"
       }`}
     >
       {formatCents(cents)} ({formatPercent(percent / 100)})
@@ -48,7 +48,7 @@ export function PortfolioTable({
 }: PortfolioTableProps) {
   if (isLoading) {
     return (
-      <div className="rounded-lg border p-4">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
@@ -63,27 +63,27 @@ export function PortfolioTable({
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+            <tr className="border-b border-border bg-surface/50">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Asset
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Qty
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Avg Price
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Current
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Return
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">
                 Status
               </th>
             </tr>
@@ -92,32 +92,32 @@ export function PortfolioTable({
             {positions.map((pos) => (
               <tr
                 key={pos.ticker}
-                className="border-b border-border transition-colors hover:bg-surface-hover"
+                className="border-b border-border transition-colors hover:bg-surface-hover/50 last:border-b-0"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5">
                   <Link
                     href={`/assets/${pos.ticker}`}
-                    className="font-medium text-foreground hover:text-primary"
+                    className="font-semibold font-mono text-xs text-primary hover:underline"
                   >
                     {pos.ticker}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-xs">
+                <td className="px-4 py-2.5 text-right font-mono text-xs">
                   {formatQuantity(pos.quantity)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-xs">
+                <td className="px-4 py-2.5 text-right font-mono text-xs">
                   {formatCents(pos.avgPriceCents)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-xs">
+                <td className="px-4 py-2.5 text-right font-mono text-xs">
                   {formatCents(pos.currentPriceCents)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <ReturnDisplay
                     cents={pos.returnCents}
                     percent={pos.returnPercent}
                   />
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-2.5 text-center">
                   <ComplianceBadge verdict={pos.complianceVerdict} />
                 </td>
               </tr>

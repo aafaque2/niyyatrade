@@ -13,8 +13,8 @@ interface TopHoldingsProps {
 export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
   if (isLoading) {
     return (
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
+        <h2 className="mb-3 text-xs font-medium text-muted-foreground">
           Top Holdings
         </h2>
         <div className="space-y-3">
@@ -38,11 +38,11 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
   );
 
   return (
-    <div className="rounded-lg border p-4">
-      <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
+      <h2 className="mb-3 text-xs font-medium text-muted-foreground">
         Top Holdings
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {sorted.map((pos) => {
           const value = pos.quantity * pos.currentPriceCents;
           const weight = totalMarketValue > 0 ? (value / totalMarketValue) * 100 : 0;
@@ -50,10 +50,10 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
             <div key={pos.ticker}>
               <Link
                 href={`/assets/${pos.ticker}`}
-                className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-surface-hover"
+                className="flex items-center justify-between rounded-md px-2 py-1.5 transition-colors hover:bg-surface-hover"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">{pos.ticker}</span>
+                  <span className="text-xs font-semibold font-mono text-primary">{pos.ticker}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {formatPercent(weight / 100)}
                   </span>
