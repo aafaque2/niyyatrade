@@ -12,10 +12,10 @@ export default function WatchlistPage() {
 
   if (isError) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div>
-          <h1 className="text-2xl font-semibold">Watchlist</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight">Watchlist</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Track your watched assets and their compliance status.
           </p>
         </div>
@@ -32,10 +32,10 @@ export default function WatchlistPage() {
   const tickers = items.map((i) => i.ticker);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Watchlist</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Watchlist</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Track your watched assets and their compliance status.
         </p>
       </div>
