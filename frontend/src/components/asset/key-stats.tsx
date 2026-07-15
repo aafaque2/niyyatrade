@@ -20,7 +20,7 @@ function StatRow({
   tooltipTerm: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
+    <div className="flex items-center justify-between py-2">
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
         {label}
         <InfoTooltip
@@ -42,8 +42,8 @@ export function KeyStats({ ticker }: KeyStatsProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
+        <h2 className="mb-3 text-xs font-medium text-muted-foreground">
           Key Statistics
         </h2>
         <div className="space-y-3">
@@ -73,8 +73,8 @@ export function KeyStats({ ticker }: KeyStatsProps) {
   };
 
   return (
-    <div className="rounded-lg border p-4">
-      <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
+      <h2 className="mb-3 text-xs font-medium text-muted-foreground">
         Key Statistics
       </h2>
       <div className="divide-y divide-border">

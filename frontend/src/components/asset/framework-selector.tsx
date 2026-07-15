@@ -26,10 +26,10 @@ export function FrameworkSelector({
             type="button"
             onClick={() => onSelect(fw.id)}
             className={cn(
-              "relative flex flex-1 items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors",
+              "relative flex flex-1 items-center gap-2 rounded-md border px-3 py-2 text-left transition-all duration-150",
               isActive
-                ? "border-primary/50 bg-primary/5"
-                : "border-border hover:bg-surface",
+                ? "border-primary/30 bg-primary/10"
+                : "border-border hover:bg-surface-hover bg-surface/50",
             )}
           >
             <div className="flex-1">
@@ -39,7 +39,7 @@ export function FrameworkSelector({
               </div>
             </div>
             {isActive && (
-              <Check className="h-3.5 w-3.5 text-primary" />
+              <Check className="h-3.5 w-3.5 text-primary shrink-0" />
             )}
           </button>
         );

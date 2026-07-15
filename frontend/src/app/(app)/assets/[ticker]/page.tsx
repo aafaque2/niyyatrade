@@ -13,14 +13,11 @@ export default async function AssetDetailPage({
   const { ticker } = await params;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <AssetPageClient ticker={ticker}>
-        <div className="grid gap-6 lg:grid-cols-5">
+        <div className="grid gap-5 lg:grid-cols-5">
           <div className="lg:col-span-3 space-y-4">
-            <div className="rounded-lg border p-4">
-              <h2 className="mb-4 text-sm font-medium text-muted-foreground">
-                Price Chart
-              </h2>
+            <div className="rounded-lg border border-border bg-surface/50 p-4">
               <AssetChart ticker={ticker} />
             </div>
 
