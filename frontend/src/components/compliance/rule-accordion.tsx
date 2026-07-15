@@ -21,7 +21,11 @@ export function RuleAccordion({ rules }: { rules: RuleResult[] }) {
                 variant={
                   rule.passed ? "default" : "destructive"
                 }
-                className="text-[10px]"
+                className={
+                  rule.passed
+                    ? "bg-emerald-subtle text-emerald-light border-emerald/20 text-[10px]"
+                    : "text-[10px]"
+                }
               >
                 {rule.passed ? "Pass" : "Fail"}
               </Badge>

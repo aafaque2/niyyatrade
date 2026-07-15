@@ -16,9 +16,9 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
   const isStandard = framework === "standard";
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">
+        <h2 className="text-xs font-medium text-muted-foreground">
           Framework Evaluation
         </h2>
       </div>
@@ -29,7 +29,7 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
       />
 
       {isStandard && (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3">
+        <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/5 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div className="text-xs text-warning">
             <p className="font-medium">For educational purposes only</p>
@@ -43,7 +43,7 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
         </div>
       )}
 
-      {isLoading && <Skeleton className="mt-3 h-24 w-full" />}
+      {isLoading && <Skeleton className="mt-3 h-24 w-full rounded-lg" />}
 
       {isError && (
         <p className="mt-3 text-xs text-destructive">
@@ -58,6 +58,11 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
             <Badge
               variant={
                 data.verdict === "COMPLIANT" ? "default" : "destructive"
+              }
+              className={
+                data.verdict === "COMPLIANT"
+                  ? "bg-emerald-subtle text-emerald-light border-emerald/20"
+                  : ""
               }
             >
               {data.verdict === "COMPLIANT" ? "Compliant" : "Non-Compliant"}

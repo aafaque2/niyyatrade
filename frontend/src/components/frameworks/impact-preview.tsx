@@ -16,7 +16,7 @@ export function ImpactPreview({
   const nonCompliant = totalPositions - compliantCount;
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground">
+    <div className="rounded-lg border border-primary/15 bg-primary/5 p-4 text-xs text-muted-foreground">
       With these thresholds,{" "}
       <span className="font-medium text-foreground">{compliantCount}</span> of{" "}
       <span className="font-medium text-foreground">{totalPositions}</span>{" "}
