@@ -27,8 +27,8 @@ function timeAgo(dateStr: string): string {
 export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
   if (isLoading) {
     return (
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
+        <h2 className="mb-3 text-xs font-medium text-muted-foreground">
           Recent Activity
         </h2>
         <div className="space-y-3">
@@ -42,8 +42,8 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
+        <h2 className="mb-3 text-xs font-medium text-muted-foreground">
           Recent Activity
         </h2>
         <p className="text-xs text-muted-foreground">No recent activity</p>
@@ -52,20 +52,20 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
   }
 
   return (
-    <div className="rounded-lg border p-4">
-      <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
+      <h2 className="mb-3 text-xs font-medium text-muted-foreground">
         Recent Activity
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {orders.map((order) => (
           <div
             key={order.id}
-            className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-surface-hover"
+            className="flex items-center justify-between rounded-md px-2 py-1.5 transition-colors hover:bg-surface-hover"
           >
             <div className="flex items-center gap-2">
               <Link
                 href={`/assets/${order.ticker}`}
-                className="text-xs font-medium text-foreground hover:text-primary"
+                className="text-xs font-semibold font-mono text-primary hover:underline"
               >
                 {order.ticker}
               </Link>
@@ -79,11 +79,11 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
                 {formatQuantity(order.quantity)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-xs font-mono text-muted-foreground">
                 {formatCents(order.priceCents * order.quantity)}
               </span>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground w-12 text-right">
                 {timeAgo(order.createdAt)}
               </span>
             </div>
