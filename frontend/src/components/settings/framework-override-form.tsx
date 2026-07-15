@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 
 export function FrameworkOverrideForm() {
   const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
   const [debtThreshold, setDebtThreshold] = useState("33.33");
   const [interestThreshold, setInterestThreshold] = useState("5");
@@ -53,53 +52,62 @@ export function FrameworkOverrideForm() {
 
   if (!user?.activeFrameworkId) {
     return (
-      <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-        No active framework set. Compliance rules cannot be customized.
+      <div className="rounded-lg border border-border bg-surface/50 p-4 text-sm text-muted-foreground">
+        No active framework set. Compliance rules cannot be customised.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border p-4 space-y-4">
+    <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-4">
       <div>
-        <h3 className="text-sm font-medium">Debt Threshold</h3>
+        <h3 className="text-sm font-medium">Framework Thresholds</h3>
         <p className="text-xs text-muted-foreground">
-          Maximum debt-to-assets ratio (default: 33.33%)
+          Customise compliance thresholds for your active framework.
         </p>
-        <div className="mt-1 flex items-center gap-2">
-          <Input
-            id="debt-threshold"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            value={debtThreshold}
-            onChange={(e) => setDebtThreshold(e.target.value)}
-            className="w-24"
-            aria-label="Debt Threshold"
-          />
-          <span className="text-sm text-muted-foreground">%</span>
-        </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-medium">Interest Income Threshold</h3>
-        <p className="text-xs text-muted-foreground">
-          Maximum interest-to-revenue ratio (default: 5%)
-        </p>
-        <div className="mt-1 flex items-center gap-2">
-          <Input
-            id="interest-threshold"
-            type="number"
-            step="0.1"
-            min="0"
-            max="100"
-            value={interestThreshold}
-            onChange={(e) => setInterestThreshold(e.target.value)}
-            className="w-24"
-            aria-label="Interest Income Threshold"
-          />
-          <span className="text-sm text-muted-foreground">%</span>
+      <div className="space-y-3">
+        <div>
+          <h4 className="text-xs font-medium">Debt Threshold</h4>
+          <p className="text-[10px] text-muted-foreground">
+            Maximum debt-to-assets ratio (default: 33.33%)
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <Input
+              id="debt-threshold"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={debtThreshold}
+              onChange={(e) => setDebtThreshold(e.target.value)}
+              className="w-24 bg-background text-xs"
+              aria-label="Debt Threshold"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="text-xs font-medium">Interest Income Threshold</h4>
+          <p className="text-[10px] text-muted-foreground">
+            Maximum interest-to-revenue ratio (default: 5%)
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <Input
+              id="interest-threshold"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={interestThreshold}
+              onChange={(e) => setInterestThreshold(e.target.value)}
+              className="w-24 bg-background text-xs"
+              aria-label="Interest Income Threshold"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+          </div>
         </div>
       </div>
 
@@ -107,6 +115,7 @@ export function FrameworkOverrideForm() {
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
         size="sm"
+        className="bg-primary hover:bg-emerald-muted"
       >
         {mutation.isPending ? "Saving..." : saved ? "Saved!" : "Save Overrides"}
       </Button>

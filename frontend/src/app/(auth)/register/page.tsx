@@ -9,6 +9,7 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TrendingUp } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -42,17 +43,24 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--primary)_0%,_transparent_50%)] opacity-[0.05]" />
+
+      <div className="relative w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-foreground"
+            className="inline-flex items-center gap-2 text-foreground"
           >
-            {process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade"}
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-lg font-semibold tracking-tight">
+              {process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade"}
+            </span>
           </Link>
-          <h1 className="mt-6 text-xl font-semibold">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Start your compliance-aware investing journey
+          <h1 className="mt-8 text-xl font-semibold tracking-tight">Create your account</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Start compliance-aware paper trading
           </p>
         </div>
 
@@ -63,15 +71,15 @@ export default function RegisterPage() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="bg-background px-3 text-muted-foreground">
               or sign up with email
             </span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium text-foreground">
+          <div className="space-y-1.5">
+            <label htmlFor="name" className="text-xs font-medium text-foreground">
               Name
             </label>
             <Input
@@ -80,11 +88,12 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
+              className="h-10 bg-surface border-border"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-xs font-medium text-foreground">
               Email
             </label>
             <Input
@@ -94,11 +103,12 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              className="h-10 bg-surface border-border"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-xs font-medium text-foreground">
               Password
             </label>
             <Input
@@ -109,11 +119,12 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 characters"
               minLength={8}
+              className="h-10 bg-surface border-border"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+          <div className="space-y-1.5">
+            <label htmlFor="confirmPassword" className="text-xs font-medium text-foreground">
               Confirm Password
             </label>
             <Input
@@ -124,6 +135,7 @@ export default function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter your password"
               minLength={8}
+              className="h-10 bg-surface border-border"
             />
           </div>
 
@@ -133,7 +145,7 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full h-10 bg-primary hover:bg-emerald-muted"
             disabled={mutation.isPending}
           >
             {mutation.isPending ? "Creating account..." : "Create account"}

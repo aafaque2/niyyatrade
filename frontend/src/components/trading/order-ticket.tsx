@@ -41,8 +41,8 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   };
 
   return (
-    <div className="rounded-lg border p-4">
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">Trade</h2>
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
+      <h2 className="mb-4 text-xs font-medium text-muted-foreground">Trade</h2>
 
       <Tabs
         value={side}
@@ -51,7 +51,11 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         aria-label={`Order side: ${side === "BUY" ? "Buy" : "Sell"}`}
       >
         <TabsList className="w-full">
-          <TabsTrigger value="BUY" className="flex-1" aria-label="Buy order">
+          <TabsTrigger
+            value="BUY"
+            className="flex-1 data-[active]:text-emerald-light"
+            aria-label="Buy order"
+          >
             Buy
           </TabsTrigger>
           <TabsTrigger value="SELL" className="flex-1" aria-label="Sell order">
@@ -64,10 +68,10 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         <button
           type="button"
           onClick={() => setOrderType("MARKET")}
-          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
             orderType === "MARKET"
-              ? "border-primary/50 bg-primary/5 text-foreground"
-              : "border-border text-muted-foreground hover:text-foreground"
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:text-foreground hover:bg-surface-hover"
           }`}
         >
           Market
@@ -75,10 +79,10 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         <button
           type="button"
           onClick={() => setOrderType("LIMIT")}
-          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
             orderType === "LIMIT"
-              ? "border-primary/50 bg-primary/5 text-foreground"
-              : "border-border text-muted-foreground hover:text-foreground"
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:text-foreground hover:bg-surface-hover"
           }`}
         >
           Limit
@@ -91,7 +95,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         ) : (
           <p className="text-sm">
             {orderType === "MARKET" ? "Market price:" : "Last price:"}{" "}
-            <span className="font-medium font-mono">
+            <span className="font-medium font-mono text-foreground">
               {priceCents > 0 ? formatCents(priceCents) : "N/A"}
             </span>
           </p>
@@ -110,6 +114,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
               placeholder="0.00"
               value={limitPrice}
               onChange={(e) => setLimitPrice(e.target.value)}
+              className="mt-1 bg-background"
               required
             />
           </div>
@@ -127,6 +132,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             placeholder="0.00"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
+            className="mt-1 bg-background"
             required
           />
         </div>
@@ -147,11 +153,15 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         )}
 
         {isSuccess && (
-          <p className="text-xs text-success">Order executed successfully!</p>
+          <p className="text-xs text-emerald-light">Order executed successfully!</p>
         )}
 
         <Button
-          className="w-full"
+          className={`w-full ${
+            side === "BUY"
+              ? "bg-primary hover:bg-emerald-muted text-white"
+              : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+          }`}
           variant={side === "BUY" ? "default" : "destructive"}
           disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
           onClick={handleSubmit}
