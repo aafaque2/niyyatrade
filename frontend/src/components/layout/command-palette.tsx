@@ -28,14 +28,14 @@ export function CommandPalette({
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Search">
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
         role="button"
         tabIndex={-1}
         aria-label="Close"
       />
-      <div className="fixed left-1/2 top-[15%] w-full max-w-lg -translate-x-1/2 rounded-lg border bg-background shadow-xl">
+      <div className="fixed left-1/2 top-[15%] w-full max-w-lg -translate-x-1/2 rounded-lg border border-border bg-background shadow-2xl">
         <CommandPaletteInner onClose={onClose} />
       </div>
     </div>
@@ -99,11 +99,11 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
             setSelectedIndex(0);
           }}
           onKeyDown={handleKeyDown}
-          className="h-10 text-sm"
+          className="h-10 text-sm bg-surface border-border"
         />
       </div>
       {resultsList.length > 0 && (
-        <div className="max-h-72 overflow-y-auto border-t p-1">
+        <div className="max-h-72 overflow-y-auto border-t border-border p-1">
           {resultsList.map((result, index) => (
             <button
               key={result.ticker}
@@ -111,14 +111,14 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
               onMouseEnter={() => setSelectedIndex(index)}
               className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
                 index === selectedIndex
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-surface-hover text-foreground"
                   : "text-foreground"
               }`}
             >
               <span className="font-mono text-xs font-semibold text-primary">
                 {result.ticker}
               </span>
-              <span className="truncate text-muted-foreground">
+              <span className="truncate text-muted-foreground text-xs">
                 {result.name}
               </span>
               {result.exchange && (
@@ -135,7 +135,7 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
           No assets found for &quot;{debouncedQuery}&quot;
         </p>
       )}
-      <div className="flex items-center gap-4 border-t px-4 py-2 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-4 border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
         <span>↑↓ navigate</span>
         <span>↵ select</span>
         <span>esc close</span>

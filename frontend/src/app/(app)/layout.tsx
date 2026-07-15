@@ -48,9 +48,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!hydrated || !token) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-80 space-y-4">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-64 w-full" />
+        <div className="w-72 space-y-3">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-24 w-full" />
         </div>
       </div>
     );
@@ -60,7 +61,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <Sidebar />
       <TopNav />
-      <main className="lg:ml-60 mt-14 p-6">{children}</main>
+      <main className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
+        <div className="mx-auto max-w-[1400px] animate-fade-in">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
