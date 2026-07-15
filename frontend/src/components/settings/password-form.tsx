@@ -31,7 +31,7 @@ export function PasswordForm() {
     newPw === confirm;
 
   return (
-    <div className="rounded-lg border bg-surface p-4 space-y-3">
+    <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
       <div>
         <h3 className="text-sm font-medium">Change Password</h3>
         <p className="text-xs text-muted-foreground">
@@ -39,7 +39,7 @@ export function PasswordForm() {
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label htmlFor="current-password" className="text-xs text-muted-foreground">
           Current Password
         </label>
@@ -48,12 +48,12 @@ export function PasswordForm() {
           type="password"
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
-          className="text-xs"
+          className="text-xs bg-background"
           required
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label htmlFor="new-password" className="text-xs text-muted-foreground">
           New Password
         </label>
@@ -63,12 +63,12 @@ export function PasswordForm() {
           value={newPw}
           onChange={(e) => setNewPw(e.target.value)}
           placeholder="Min. 8 characters"
-          className="text-xs"
+          className="text-xs bg-background"
           required
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label htmlFor="confirm-password" className="text-xs text-muted-foreground">
           Confirm New Password
         </label>
@@ -77,7 +77,7 @@ export function PasswordForm() {
           type="password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="text-xs"
+          className="text-xs bg-background"
           required
         />
       </div>
@@ -86,6 +86,7 @@ export function PasswordForm() {
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending || !canSubmit}
         size="sm"
+        className="bg-primary hover:bg-emerald-muted"
       >
         {mutation.isPending ? "Updating..." : "Update Password"}
       </Button>

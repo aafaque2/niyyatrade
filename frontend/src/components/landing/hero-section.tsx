@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -20,61 +20,66 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden border-b border-border">
-      <div className="mx-auto max-w-5xl px-6 pb-24 pt-20 text-center sm:pb-32 sm:pt-28">
-        <div className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted-foreground">
-          Islamic Finance · Transparent · Free to Use
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--primary)_0%,_transparent_50%)] opacity-[0.07]" />
+
+      <div className="relative mx-auto max-w-5xl px-6 pb-24 pt-20 text-center sm:pb-32 sm:pt-28">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse" />
+          Paper trading platform for Indian equities
         </div>
 
-        <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-          The Compliance-Aware
+        <h1 className="mt-8 text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          Compliance-aware
           <br />
-          Investing Operating System
+          <span className="text-primary">paper trading</span> &amp; education
         </h1>
 
-        <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-          Learn, simulate, and understand investing decisions through
-          transparent compliance frameworks. Start paper trading with
-          $100,000 in virtual capital.
+        <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg leading-relaxed">
+          Practice investing with transparent compliance frameworks.
+          Understand <em>why</em> an investment passes or fails before you risk a single rupee.
         </p>
 
         <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-md">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search any asset (e.g., AAPL)"
+              placeholder="Look up any ticker (e.g., RELIANCE)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-12 pl-10 text-base"
+              className="h-12 pl-4 pr-28 text-base bg-surface border-border"
             />
+            <button
+              type="submit"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-muted"
+            >
+              Look up
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </form>
 
         <div className="mt-6 flex items-center justify-center gap-4">
           <Link href="/register">
-            <Button size="lg" className="h-12 px-8 text-sm font-medium">
-              Get Started Free
+            <Button size="lg" className="h-11 px-7 text-sm font-medium bg-primary hover:bg-emerald-muted">
+              Start paper trading
             </Button>
           </Link>
-          <Link href="/login">
+          <Link href="/frameworks">
             <Button
               variant="outline"
               size="lg"
-              className="h-12 px-8 text-sm font-medium"
+              className="h-11 px-7 text-sm font-medium"
             >
-              Sign In
+              Explore frameworks
             </Button>
           </Link>
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          No credit card required. Start with $100,000 in paper trading
-          capital.
+          $100,000 virtual capital. No account required to explore.
         </p>
       </div>
-
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </section>
   );
 }

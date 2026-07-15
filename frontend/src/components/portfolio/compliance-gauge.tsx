@@ -19,16 +19,16 @@ export function ComplianceGauge({
   };
 
   return (
-    <div className="rounded-lg border bg-surface p-4">
-      <p className="text-xs text-muted-foreground">Portfolio Compliance</p>
-      <div className="mt-2 flex items-center gap-4">
+    <div className="rounded-lg border border-border bg-surface/50 p-4">
+      <p className="text-xs font-medium text-muted-foreground">Portfolio Compliance</p>
+      <div className="mt-3 flex items-center gap-4">
         <svg width="88" height="88" viewBox="0 0 88 88" className="shrink-0">
           <circle
             cx="44"
             cy="44"
             r="36"
             fill="none"
-            stroke="oklch(0.269 0.007 285.786)"
+            stroke="#232B35"
             strokeWidth="6"
           />
           <circle
@@ -42,7 +42,7 @@ export function ComplianceGauge({
             strokeDashoffset={offset}
             strokeLinecap="round"
             transform="rotate(-90 44 44)"
-            style={{ transition: "stroke-dashoffset 0.5s ease" }}
+            style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}
           />
           <text
             x="44"
@@ -55,9 +55,9 @@ export function ComplianceGauge({
             {score}%
           </text>
         </svg>
-        <div className="space-y-1 text-xs text-muted-foreground">
+        <div className="space-y-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-success" />
+            <span className="h-2 w-2 rounded-full bg-emerald-light" />
             <span>{compliantCount} Compliant</span>
           </div>
           <div className="flex items-center gap-2">

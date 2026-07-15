@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { searchAssets, type SearchResult } from "@/lib/services/market-data";
+import { searchAssets } from "@/lib/services/market-data";
 import { useAddToWatchlist } from "@/lib/hooks/use-watchlist";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus } from "lucide-react";
@@ -69,7 +69,7 @@ export function AddSymbol({ existingTickers }: AddSymbolProps) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="pr-8"
+          className="pr-8 bg-surface border-border"
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -77,7 +77,7 @@ export function AddSymbol({ existingTickers }: AddSymbolProps) {
       </div>
 
       {open && query.length >= 1 && (
-        <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+        <div className="absolute top-full z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
           {filtered.length === 0 && !isLoading && (
             <p className="px-3 py-4 text-center text-xs text-muted-foreground">
               No results found
@@ -89,10 +89,10 @@ export function AddSymbol({ existingTickers }: AddSymbolProps) {
               key={result.ticker}
               type="button"
               onClick={() => handleSelect(result.ticker)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-accent"
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-surface-hover"
             >
               <div>
-                <span className="font-medium text-foreground">
+                <span className="font-semibold font-mono text-primary">
                   {result.ticker}
                 </span>
                 <span className="ml-2 text-muted-foreground">

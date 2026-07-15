@@ -36,7 +36,7 @@ function PriceCell({ ticker }: { ticker: string }) {
       <span className="font-mono text-xs">{formatCents(data.priceCents)}</span>
       <span
         className={`font-mono text-[10px] ${
-          positive ? "text-success" : "text-danger"
+          positive ? "text-emerald-light" : "text-danger"
         }`}
       >
         {positive ? "+" : ""}
@@ -52,24 +52,24 @@ export function WatchlistTable({ items }: WatchlistTableProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+            <tr className="border-b border-border bg-surface/50">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Asset
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Name
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Price / Change
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Sector
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Actions
               </th>
             </tr>
@@ -78,31 +78,31 @@ export function WatchlistTable({ items }: WatchlistTableProps) {
             {items.map((item) => (
               <tr
                 key={item.id}
-                className="border-b border-border transition-colors hover:bg-surface-hover"
+                className="border-b border-border transition-colors hover:bg-surface-hover/50 last:border-b-0"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5">
                   <Link
                     href={`/assets/${item.ticker}`}
-                    className="font-medium text-foreground hover:text-primary"
+                    className="font-semibold font-mono text-xs text-primary hover:underline"
                   >
                     {item.ticker}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">
                   {item.name}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5">
                   <PriceCell ticker={item.ticker} />
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">
                   {item.sector}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <button
                     type="button"
                     onClick={() => removeMutation.mutate(item.ticker)}
                     disabled={removeMutation.isPending}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                     aria-label={`Remove ${item.ticker}`}
                   >
                     <X className="h-3.5 w-3.5" />

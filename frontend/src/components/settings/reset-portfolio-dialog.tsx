@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { resetPortfolio } from "@/lib/services/identity";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export function ResetPortfolioDialog() {
   const [confirming, setConfirming] = useState(false);
@@ -24,7 +24,7 @@ export function ResetPortfolioDialog() {
 
   if (confirming) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-surface p-4 space-y-3">
+      <div className="rounded-lg border border-destructive/20 bg-surface/50 p-4 space-y-3">
         <p className="text-xs text-destructive font-medium">
           Are you sure? This will reset your balance to $100,000 and clear all
           positions and order history. This cannot be undone.
@@ -52,7 +52,7 @@ export function ResetPortfolioDialog() {
   }
 
   return (
-    <div className="rounded-lg border border-destructive/20 bg-surface p-4 space-y-3">
+    <div className="rounded-lg border border-destructive/15 bg-surface/50 p-4 space-y-3">
       <div>
         <h3 className="text-sm font-medium text-destructive">
           Reset Virtual Portfolio

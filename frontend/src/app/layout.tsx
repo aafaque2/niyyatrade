@@ -5,9 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "HalalTrade - Compliance-Aware Investing",
+  title: "HalalTrade - Paper Trading & Compliance Education",
   description:
-    "A modern investing operating system that helps you learn, simulate, and understand investing decisions through transparent compliance frameworks.",
+    "A compliance-aware paper trading platform for Indian equities. Practice investing with transparent ESG and Shariah compliance frameworks.",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased dark">
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <QueryProvider>
           <TooltipProvider>
             {children}
@@ -28,6 +28,9 @@ export default function RootLayout({
               toastOptions={{
                 style: {
                   fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+                  background: "#111827",
+                  border: "1px solid #232B35",
+                  color: "#F8FAFC",
                 },
               }}
             />

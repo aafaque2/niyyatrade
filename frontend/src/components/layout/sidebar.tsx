@@ -4,26 +4,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  Search,
-  Bell,
+  TrendingUp,
+  Briefcase,
   Bookmark,
-  Scale,
+  Shield,
   History,
   Settings,
   Menu,
   X,
+  Search,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "HalalTrade";
 
 const navItems = [
-  { label: "Search", href: null, icon: Search, cmdK: true, action: "open-search" as const },
-  { label: "Portfolio", href: "/portfolio", icon: LayoutDashboard },
-  { label: "Watchlist", href: "/watchlist", icon: Bookmark },
-  { label: "Frameworks", href: "/frameworks", icon: Scale },
+  { label: "Portfolio", href: "/portfolio", icon: Briefcase },
+  { label: "Markets", href: "/markets", icon: TrendingUp },
+  { label: "Watchlists", href: "/watchlist", icon: Bookmark },
+  { label: "Compliance", href: "/frameworks", icon: Shield },
   { label: "History", href: "/history", icon: History },
+];
+
+const bottomItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -43,16 +46,16 @@ export function Sidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-3 z-50 flex items-center gap-2 lg:hidden"
+        className="fixed left-4 top-3.5 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close sidebar" : "Open sidebar"}
       >
-        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
@@ -60,73 +63,109 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-border bg-background transition-transform duration-200",
+          "fixed left-0 top-0 z-40 flex h-screen w-[232px] flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out",
           "max-lg:data-[open=false]:-translate-x-full",
         )}
         data-open={open}
       >
-        <div className="flex h-14 items-center border-b border-border px-6">
+        <div className="flex h-14 items-center border-b border-border px-5">
           <Link
             href="/portfolio"
-            className="text-lg font-semibold tracking-tight"
+            className="flex items-center gap-2.5"
             onClick={() => setOpen(false)}
           >
-            {APP_NAME}
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15">
+              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight text-foreground">
+              {APP_NAME}
+            </span>
           </Link>
         </div>
 
-      <nav className="flex-1 space-y-1 p-3">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
+        <div className="px-3 pt-3 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("opencode-search"));
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-surface-hover hover:text-foreground"
+          >
+            <Search className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1 text-left">Search assets...</span>
+            <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[10px] font-medium text-muted-foreground">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
 
-          if (item.action === "open-search") {
+        <nav className="flex-1 space-y-0.5 px-3 pt-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href === "/portfolio" && pathname === "/");
+
             return (
-              <button
+              <Link
                 key={item.label}
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("opencode-search"))}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => setOpen(false)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground",
+                  )}
+                />
                 <span>{item.label}</span>
-                <kbd className="ml-auto rounded-md border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  ⌘K
-                </kbd>
-              </button>
+              </Link>
             );
-          }
+          })}
+        </nav>
 
-          return (
-            <Link
-              key={item.label}
-              href={item.href!}
-              aria-current={isActive ? "page" : undefined}
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <div className="mt-auto border-t border-border px-3 py-3 space-y-0.5">
+          {bottomItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
 
-      <div className="border-t border-border p-3">
-        <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground">
-          <Bell className="h-4 w-4" />
-          <span className="text-xs">No notifications</span>
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground",
+                  )}
+                />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
-      </div>
-    </aside>
+      </aside>
     </>
   );
 }

@@ -21,43 +21,41 @@ function formatDate(iso: string) {
 export function ComplianceTable({ items }: ComplianceTableProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border p-4">
-        <EmptyState
-          icon={Shield}
-          title="No compliance history yet"
-          description="Compliance evaluations will appear here as you view assets."
-        />
-      </div>
+      <EmptyState
+        icon={Shield}
+        title="No compliance history yet"
+        description="Compliance evaluations will appear here as you view assets."
+      />
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Asset</th>
-            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Verdict</th>
-            <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Date</th>
+          <tr className="border-b border-border bg-surface/50">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Asset</th>
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Verdict</th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Date</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {items.map((item) => (
-            <tr key={item.id} className="hover:bg-muted/30">
+            <tr key={item.id} className="transition-colors hover:bg-surface-hover/50">
               <td className="px-4 py-2.5">
                 <Link
                   href={`/assets/${item.ticker}`}
-                  className="font-medium font-mono hover:text-primary"
+                  className="font-semibold font-mono text-xs text-primary hover:underline"
                 >
                   {item.ticker}
                 </Link>
               </td>
               <td className="px-4 py-2.5">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${
                     item.verdict === "COMPLIANT"
-                      ? "bg-success/10 text-success"
-                      : "bg-destructive/10 text-destructive"
+                      ? "bg-emerald-subtle text-emerald-light border-emerald/20"
+                      : "bg-destructive/10 text-destructive border-destructive/20"
                   }`}
                 >
                   {item.verdict === "COMPLIANT" ? (
@@ -68,7 +66,7 @@ export function ComplianceTable({ items }: ComplianceTableProps) {
                   {item.verdict === "COMPLIANT" ? "Compliant" : "Non-Compliant"}
                 </span>
               </td>
-              <td className="px-4 py-2.5 text-right text-muted-foreground">
+              <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
                 {formatDate(item.evaluatedAt)}
               </td>
             </tr>

@@ -23,10 +23,10 @@ export default function HistoryPage() {
   } = useComplianceHistory(page);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">History</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">History</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Order history and compliance audit log.
         </p>
       </div>
@@ -47,7 +47,7 @@ export default function HistoryPage() {
           )}
 
           {isLoading && (
-            <div className="rounded-lg border p-4 space-y-3">
+            <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
@@ -105,7 +105,7 @@ export default function HistoryPage() {
           )}
 
           {complianceLoading && (
-            <div className="rounded-lg border p-4 space-y-3">
+            <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
@@ -145,13 +145,11 @@ export default function HistoryPage() {
           )}
 
           {complianceData && complianceData.items.length === 0 && (
-            <div className="rounded-lg border p-4">
-              <EmptyState
-                icon={Shield}
-                title="No compliance history yet"
-                description="Compliance evaluations will appear here as you view assets."
-              />
-            </div>
+            <EmptyState
+              icon={Shield}
+              title="No compliance history yet"
+              description="Compliance evaluations will appear here as you view assets."
+            />
           )}
         </TabsContent>
       </Tabs>

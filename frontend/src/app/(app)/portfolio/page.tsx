@@ -1,7 +1,7 @@
 "use client";
 
 import { usePortfolio } from "@/lib/hooks/use-portfolio";
-import { PortfolioSummary } from "@/components/portfolio/portfolio-summary";
+import { DashboardSummary } from "@/components/portfolio/dashboard-summary";
 import { ComplianceGauge } from "@/components/portfolio/compliance-gauge";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { ActivityFeed } from "@/components/portfolio/activity-feed";
@@ -18,11 +18,11 @@ export default function PortfolioPage() {
 
   if (isError) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div>
-          <h1 className="text-2xl font-semibold">Portfolio</h1>
-          <p className="text-sm text-muted-foreground">
-            Your virtual portfolio overview and compliance health.
+          <h1 className="text-xl font-semibold tracking-tight">Portfolio</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Your portfolio overview and compliance health.
           </p>
         </div>
         <ErrorState
@@ -39,22 +39,22 @@ export default function PortfolioPage() {
       .length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Portfolio</h1>
-        <p className="text-sm text-muted-foreground">
-          Your virtual portfolio overview and compliance health.
+        <h1 className="text-xl font-semibold tracking-tight">Portfolio</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Your portfolio overview and compliance health.
         </p>
       </div>
 
-      <PortfolioSummary
+      <DashboardSummary
         totalValueCents={data?.totalValueCents}
         buyingPowerCents={data?.buyingPowerCents}
         overallComplianceScore={data?.overallComplianceScore}
         isLoading={summaryLoading}
       />
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3 space-y-4">
           {data?.positions && data.positions.length > 0 ? (
             <PortfolioTable
@@ -68,10 +68,10 @@ export default function PortfolioPage() {
               description="Search for an asset to place your first paper trade."
               action={
                 <Link
-                  href="/"
-                  className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  href="/markets"
+                  className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground transition-colors hover:bg-emerald-muted"
                 >
-                  Search Assets
+                  Browse Markets
                 </Link>
               }
             />
