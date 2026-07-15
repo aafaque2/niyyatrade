@@ -21,21 +21,21 @@ interface FrameworkDetailProps {
 const FRAMEWORK_INFO: Record<string, { description: string; learnMore: string }> = {
   standard: {
     description:
-      "The Standard framework applies no compliance filters or restrictions. All assets are automatically considered compliant. It serves as a baseline for comparison and educational purposes — it does not screen or filter any investments.",
+      "The Standard framework applies no compliance filters or restrictions. All assets are automatically considered compliant. It serves as a baseline for comparison and educational purposes.",
     learnMore:
-      "The Standard Framework is designed as a neutral baseline. It applies zero compliance rules, meaning every asset in your portfolio will always show as compliant. This is useful for:\n\n• Comparing how other frameworks affect your portfolio\n• Educational purposes to understand compliance concepts\n• Monitoring portfolio performance without any screening restrictions\n\nNo customisation options are available for this framework as it has no configurable rules.",
+      "The Standard Framework is designed as a neutral baseline. It applies zero compliance rules, meaning every asset in your portfolio will always show as compliant. This is useful for:\n\n\u2022 Comparing how other frameworks affect your portfolio\n\u2022 Educational purposes to understand compliance concepts\n\u2022 Monitoring portfolio performance without any screening restrictions\n\nNo customisation options are available for this framework as it has no configurable rules.",
   },
   esg: {
     description:
-      "The ESG (Environmental, Social, and Governance) framework screens companies on sustainability and ethical criteria. It evaluates carbon emissions, ethical business conduct, weapons involvement, employee satisfaction, and exposure to harmful industries like tobacco and alcohol.",
+      "The ESG (Environmental, Social, and Governance) framework screens companies on sustainability and ethical criteria. It evaluates carbon emissions, ethical business conduct, weapons involvement, employee satisfaction, and exposure to harmful industries.",
     learnMore:
-      "The ESG Framework evaluates investments across five key dimensions:\n\n• Carbon Emissions (esg_carbon): Excludes companies in high-carbon sectors such as Energy, Utilities, and Basic Materials.\n• Ethical Conduct (esg_conduct): Screens for harassment, exploitation, and unethical labor practices.\n• Weapons & Defense (esg_weapons): Excludes companies involved in weapons manufacturing (Industrials sector).\n• Employee Satisfaction (esg_employee): Evaluates labor practices and workplace conditions.\n• Tobacco & Alcohol (esg_tobacco_alcohol): Excludes companies in the Consumer Defensive sector involved in these industries.\n\nESG screening is particularly relevant for investors who want their portfolio to reflect sustainability values and avoid companies with negative environmental or social impact.",
+      "The ESG Framework evaluates investments across five key dimensions:\n\n\u2022 Carbon Emissions: Excludes companies in high-carbon sectors such as Energy, Utilities, and Basic Materials.\n\u2022 Ethical Conduct: Screens for harassment, exploitation, and unethical labor practices.\n\u2022 Weapons & Defense: Excludes companies involved in weapons manufacturing.\n\u2022 Employee Satisfaction: Evaluates labor practices and workplace conditions.\n\u2022 Tobacco & Alcohol: Excludes companies in the Consumer Defensive sector.\n\nESG screening is particularly relevant for investors who want their portfolio to reflect sustainability values.",
   },
   "halal-aaoifi": {
     description:
-      "The AAOIFI (Accounting and Auditing Organization for Islamic Financial Institutions) Halal Standard provides Shariah-compliance screening. It evaluates investments based on business sector permissibility and financial health ratios, ensuring alignment with Islamic principles.",
+      "The AAOIFI Halal Standard provides Shariah-compliance screening. It evaluates investments based on business sector permissibility and financial health ratios, ensuring alignment with Islamic principles.",
     learnMore:
-      "The AAOIFI Halal Standard follows the Shariah screening methodology defined by the Accounting and Auditing Organization for Islamic Financial Institutions:\n\n• Sector Screen: The core business of the company must not be in an impermissible industry. Banned sectors include Conventional Financials, Alcohol, Gambling, Adult Entertainment, Tobacco, and Defense.\n• Debt-to-Equity: Total debt cannot exceed the specified threshold of the company's trailing 12-month average market capitalisation. A lower threshold means stricter screening.\n• Interest Income: Interest (non-halal) income must be below the specified threshold of total revenue.\n\nYou can customise the financial ratio thresholds below to match your preferred level of screening strictness.",
+      "The AAOIFI Halal Standard follows the Shariah screening methodology:\n\n\u2022 Sector Screen: The core business must not be in an impermissible industry. Banned sectors include Conventional Financials, Alcohol, Gambling, Adult Entertainment, Tobacco, and Defense.\n\u2022 Debt-to-Equity: Total debt cannot exceed the specified threshold of the trailing 12-month average market capitalisation.\n\u2022 Interest Income: Interest income must be below the specified threshold of total revenue.\n\nYou can customise the financial ratio thresholds to match your preferred level of screening strictness.",
   },
 };
 
@@ -98,7 +98,7 @@ function RuleCheckbox({
   return (
     <label
       htmlFor={id}
-      className="flex items-start gap-3 rounded-md border border-border bg-muted/20 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+      className="flex items-start gap-3 rounded-md border border-border bg-surface/50 p-3 cursor-pointer hover:bg-surface transition-colors"
     >
       <input
         id={id}
@@ -128,7 +128,6 @@ export function FrameworkDetail({
   const rules = framework.defaultRules?.rules ?? {};
   const thresholdRules = useMemo(() => getThresholdRules(rules), [rules]);
   const sectorRules = useMemo(() => getSectorRules(rules), [rules]);
-  const pendingRules = useMemo(() => getInsufficientDataRules(rules), [rules]);
   const isStandard = framework.slug === "standard";
 
   const activePref = prefs?.find((p) => p.frameworkId === framework.id);
@@ -215,13 +214,13 @@ export function FrameworkDetail({
   const isActivating = activateMutation.isPending;
 
   return (
-    <div className="rounded-lg border bg-surface p-5 space-y-5">
+    <div className="rounded-lg border border-border bg-surface/50 p-5 space-y-5">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <h2 className="text-lg font-semibold">{framework.name}</h2>
           {isActive && (
-            <Badge variant="default" className="text-[10px]">
+            <Badge variant="default" className="bg-emerald/15 text-emerald-light border-emerald/20 text-[10px]">
               Active
             </Badge>
           )}
@@ -251,13 +250,13 @@ export function FrameworkDetail({
 
       {/* Standard warning */}
       {isStandard && (
-        <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
+        <div className="rounded-md border border-warning/20 bg-warning/5 p-3 text-xs text-warning">
           The Standard framework applies no compliance filters. All stocks show as compliant.
           This is for educational purposes only — not investment advice.
         </div>
       )}
 
-      {/* ESG specific: rule checkboxes (instead of separate sector/pending sections) */}
+      {/* ESG specific: rule checkboxes */}
       {framework.slug === "esg" && Object.keys(rules).length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium">Screening Criteria</h3>
@@ -342,9 +341,7 @@ export function FrameworkDetail({
         </div>
       )}
 
-
-
-      {/* Impact preview (only for AAOIFI with adjustable thresholds) */}
+      {/* Impact preview */}
       {framework.slug === "halal-aaoifi" && thresholdRules.length > 0 && (
         <ImpactPreview
           isDirty={isDirty}
@@ -360,6 +357,7 @@ export function FrameworkDetail({
             onClick={handleActivate}
             disabled={isActivating}
             size="sm"
+            className="bg-primary hover:bg-emerald-muted"
           >
             {isActivating ? "Activating..." : "Activate Framework"}
           </Button>
@@ -373,6 +371,7 @@ export function FrameworkDetail({
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
             size="sm"
+            className="bg-primary hover:bg-emerald-muted"
           >
             {saveMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
