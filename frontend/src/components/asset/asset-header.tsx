@@ -21,9 +21,9 @@ export function AssetHeader({
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-9 w-36" />
-        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-8 w-36" />
+        <Skeleton className="h-4 w-24" />
       </div>
     );
   }
@@ -33,7 +33,7 @@ export function AssetHeader({
   return (
     <div>
       <div className="flex items-baseline gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-xl font-semibold tracking-tight">
           {ticker.toUpperCase()}
         </h1>
         {companyName && (
@@ -50,7 +50,7 @@ export function AssetHeader({
           <span
             className={`text-sm font-medium font-mono ${
               change.positive
-                ? "text-success"
+                ? "text-emerald-light"
                 : "text-danger"
             }`}
           >
