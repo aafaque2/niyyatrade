@@ -29,7 +29,7 @@ export function ProfileForm() {
   const isDirty = name !== (user?.name ?? "");
 
   return (
-    <div className="rounded-lg border bg-surface p-4 space-y-3">
+    <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
       <div>
         <h3 className="text-sm font-medium">Profile</h3>
         <p className="text-xs text-muted-foreground">
@@ -37,7 +37,7 @@ export function ProfileForm() {
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label htmlFor="profile-email" className="text-xs text-muted-foreground">Email</label>
         <Input
           id="profile-email"
@@ -50,14 +50,14 @@ export function ProfileForm() {
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <label htmlFor="profile-name" className="text-xs text-muted-foreground">Name</label>
         <Input
           id="profile-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          className="text-xs"
+          className="text-xs bg-background"
         />
       </div>
 
@@ -65,6 +65,7 @@ export function ProfileForm() {
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending || !isDirty}
         size="sm"
+        className="bg-primary hover:bg-emerald-muted"
       >
         {mutation.isPending ? "Saving..." : "Save"}
       </Button>
