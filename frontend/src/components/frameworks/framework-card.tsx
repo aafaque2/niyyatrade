@@ -28,22 +28,22 @@ export function FrameworkCard({
       type="button"
       disabled={isComingSoon}
       onClick={() => onSelect(framework.id)}
-      className={`w-full rounded-lg border p-4 text-left transition-all ${
+      className={`w-full rounded-lg border p-4 text-left transition-all duration-150 ${
         isSelected
-          ? "border-primary bg-primary/5 ring-1 ring-primary"
+          ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
           : isActive
-            ? "border-success/40 bg-success/5 ring-1 ring-success/30"
-            : "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover"
+            ? "border-emerald/30 bg-emerald-subtle ring-1 ring-emerald/10"
+            : "border-border bg-surface/50 hover:border-border hover:bg-surface"
       } ${isComingSoon ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{framework.name}</span>
         <div className="flex items-center gap-1.5">
           {isSelected && !isActive && (
-            <span className="text-[10px] text-primary">Selected</span>
+            <span className="text-[10px] font-medium text-primary">Selected</span>
           )}
           {isActive && (
-            <Badge variant="default" className="text-[10px]">
+            <Badge variant="default" className="bg-emerald/15 text-emerald-light border-emerald/20 text-[10px]">
               Active
             </Badge>
           )}

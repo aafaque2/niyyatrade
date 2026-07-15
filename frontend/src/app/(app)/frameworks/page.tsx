@@ -10,6 +10,7 @@ import { FrameworkCard } from "@/components/frameworks/framework-card";
 import { FrameworkDetail } from "@/components/frameworks/framework-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
+import { Shield } from "lucide-react";
 
 const FRAMEWORK_ORDER = ["standard", "esg", "halal-aaoifi"];
 
@@ -90,10 +91,10 @@ export default function FrameworksPage() {
 
   if (isError) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div>
-          <h1 className="text-2xl font-semibold">Frameworks</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight">Compliance Center</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Configure your compliance frameworks and thresholds.
           </p>
         </div>
@@ -107,22 +108,25 @@ export default function FrameworksPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Frameworks</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure your compliance frameworks and thresholds.
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-semibold tracking-tight">Compliance Center</h1>
+        </div>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Configure, customise, and understand your compliance frameworks.
         </p>
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+        <h2 className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Available Frameworks
         </h2>
         {isLoading || activateMutation.isPending ? (
           <div className="grid gap-3 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full" />
+              <Skeleton key={i} className="h-20 w-full rounded-lg" />
             ))}
           </div>
         ) : (
@@ -142,7 +146,7 @@ export default function FrameworksPage() {
 
       {selectedFramework ? (
         <section>
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+          <h2 className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Framework Details
           </h2>
           <FrameworkDetail
