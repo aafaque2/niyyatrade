@@ -1,32 +1,44 @@
-import { Scale, BookText, TrendingUp, Globe } from "lucide-react";
+import { Shield, BookText, TrendingUp, BarChart3, Layers, Eye } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeatureCard } from "@/components/landing/feature-card";
 import { LandingFooter } from "@/components/landing/footer";
 
 const features = [
   {
-    icon: Scale,
-    title: "Pluggable Compliance Frameworks",
+    icon: Shield,
+    title: "Transparent Compliance",
     description:
-      "Evaluate assets against AAOIFI standards, ESG criteria, or custom rule sets. Each framework is fully transparent — see exactly why an asset passes or fails.",
+      "Evaluate assets against ESG criteria, AAOIFI Shariah standards, or custom rule sets. Every verdict is explainable.",
   },
   {
-    icon: BookText,
-    title: "Explainable Evaluations",
+    icon: Layers,
+    title: "Pluggable Frameworks",
     description:
-      "No black boxes. Every compliance verdict includes a plain-English breakdown of the math, thresholds, and reasoning behind the decision.",
+      "Switch between Standard, ESG, and Halal compliance modes instantly. Customise thresholds to match your criteria.",
   },
   {
     icon: TrendingUp,
     title: "Paper Trading Simulator",
     description:
-      "Practice investing with $100,000 in virtual capital. Execute fractional share trades, track your portfolio, and test strategies risk-free.",
+      "Execute fractional share trades with $100,000 in virtual capital. Track your portfolio and test strategies risk-free.",
   },
   {
-    icon: Globe,
+    icon: BarChart3,
     title: "Real-Time Market Data",
     description:
-      "Live prices, historical charts, and fundamental data powered by Financial Modeling Prep. Make informed decisions with accurate market information.",
+      "Live prices, candlestick charts, and fundamental data. Make informed decisions with accurate, up-to-date information.",
+  },
+  {
+    icon: BookText,
+    title: "Investment Education",
+    description:
+      "Understand the math, thresholds, and reasoning behind every compliance decision. Learn by doing, not just reading.",
+  },
+  {
+    icon: Eye,
+    title: "Portfolio Analytics",
+    description:
+      "Sector distribution, compliance exposure, performance tracking, and activity history in a single, clear view.",
   },
 ];
 
@@ -38,14 +50,14 @@ export default function LandingPage() {
       <section className="mx-auto w-full max-w-5xl px-6 py-20">
         <div className="text-center">
           <h2 className="text-2xl font-semibold tracking-tight">
-            Everything you need to invest with confidence
+            Built for informed investing
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            A modern platform built for compliance-conscious investors.
+            Every feature designed to help you understand your investments before committing real capital.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <FeatureCard key={feature.title} {...feature} />
           ))}
@@ -55,23 +67,23 @@ export default function LandingPage() {
       <section className="border-t border-border">
         <div className="mx-auto max-w-5xl px-6 py-16 text-center">
           <h2 className="text-xl font-semibold tracking-tight">
-            Start your compliance-aware investing journey
+            Ready to start paper trading?
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Join other investors who trade with transparency and purpose.
+            $100,000 in virtual capital. No real money at risk.
           </p>
           <div className="mt-6 flex items-center justify-center gap-4">
             <a
               href="/register"
-              className="inline-flex h-12 items-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex h-11 items-center rounded-lg bg-primary px-7 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-muted"
             >
-              Get Started Free
+              Create free account
             </a>
             <a
               href="/login"
-              className="inline-flex h-12 items-center rounded-md border border-border px-8 text-sm font-medium hover:bg-accent"
+              className="inline-flex h-11 items-center rounded-lg border border-border px-7 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover"
             >
-              Sign In
+              Sign in
             </a>
           </div>
         </div>
