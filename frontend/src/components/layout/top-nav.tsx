@@ -1,16 +1,44 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { CommandPalette } from "./command-palette";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useFrameworks } from "@/lib/hooks/use-frameworks";
+import { activateFramework } from "@/lib/services/identity";
+import { Bell, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function TopNav() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const logout = useAuthStore((s) => s.logout);
+  const queryClient = useQueryClient();
   const { data: frameworks } = useFrameworks();
   const activeFramework = frameworks?.find((f) => f.id === user?.activeFrameworkId);
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const activateMutation = useMutation({
+    mutationFn: activateFramework,
+    onSuccess: (updatedUser) => {
+      setUser({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        activeFrameworkId: updatedUser.activeFrameworkId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["framework-prefs"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to switch framework");
+    },
+  });
 
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
@@ -28,30 +56,141 @@ export function TopNav() {
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-user-menu]")) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handler);
+    }
+    return () => document.removeEventListener("mousedown", handler);
+  }, [userMenuOpen]);
+
+  const handleFrameworkSwitch = (frameworkId: string) => {
+    if (frameworkId !== user?.activeFrameworkId) {
+      activateMutation.mutate(frameworkId);
+    }
+  };
+
+  const currentFrameworkSlug = activeFramework?.slug ?? "standard";
+  const standardFramework = frameworks?.find((f) => f.slug === "standard");
+  const halalFramework = frameworks?.find((f) => f.slug === "halal-aaoifi");
+
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background px-6 lg:left-60">
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background/80 backdrop-blur-md px-6 lg:left-[232px]">
         <div className="flex w-full items-center justify-between">
           <div className="relative w-80">
-            <kbd className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <kbd className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
             <Input
               placeholder="Search assets..."
               aria-label="Search assets"
-              className="pl-12 text-sm"
+              className="h-8 pl-11 text-sm bg-surface border-border"
               readOnly
               onFocus={() => setOpen(true)}
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-muted-foreground">
-              Framework:{" "}
-              <span className="font-medium text-foreground">
-                {activeFramework?.name ?? (user?.activeFrameworkId ? "Loading..." : "None")}
-              </span>
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Framework Toggle */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
+              {standardFramework && (
+                <button
+                  type="button"
+                  onClick={() => handleFrameworkSwitch(standardFramework.id)}
+                  className={cn(
+                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
+                    currentFrameworkSlug === "standard"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Standard
+                </button>
+              )}
+              {halalFramework && (
+                <button
+                  type="button"
+                  onClick={() => handleFrameworkSwitch(halalFramework.id)}
+                  className={cn(
+                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
+                    currentFrameworkSlug === "halal-aaoifi"
+                      ? "bg-emerald text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Halal
+                  {currentFrameworkSlug === "halal-aaoifi" && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold leading-none">
+                      ACTIVE
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Notifications */}
+            <button
+              type="button"
+              className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+            </button>
+
+            {/* User Menu */}
+            <div className="relative" data-user-menu>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
+                  {user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U"}
+                </div>
+                <span className="hidden text-xs font-medium md:inline">
+                  {user?.name ?? user?.email?.split("@")[0] ?? "User"}
+                </span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg animate-fade-in">
+                  <div className="px-2.5 py-2 border-b border-border mb-1">
+                    <p className="text-xs font-medium text-foreground truncate">{user?.name ?? "User"}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push("/settings");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      router.push("/login");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
