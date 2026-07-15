@@ -78,6 +78,7 @@ export function TopNav() {
   const currentFrameworkSlug = activeFramework?.slug ?? "standard";
   const standardFramework = frameworks?.find((f) => f.slug === "standard");
   const halalFramework = frameworks?.find((f) => f.slug === "halal-aaoifi");
+  const esgFramework = frameworks?.find((f) => f.slug === "esg");
 
   return (
     <>
@@ -111,6 +112,25 @@ export function TopNav() {
                   )}
                 >
                   Standard
+                </button>
+              )}
+              {esgFramework && (
+                <button
+                  type="button"
+                  onClick={() => handleFrameworkSwitch(esgFramework.id)}
+                  className={cn(
+                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
+                    currentFrameworkSlug === "esg"
+                      ? "bg-emerald text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Ethical
+                  {currentFrameworkSlug === "esg" && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold leading-none">
+                      ACTIVE
+                    </span>
+                  )}
                 </button>
               )}
               {halalFramework && (
