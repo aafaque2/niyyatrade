@@ -22,14 +22,14 @@ export function AssetChart({ ticker }: { ticker: string }) {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <Skeleton className="h-[400px] w-full" />
+        <Skeleton className="h-[400px] w-full rounded-lg" />
       </div>
     );
   }
 
   if (isError || !candles?.length) {
     return (
-      <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
         Chart data unavailable
       </div>
     );
@@ -38,17 +38,17 @@ export function AssetChart({ ticker }: { ticker: string }) {
   return (
     <div>
       <ChartInner candles={candles} />
-      <div className="mt-2 flex items-center gap-1">
+      <div className="mt-3 flex items-center gap-0.5">
         {TIMEFRAMES.map((tf) => (
           <button
             key={tf.resolution}
             type="button"
             onClick={() => setResolution(tf.resolution)}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150",
               resolution === tf.resolution
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-surface-hover",
             )}
           >
             {tf.label}
@@ -81,11 +81,12 @@ function ChartInner({
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#a1a1aa",
+        textColor: "#94A3B8",
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#27272a" },
-        horzLines: { color: "#27272a" },
+        vertLines: { color: "#1E293B" },
+        horzLines: { color: "#1E293B" },
       },
       width: containerRef.current.clientWidth,
       height: 400,
@@ -93,10 +94,10 @@ function ChartInner({
         mode: 0,
       },
       timeScale: {
-        borderColor: "#27272a",
+        borderColor: "#232B35",
       },
       rightPriceScale: {
-        borderColor: "#27272a",
+        borderColor: "#232B35",
       },
     });
 
