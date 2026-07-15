@@ -3,7 +3,6 @@
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { ResetPortfolioDialog } from "@/components/settings/reset-portfolio-dialog";
-import { FrameworkOverrideForm } from "@/components/settings/framework-override-form";
 
 export default function SettingsPage() {
   return (
@@ -21,7 +20,6 @@ export default function SettingsPage() {
           <PasswordForm />
         </div>
         <div className="space-y-5">
-          <FrameworkOverrideForm />
           <ResetPortfolioDialog />
         </div>
       </div>
