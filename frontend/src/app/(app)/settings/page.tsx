@@ -17,10 +17,10 @@ export default function SettingsPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <ProfileForm />
-          <PasswordForm />
+          <ResetPortfolioDialog />
         </div>
         <div className="space-y-5">
-          <ResetPortfolioDialog />
+          <PasswordForm />
         </div>
       </div>
     </div>
