@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import Redis from 'ioredis';
 import type { IMarketDataProvider } from './providers/market-data-provider.interface';
 import type {
@@ -56,15 +56,36 @@ export class MarketDataService {
     }
   }
 
+  private mapProviderError(err: unknown, context: string): never {
+    const e = err as Error & { statusCode?: number };
+    const status = e.statusCode ?? 502;
+    this.logger.warn(`${context}: ${e.message}`);
+    if (status === 402 || status === 403) {
+      throw new HttpException(
+        `Data not available for this symbol on the current plan`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    throw new HttpException(
+      `Market data provider error: ${e.message}`,
+      status >= 400 && status < 600 ? status : HttpStatus.BAD_GATEWAY,
+    );
+  }
+
   async getQuote(ticker: string): Promise<MarketQuote> {
     const key = this.cacheKey('quote', ticker.toUpperCase());
 
     const cached = await this.cacheGet<MarketQuote>(key);
     if (cached) return cached;
 
-    const quote = await this.provider.getQuote(ticker);
-    await this.cacheSet(key, CACHE_TTLS.QUOTE, quote);
-    return quote;
+    try {
+      const quote = await this.provider.getQuote(ticker);
+      await this.cacheSet(key, CACHE_TTLS.QUOTE, quote);
+      return quote;
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      this.mapProviderError(err, `getQuote(${ticker})`);
+    }
   }
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
@@ -73,9 +94,14 @@ export class MarketDataService {
     const cached = await this.cacheGet<FinancialFundamentals>(key);
     if (cached) return cached;
 
-    const fundamentals = await this.provider.getFundamentals(ticker);
-    await this.cacheSet(key, CACHE_TTLS.FUNDAMENTALS, fundamentals);
-    return fundamentals;
+    try {
+      const fundamentals = await this.provider.getFundamentals(ticker);
+      await this.cacheSet(key, CACHE_TTLS.FUNDAMENTALS, fundamentals);
+      return fundamentals;
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      this.mapProviderError(err, `getFundamentals(${ticker})`);
+    }
   }
 
   async getCandles(
@@ -89,14 +115,19 @@ export class MarketDataService {
     const cached = await this.cacheGet<ChartCandle[]>(key);
     if (cached) return cached;
 
-    const candles = await this.provider.getCandles(
-      ticker,
-      resolution,
-      from,
-      to,
-    );
-    await this.cacheSet(key, CACHE_TTLS.CANDLES, candles);
-    return candles;
+    try {
+      const candles = await this.provider.getCandles(
+        ticker,
+        resolution,
+        from,
+        to,
+      );
+      await this.cacheSet(key, CACHE_TTLS.CANDLES, candles);
+      return candles;
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      this.mapProviderError(err, `getCandles(${ticker})`);
+    }
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -105,8 +136,13 @@ export class MarketDataService {
     const cached = await this.cacheGet<SearchResult[]>(key);
     if (cached) return cached;
 
-    const results = await this.provider.search(query);
-    await this.cacheSet(key, CACHE_TTLS.SEARCH, results);
-    return results;
+    try {
+      const results = await this.provider.search(query);
+      await this.cacheSet(key, CACHE_TTLS.SEARCH, results);
+      return results;
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      this.mapProviderError(err, `search(${query})`);
+    }
   }
 }
