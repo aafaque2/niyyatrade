@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { OrderSide, OrderStatus } from '@prisma/client';
+import type { OrderSide, OrderStatus } from '../../generated/prisma/enums';
 
 export interface OrderHistoryItem {
   id: string;
