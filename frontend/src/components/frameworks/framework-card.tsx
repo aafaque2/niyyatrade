@@ -28,7 +28,7 @@ export function FrameworkCard({
       type="button"
       disabled={isComingSoon}
       onClick={() => onSelect(framework.id)}
-      className={`w-full rounded-lg border p-4 text-left transition-all duration-150 ${
+      className={`w-full rounded-lg border p-4 text-center transition-all duration-150 ${
         isSelected
           ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
           : isActive
@@ -36,12 +36,9 @@ export function FrameworkCard({
             : "border-border bg-surface/50 hover:border-border hover:bg-surface"
       } ${isComingSoon ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{framework.name}</span>
+      <div className="flex flex-col items-center gap-1.5">
+        <span className="text-sm font-medium leading-snug">{framework.name}</span>
         <div className="flex items-center gap-1.5">
-          {isSelected && !isActive && (
-            <span className="text-[10px] font-medium text-primary">Selected</span>
-          )}
           {isActive && (
             <Badge variant="default" className="bg-emerald/15 text-emerald-light border-emerald/20 text-[10px]">
               Active

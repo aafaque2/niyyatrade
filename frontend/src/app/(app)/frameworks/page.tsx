@@ -10,7 +10,7 @@ import { FrameworkCard } from "@/components/frameworks/framework-card";
 import { FrameworkDetail } from "@/components/frameworks/framework-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
-import { Shield } from "lucide-react";
+import { Shield, Plus, Sparkles } from "lucide-react";
 
 const FRAMEWORK_ORDER = ["standard", "esg", "halal-aaoifi"];
 
@@ -124,13 +124,13 @@ export default function FrameworksPage() {
           Available Frameworks
         </h2>
         {isLoading || activateMutation.isPending ? (
-          <div className="grid gap-3 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
+          <div className="grid gap-3 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-20 w-full rounded-lg" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-4">
             {frameworkList.map((f) => (
               <FrameworkCard
                 key={f.id}
@@ -140,6 +140,26 @@ export default function FrameworksPage() {
                 onSelect={handleSelect}
               />
             ))}
+            <button
+              type="button"
+              onClick={() =>
+                toast.info("Custom frameworks coming soon — build your own compliance rules.")
+              }
+              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface/30 p-4 text-center transition-all duration-150 hover:border-primary/30 hover:bg-primary/5 cursor-pointer min-h-[80px]"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface transition-colors group-hover:bg-primary/10">
+                <Plus className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                  Create Custom
+                </p>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5 flex items-center justify-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  Coming soon
+                </p>
+              </div>
+            </button>
           </div>
         )}
       </section>

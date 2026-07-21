@@ -16,13 +16,31 @@ import {
 export class FmpMarketDataProvider implements IMarketDataProvider {
   private readonly logger = new Logger(FmpMarketDataProvider.name);
   private readonly baseUrl = 'https://financialmodelingprep.com/stable';
-  private readonly apiKey: string;
+  private readonly apiKeys: string[];
+  private keyIndex = 0;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('FMP_API_KEY', '');
+    const raw = this.configService.get<string>('FMP_API_KEY', '');
+    this.apiKeys = raw
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
   }
 
-  private async fetch<T>(path: string): Promise<T> {
+  private get apiKey(): string {
+    return this.apiKeys[this.keyIndex % this.apiKeys.length];
+  }
+
+  private rotateKey(): string {
+    const prev = this.keyIndex;
+    this.keyIndex = (this.keyIndex + 1) % this.apiKeys.length;
+    this.logger.warn(
+      `FMP key rotation: slot ${prev} → ${this.keyIndex} (${this.apiKeys.length} keys available)`,
+    );
+    return this.apiKey;
+  }
+
+  private async fetch<T>(path: string, attempt = 0): Promise<T> {
     const separator = path.includes('?') ? '&' : '?';
     const url = `${this.baseUrl}${path}${separator}apikey=${this.apiKey}`;
     const res = await fetch(url, {
@@ -34,6 +52,12 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       this.logger.error(
         `FMP ${res.status} for ${path} — ${body.slice(0, 300)}`,
       );
+
+      if ((res.status === 402 || res.status === 403) && attempt < this.apiKeys.length - 1) {
+        this.rotateKey();
+        return this.fetch(path, attempt + 1);
+      }
+
       const err = new Error(
         `FMP API error: ${res.status} ${res.statusText}`,
       ) as Error & { statusCode: number };
