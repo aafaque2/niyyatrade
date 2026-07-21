@@ -42,7 +42,9 @@ export class WatchlistService {
       sector = fundamentals.sector ?? 'Other';
       name = fundamentals.industry ?? upper;
     } catch {
-      this.logger.warn(`Failed to fetch fundamentals for ${upper}, using defaults`);
+      this.logger.warn(
+        `Failed to fetch fundamentals for ${upper}, using defaults`,
+      );
     }
 
     return this.prisma.asset.upsert({

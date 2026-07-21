@@ -1,5 +1,5 @@
 {
-  "exclude": ["prisma", "dist", "node_modules", "generated"],
+  "exclude": ["prisma", "dist", "node_modules"],
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
@@ -15,7 +15,6 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./",
-    "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,

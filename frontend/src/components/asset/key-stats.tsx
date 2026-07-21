@@ -3,7 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { FINANCIAL_GLOSSARY } from "@/lib/constants/glossary";
-import { formatCentsCompact } from "@/lib/utils";
+import { formatDollarsCompact } from "@/lib/utils";
 import { useFundamentals } from "@/lib/hooks/use-fundamentals";
 
 interface KeyStatsProps {
@@ -80,7 +80,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
       <div className="divide-y divide-border">
         <StatRow
           label="Market Cap"
-          value={formatCentsCompact(data.marketCap)}
+          value={formatDollarsCompact(data.marketCap)}
           tooltipTerm="market-cap"
         />
         <StatRow
@@ -110,7 +110,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
         />
         <StatRow
           label="Total Revenue"
-          value={formatCentsCompact(data.totalRevenue)}
+          value={formatDollarsCompact(data.totalRevenue)}
           tooltipTerm="market-cap"
         />
         <StatRow

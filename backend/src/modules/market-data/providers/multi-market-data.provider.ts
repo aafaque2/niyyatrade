@@ -28,6 +28,16 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
   }
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
+    if (this.isIndianTicker(ticker)) {
+      try {
+        return await this.upstox.getFundamentals(ticker);
+      } catch (err) {
+        this.logger.warn(
+          `Upstox fundamentals failed for ${ticker}: ${(err as Error).message}`,
+        );
+        return this.fmp.getFundamentals(ticker);
+      }
+    }
     return this.fmp.getFundamentals(ticker);
   }
 
@@ -50,16 +60,22 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     ]);
 
     if (fmpResults.status === 'rejected') {
-      this.logger.warn(`FMP search failed for "${query}": ${(fmpResults.reason as Error).message}`);
+      this.logger.warn(
+        `FMP search failed for "${query}": ${(fmpResults.reason as Error).message}`,
+      );
     }
     if (upstoxResults.status === 'rejected') {
-      this.logger.warn(`Upstox search failed for "${query}": ${(upstoxResults.reason as Error).message}`);
+      this.logger.warn(
+        `Upstox search failed for "${query}": ${(upstoxResults.reason as Error).message}`,
+      );
     }
 
     const fmp = fmpResults.status === 'fulfilled' ? fmpResults.value : [];
-    const upstox = upstoxResults.status === 'fulfilled' ? upstoxResults.value : [];
+    const upstox =
+      upstoxResults.status === 'fulfilled' ? upstoxResults.value : [];
 
-    const stripSuffix = (t: string) => t.replace(/\.(NS|BO|NSE|BSE)$/i, '').toUpperCase();
+    const stripSuffix = (t: string) =>
+      t.replace(/\.(NS|BO|NSE|BSE)$/i, '').toUpperCase();
 
     const seen = new Set<string>();
     const merged: SearchResult[] = [];

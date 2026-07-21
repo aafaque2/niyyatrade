@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { searchAssets } from "@/lib/services/market-data";
 import { useAddToWatchlist } from "@/lib/hooks/use-watchlist";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus } from "lucide-react";
 
@@ -11,19 +12,10 @@ interface AddSymbolProps {
   existingTickers: string[];
 }
 
-function useDebouncedValue(value: string, delay: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
-
 export function AddSymbol({ existingTickers }: AddSymbolProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const debounced = useDebouncedValue(query, 250);
+  const debounced = useDebounce(query, 500);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const addMutation = useAddToWatchlist();

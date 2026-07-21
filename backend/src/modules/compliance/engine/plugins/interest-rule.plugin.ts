@@ -15,15 +15,18 @@ export class InterestRulePlugin implements IRuleEvaluator {
   evaluate(fundamentals: FinancialFundamentals, rule: RuleSpec): RuleResult {
     const threshold = rule.threshold ?? 5;
 
-    if (fundamentals.interestIncome == null || fundamentals.totalRevenue == null) {
+    if (
+      fundamentals.interestIncome == null ||
+      fundamentals.totalRevenue == null
+    ) {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Interest Income',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
         explanation:
-          'No interest income data available. Defaulting to compliant.',
+          'Insufficient interest income data — cannot verify compliance.',
       };
     }
 
@@ -31,11 +34,11 @@ export class InterestRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Interest Income',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
         explanation:
-          'Total revenue is zero. Unable to calculate ratio. Defaulting to compliant.',
+          'Total revenue is zero — unable to calculate interest income ratio.',
       };
     }
 

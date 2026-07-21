@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { searchAssets, type SearchResult } from "@/lib/services/market-data";
 import { getQuote } from "@/lib/services/market-data";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -33,10 +34,11 @@ export default function MarketsPage() {
   const [selectedSector, setSelectedSector] = useState("All Sectors");
   const [sortField, setSortField] = useState<SortField>("ticker");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const debouncedQuery = useDebounce(searchQuery, 500);
 
   const { data: results, isLoading } = useQuery({
-    queryKey: ["market-search", searchQuery || "all"],
-    queryFn: () => searchAssets(searchQuery || "a"),
+    queryKey: ["market-search", debouncedQuery || "all"],
+    queryFn: () => searchAssets(debouncedQuery || "a"),
     staleTime: 30_000,
   });
 

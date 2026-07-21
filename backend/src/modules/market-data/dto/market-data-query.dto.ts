@@ -8,7 +8,7 @@ export class SearchQueryDto {
 
 export class CandlesQueryDto {
   @IsOptional()
-  @IsIn(['1D', '1W', '1M', '1Y'])
+  @IsIn(['1D', '1W', '1M', '1Y', 'ALL'])
   resolution?: string;
 
   @IsOptional()

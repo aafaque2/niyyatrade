@@ -19,10 +19,11 @@ export class DebtRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Debt-to-Equity',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}%`,
-        explanation: 'No debt data available. Defaulting to compliant.',
+        explanation:
+          'Insufficient debt data available — cannot verify compliance.',
       };
     }
 
@@ -30,11 +31,11 @@ export class DebtRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Debt-to-Equity',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}%`,
         explanation:
-          'Total assets is zero. Unable to calculate ratio. Defaulting to compliant.',
+          'Total assets is zero — unable to calculate debt-to-equity ratio.',
       };
     }
 

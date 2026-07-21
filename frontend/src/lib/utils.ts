@@ -45,6 +45,10 @@ export function formatCentsCompact(cents: number | bigint): string {
   return compactFormatter.format(Number(cents) / 100)
 }
 
+export function formatDollarsCompact(dollars: number | bigint): string {
+  return compactFormatter.format(Number(dollars))
+}
+
 export function formatPercent(value: number): string {
   return percentFormatter.format(value)
 }

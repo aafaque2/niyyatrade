@@ -19,10 +19,10 @@ export class EsgSectorPlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'ESG Sector Screen',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `Excluded sectors: ${banned.join(', ')}`,
-        explanation: 'No sector data available. Defaulting to compliant.',
+        explanation: 'Insufficient sector data — cannot verify ESG compliance.',
       };
     }
 

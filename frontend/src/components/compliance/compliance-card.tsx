@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useComplianceReport } from "@/lib/hooks/use-compliance-report";
+import { useFrameworks } from "@/lib/hooks/use-frameworks";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RuleAccordion } from "./rule-accordion";
 import { FrameworkSelector } from "@/components/asset/framework-selector";
 
 export function ComplianceCard({ ticker }: { ticker: string }) {
-  const [frameworkId, setFrameworkId] = useState<string | undefined>(undefined);
+  const user = useAuthStore((s) => s.user);
+  const { data: frameworks } = useFrameworks();
+
+  const defaultSlug = useMemo(() => {
+    if (!user?.activeFrameworkId || !frameworks) return undefined;
+    return frameworks.find((fw) => fw.id === user.activeFrameworkId)?.slug;
+  }, [user, frameworks]);
+
+  const [frameworkId, setFrameworkId] = useState<string | undefined>(defaultSlug);
   const { data, isLoading, isError, error } = useComplianceReport(ticker, frameworkId);
 
-  const framework = frameworkId ?? "esg";
+  const framework = frameworkId ?? defaultSlug ?? "esg";
   const isStandard = framework === "standard";
 
   return (

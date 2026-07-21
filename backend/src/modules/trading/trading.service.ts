@@ -184,23 +184,23 @@ export class TradingService {
         const portfolio = await this.lockPortfolio(tx, userId);
 
         if (dto.side === OrderSide.BUY) {
-      return this.executeBuy(
-        tx,
-        portfolio,
-        dto.assetTicker,
-        quantity,
-        priceCents,
-        totalCostCents.toNumber(),
-      );
-    }
-    return this.executeSell(
-      tx,
-      portfolio,
-      dto.assetTicker,
-      quantity,
-      priceCents,
-      totalCostCents.toNumber(),
-    );
+          return this.executeBuy(
+            tx,
+            portfolio,
+            dto.assetTicker,
+            quantity,
+            priceCents,
+            totalCostCents.toNumber(),
+          );
+        }
+        return this.executeSell(
+          tx,
+          portfolio,
+          dto.assetTicker,
+          quantity,
+          priceCents,
+          totalCostCents.toNumber(),
+        );
       });
     } catch (err) {
       this.logger.error(

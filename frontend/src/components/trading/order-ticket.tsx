@@ -17,7 +17,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const [quantity, setQuantity] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { data: quote, isLoading: quoteLoading } = useQuote(ticker);
+  const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuote(ticker);
   const { mutate, isPending, isSuccess, error } = usePlaceOrder();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -92,6 +92,10 @@ export function OrderTicket({ ticker }: { ticker: string }) {
       <div className="space-y-3">
         {quoteLoading ? (
           <Skeleton className="h-4 w-28" />
+        ) : quoteError ? (
+          <p className="text-sm text-destructive">
+            Quote unavailable — data not found for this ticker.
+          </p>
         ) : (
           <p className="text-sm">
             {orderType === "MARKET" ? "Market price:" : "Last price:"}{" "}

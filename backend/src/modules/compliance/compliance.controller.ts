@@ -15,14 +15,11 @@ export class ComplianceController {
 
   @Get('evaluate')
   @UseGuards(OptionalJwtAuthGuard)
-  async evaluate(
-    @Query() query: EvaluateQueryDto,
-    @Req() req: Request,
-  ) {
+  async evaluate(@Query() query: EvaluateQueryDto, @Req() req: Request) {
     return this.complianceService.evaluate(
       query.ticker,
       query.frameworkId,
-      (req.user as { sub?: string } | undefined)?.sub,
+      (req.user as { sub?: string })?.sub,
     );
   }
 }

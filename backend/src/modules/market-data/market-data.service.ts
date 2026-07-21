@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import type { IMarketDataProvider } from './providers/market-data-provider.interface';
 import type {

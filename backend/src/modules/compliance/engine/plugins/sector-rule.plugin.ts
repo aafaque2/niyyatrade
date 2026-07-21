@@ -21,10 +21,10 @@ export class SectorRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Sector Screening',
-        passed: true,
+        passed: false,
         actualValue: 'N/A',
         thresholdValue: `Not in: ${banned.join(', ')}`,
-        explanation: 'No sector data available. Defaulting to compliant.',
+        explanation: 'Insufficient sector data — cannot verify compliance.',
       };
     }
 

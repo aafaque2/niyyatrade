@@ -54,16 +54,23 @@ export class ComplianceService {
     }
   }
 
-  async invalidateUserCache(userId: string, frameworkId: string): Promise<void> {
+  async invalidateUserCache(
+    userId: string,
+    frameworkId: string,
+  ): Promise<void> {
     try {
       const pattern = `compliance:eval:*:${frameworkId}:${userId}`;
       const keys = await this.redis.keys(pattern);
       if (keys.length > 0) {
         await this.redis.del(...keys);
-        this.logger.log(`Invalidated ${keys.length} compliance cache entries for user=${userId} framework=${frameworkId}`);
+        this.logger.log(
+          `Invalidated ${keys.length} compliance cache entries for user=${userId} framework=${frameworkId}`,
+        );
       }
     } catch (err) {
-      this.logger.warn(`Failed to invalidate compliance cache: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to invalidate compliance cache: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -82,7 +89,7 @@ export class ComplianceService {
       this.resolveFramework(frameworkId),
     ]);
 
-    const rulesSpecs = framework.defaultRules as unknown as {
+    const rulesSpecs = framework.defaultRules as {
       rules: Record<string, RuleSpec>;
     };
     const ruleEntries = Object.entries(rulesSpecs.rules);
@@ -99,9 +106,10 @@ export class ComplianceService {
 
     const ruleResults: RuleResult[] = [];
     for (const [ruleId, spec] of ruleEntries) {
-      const mergedSpec = overrides && overrides[ruleId] != null
-        ? { ...spec, threshold: overrides[ruleId], ruleId }
-        : { ...spec, ruleId };
+      const mergedSpec =
+        overrides && overrides[ruleId] != null
+          ? { ...spec, threshold: overrides[ruleId], ruleId }
+          : { ...spec, ruleId };
 
       const plugin = this.plugins.find((p) => p.canEvaluate(mergedSpec));
       if (!plugin) {
@@ -133,17 +141,19 @@ export class ComplianceService {
     await this.cacheSet(cacheKey, CACHE_TTL_EVALUATION, report);
 
     if (userId) {
-      await this.prisma.complianceAudit.create({
-        data: {
-          userId,
-          assetTicker: ticker.toUpperCase(),
-          frameworkId: framework.id,
-          verdict: report.verdict,
-          rules: JSON.parse(JSON.stringify(report.rules)),
-        },
-      }).catch((err: Error) => {
-        this.logger.warn(`Failed to save compliance audit: ${err.message}`);
-      });
+      await this.prisma.complianceAudit
+        .create({
+          data: {
+            userId,
+            assetTicker: ticker.toUpperCase(),
+            frameworkId: framework.id,
+            verdict: report.verdict,
+            rules: JSON.parse(JSON.stringify(report.rules)),
+          },
+        })
+        .catch((err: Error) => {
+          this.logger.warn(`Failed to save compliance audit: ${err.message}`);
+        });
     }
 
     return report;
@@ -157,7 +167,12 @@ export class ComplianceService {
 
   private async resolveFramework(frameworkId?: string) {
     if (frameworkId) {
-      let framework: { id: string; slug: string; name: string; defaultRules: unknown } | null = null;
+      let framework: {
+        id: string;
+        slug: string;
+        name: string;
+        defaultRules: unknown;
+      } | null = null;
       try {
         framework = await this.prisma.framework.findUnique({
           where: { id: frameworkId },

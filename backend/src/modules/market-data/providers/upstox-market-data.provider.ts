@@ -32,13 +32,16 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     private readonly configService: ConfigService,
     private readonly redis: Redis,
   ) {
-    this.accessToken = this.configService.get<string>('UPSTOX_ACCESS_TOKEN', '');
+    this.accessToken = this.configService.get<string>(
+      'UPSTOX_ACCESS_TOKEN',
+      '',
+    );
   }
 
   private get authHeaders() {
     return {
-      'Authorization': `Bearer ${this.accessToken}`,
-      'Accept': 'application/json',
+      Authorization: `Bearer ${this.accessToken}`,
+      Accept: 'application/json',
     };
   }
 
@@ -48,7 +51,9 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      this.logger.error(`Upstox ${res.status} for ${path} — ${body.slice(0, 300)}`);
+      this.logger.error(
+        `Upstox ${res.status} for ${path} — ${body.slice(0, 300)}`,
+      );
       const err = new Error(
         `Upstox API error: ${res.status} ${res.statusText}`,
       ) as Error & { statusCode: number };
@@ -56,7 +61,11 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       throw err;
     }
 
-    const json = (await res.json()) as { status: string; data: T; errors?: unknown[] };
+    const json = (await res.json()) as {
+      status: string;
+      data: T;
+      errors?: unknown[];
+    };
     if (json.status !== 'success') {
       const err = new Error(
         `Upstox API error: ${JSON.stringify(json.errors ?? json)}`,
@@ -100,9 +109,7 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       throw new Error(`No Upstox instrument found for ${ticker}`);
     }
 
-    const exact = data.find(
-      (i) => i.trading_symbol.toUpperCase() === symbol,
-    );
+    const exact = data.find((i) => i.trading_symbol.toUpperCase() === symbol);
     const instrument = exact ?? data[0];
 
     await this.redis.setex(cacheKey, 86400 * 30, JSON.stringify(instrument));
@@ -125,9 +132,7 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     const lastPrice = Number(quoteData.last_price ?? 0);
     const netChange = Number(quoteData.net_change ?? 0);
     const prevClose = lastPrice - netChange;
-    const changePercent = prevClose > 0
-      ? (netChange / prevClose) * 100
-      : 0;
+    const changePercent = prevClose > 0 ? (netChange / prevClose) * 100 : 0;
 
     return MarketQuoteSchema.parse({
       ticker: ticker.toUpperCase(),
@@ -143,15 +148,19 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
 
     const settled = await Promise.allSettled([
       this.fetch<Record<string, unknown>>(`/fundamentals/key-ratios/${isin}`),
-      this.fetch<Record<string, unknown>>(`/fundamentals/balance-sheet/${isin}`),
-      this.fetch<Record<string, unknown>>(`/fundamentals/income-statement/${isin}`),
-      this.fetch<Record<string, unknown>>(`/fundamentals/company-profile/${isin}`),
+      this.fetch<Record<string, unknown>>(
+        `/fundamentals/balance-sheet/${isin}`,
+      ),
+      this.fetch<Record<string, unknown>>(
+        `/fundamentals/income-statement/${isin}`,
+      ),
+      this.fetch<Record<string, unknown>>(
+        `/fundamentals/company-profile/${isin}`,
+      ),
     ]);
 
     const extract = (i: number): Record<string, unknown> =>
-      settled[i].status === 'fulfilled'
-        ? (settled[i].value as Record<string, unknown>)
-        : {};
+      settled[i].status === 'fulfilled' ? settled[i].value : {};
 
     const ratios = extract(0);
     const balance = extract(1);
@@ -159,31 +168,66 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     const profile = extract(3);
 
     const keyRatios = (ratios.keyRatios ?? ratios) as Record<string, unknown>;
-    const balanceData = (balance.balanceSheet ?? balance) as Record<string, Record<string, unknown>>;
-    const latestBalance = balanceData.latest ?? balanceData.annual?.[0] ?? balanceData.quarterly?.[0] ?? {};
-    const incomeData = (income.incomeStatement ?? income) as Record<string, Record<string, unknown>>;
-    const latestIncome = incomeData.latest ?? incomeData.annual?.[0] ?? incomeData.quarterly?.[0] ?? {};
+    const balanceData = (balance.balanceSheet ?? balance) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const latestBalance =
+      balanceData.latest ??
+      balanceData.annual?.[0] ??
+      balanceData.quarterly?.[0] ??
+      {};
+    const incomeData = (income.incomeStatement ?? income) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const latestIncome =
+      incomeData.latest ??
+      incomeData.annual?.[0] ??
+      incomeData.quarterly?.[0] ??
+      {};
 
     const result = FinancialFundamentalsSchema.safeParse({
       ticker: ticker.toUpperCase(),
-      marketCap: (profile.marketCap as number) ?? (keyRatios.marketCap as number) ?? null,
+      marketCap:
+        (profile.marketCap as number) ??
+        (keyRatios.marketCap as number) ??
+        null,
       totalAssets: (latestBalance.totalAssets as number) ?? null,
-      totalDebt: (latestBalance.totalBorrowings as number) ?? (latestBalance.totalDebt as number) ?? null,
-      cashAndEquivalents: (latestBalance.cashAndCashEquivalents as number) ?? null,
+      totalDebt:
+        (latestBalance.totalBorrowings as number) ??
+        (latestBalance.totalDebt as number) ??
+        null,
+      cashAndEquivalents:
+        (latestBalance.cashAndCashEquivalents as number) ?? null,
       interestIncome: (latestIncome.interestIncome as number) ?? null,
-      totalRevenue: (latestIncome.revenue as number) ?? (latestIncome.totalRevenue as number) ?? null,
+      totalRevenue:
+        (latestIncome.revenue as number) ??
+        (latestIncome.totalRevenue as number) ??
+        null,
       sector: (profile.sector as string) ?? null,
       industry: (profile.industry as string) ?? null,
-      peRatio: (keyRatios.priceToEarnings as number) ?? (keyRatios.peRatio as number) ?? null,
+      peRatio:
+        (keyRatios.priceToEarnings as number) ??
+        (keyRatios.peRatio as number) ??
+        null,
       dividendYield: (keyRatios.dividendYield as number) ?? null,
       volume: (keyRatios.averageVolume as number) ?? null,
-      week52High: (keyRatios['52WeekHigh'] as number) ?? (keyRatios.week52High as number) ?? null,
-      week52Low: (keyRatios['52WeekLow'] as number) ?? (keyRatios.week52Low as number) ?? null,
+      week52High:
+        (keyRatios['52WeekHigh'] as number) ??
+        (keyRatios.week52High as number) ??
+        null,
+      week52Low:
+        (keyRatios['52WeekLow'] as number) ??
+        (keyRatios.week52Low as number) ??
+        null,
     });
 
     if (result.success) return result.data;
 
-    this.logger.warn(`Upstox fundamentals parse failed for ${ticker}: ${result.error.message}`);
+    this.logger.warn(
+      `Upstox fundamentals parse failed for ${ticker}: ${result.error.message}`,
+    );
     return FinancialFundamentalsSchema.parse({
       ticker: ticker.toUpperCase(),
       marketCap: 0,
@@ -221,7 +265,7 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     );
 
     return (data.candles ?? []).map((candle) => {
-      const timestamp = Math.floor(new Date(candle[0] as string).getTime() / 1000);
+      const timestamp = Math.floor(new Date(candle[0]).getTime() / 1000);
       return [
         timestamp,
         Math.round(Number(candle[1]) * 100),

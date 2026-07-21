@@ -53,7 +53,10 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
         `FMP ${res.status} for ${path} — ${body.slice(0, 300)}`,
       );
 
-      if ((res.status === 402 || res.status === 403) && attempt < this.apiKeys.length - 1) {
+      if (
+        (res.status === 402 || res.status === 403) &&
+        attempt < this.apiKeys.length - 1
+      ) {
         this.rotateKey();
         return this.fetch(path, attempt + 1);
       }
@@ -100,8 +103,8 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
     ]);
 
     const extract = (i: number) =>
-      settled[i].status === 'fulfilled' && (settled[i].value as Record<string, unknown>[]).length
-        ? (settled[i].value as Record<string, unknown>[])[0]
+      settled[i].status === 'fulfilled' && settled[i].value.length
+        ? settled[i].value[0]
         : ({} as Record<string, unknown>);
 
     const p = extract(0);
@@ -111,8 +114,10 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
     const rangeStr = (p.range as string) ?? '';
     const rangeParts = rangeStr.split(' - ');
-    const week52Low = rangeParts.length === 2 ? parseFloat(rangeParts[0]) : null;
-    const week52High = rangeParts.length === 2 ? parseFloat(rangeParts[1]) : null;
+    const week52Low =
+      rangeParts.length === 2 ? parseFloat(rangeParts[0]) : null;
+    const week52High =
+      rangeParts.length === 2 ? parseFloat(rangeParts[1]) : null;
 
     const result = FinancialFundamentalsSchema.safeParse({
       ticker,
@@ -133,7 +138,9 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
 
     if (result.success) return result.data;
 
-    this.logger.warn(`Fundamentals parse failed for ${ticker}: ${result.error.message}`);
+    this.logger.warn(
+      `Fundamentals parse failed for ${ticker}: ${result.error.message}`,
+    );
     return FinancialFundamentalsSchema.parse({
       ticker,
       marketCap: 0,

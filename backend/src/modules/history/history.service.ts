@@ -29,7 +29,12 @@ export class HistoryService {
     userId: string,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ items: OrderHistoryItem[]; total: number; page: number; pages: number }> {
+  ): Promise<{
+    items: OrderHistoryItem[];
+    total: number;
+    page: number;
+    pages: number;
+  }> {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -63,10 +68,10 @@ export class HistoryService {
       items: orders.map((o) => ({
         id: o.id,
         ticker: o.assetTicker,
-        side: o.side as OrderSide,
+        side: o.side,
         quantity: Number(o.quantity),
         priceCents: o.executedPriceCents ? Number(o.executedPriceCents) : null,
-        status: o.status as OrderStatus,
+        status: o.status,
         executedAt: o.executedAt?.toISOString() ?? null,
         createdAt: o.createdAt.toISOString(),
       })),
@@ -80,7 +85,12 @@ export class HistoryService {
     userId: string,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ items: ComplianceHistoryItem[]; total: number; page: number; pages: number }> {
+  ): Promise<{
+    items: ComplianceHistoryItem[];
+    total: number;
+    page: number;
+    pages: number;
+  }> {
     const skip = (page - 1) * limit;
 
     const [audits, total] = await Promise.all([

@@ -6,15 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { searchAssets } from "@/lib/services/market-data";
 import { searchKeys } from "@/lib/query-keys";
 import { Input } from "@/components/ui/input";
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 export function CommandPalette({
   open,
@@ -47,7 +39,7 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const debouncedQuery = useDebounce(query, 200);
+  const debouncedQuery = useDebounce(query, 500);
 
   const { data: results } = useQuery({
     queryKey: searchKeys.query(debouncedQuery),
