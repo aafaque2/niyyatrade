@@ -55,8 +55,6 @@ import type { IMarketDataProvider } from './providers/market-data-provider.inter
     },
     MockMarketDataProvider,
     FmpMarketDataProvider,
-    UpstoxMarketDataProvider,
-    MultiMarketDataProvider,
   ],
   exports: [MarketDataService],
 })
