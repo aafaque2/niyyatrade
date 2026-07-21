@@ -1,5 +1,5 @@
 {
-  "exclude": ["prisma", "dist", "node_modules"],
+  "exclude": ["prisma", "dist", "node_modules", "generated"],
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
