@@ -238,11 +238,14 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       `/instruments/search?query=${encodeURIComponent(query)}&exchanges=NSE,BSE&segments=EQ`,
     );
 
-    return (data ?? []).map((item) => ({
-      ticker: `${item.trading_symbol}.NS`,
-      name: item.name ?? item.trading_symbol,
-      sector: null,
-      exchange: item.exchange ?? null,
-    }));
+    return (data ?? []).map((item) => {
+      const suffix = item.exchange === 'BSE' ? '.BO' : '.NS';
+      return {
+        ticker: `${item.trading_symbol}${suffix}`,
+        name: item.name ?? item.trading_symbol,
+        sector: null,
+        exchange: item.exchange ?? null,
+      };
+    });
   }
 }
