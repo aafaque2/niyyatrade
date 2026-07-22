@@ -14,6 +14,7 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
   constructor(
     private readonly fmp: IMarketDataProvider,
     private readonly upstox: IMarketDataProvider,
+    private readonly yahoo: IMarketDataProvider,
   ) {}
 
   private isIndianTicker(ticker: string): boolean {
@@ -22,7 +23,21 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
 
   async getQuote(ticker: string): Promise<MarketQuote> {
     if (this.isIndianTicker(ticker)) {
-      return this.upstox.getQuote(ticker);
+      try {
+        return await this.yahoo.getQuote(ticker);
+      } catch (err) {
+        this.logger.warn(
+          `Yahoo quote failed for ${ticker}: ${(err as Error).message}, trying Upstox`,
+        );
+        try {
+          return await this.upstox.getQuote(ticker);
+        } catch (err2) {
+          this.logger.warn(
+            `Upstox quote also failed for ${ticker}: ${(err2 as Error).message}`,
+          );
+          throw err;
+        }
+      }
     }
     return this.fmp.getQuote(ticker);
   }
@@ -35,7 +50,7 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
         this.logger.warn(
           `Upstox fundamentals failed for ${ticker}: ${(err as Error).message}`,
         );
-        return this.fmp.getFundamentals(ticker);
+        return this.yahoo.getFundamentals(ticker);
       }
     }
     return this.fmp.getFundamentals(ticker);
@@ -48,15 +63,30 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     to?: number,
   ): Promise<ChartCandle[]> {
     if (this.isIndianTicker(ticker)) {
-      return this.upstox.getCandles(ticker, resolution, from, to);
+      try {
+        return await this.yahoo.getCandles(ticker, resolution, from, to);
+      } catch (err) {
+        this.logger.warn(
+          `Yahoo candles failed for ${ticker}: ${(err as Error).message}, trying Upstox`,
+        );
+        try {
+          return await this.upstox.getCandles(ticker, resolution, from, to);
+        } catch (err2) {
+          this.logger.warn(
+            `Upstox candles also failed for ${ticker}: ${(err2 as Error).message}`,
+          );
+          throw err;
+        }
+      }
     }
     return this.fmp.getCandles(ticker, resolution, from, to);
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const [fmpResults, upstoxResults] = await Promise.allSettled([
+    const [fmpResults, upstoxResults, yahooResults] = await Promise.allSettled([
       this.fmp.search(query),
       this.upstox.search(query),
+      this.yahoo.search(query),
     ]);
 
     if (fmpResults.status === 'rejected') {
@@ -69,10 +99,17 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
         `Upstox search failed for "${query}": ${(upstoxResults.reason as Error).message}`,
       );
     }
+    if (yahooResults.status === 'rejected') {
+      this.logger.warn(
+        `Yahoo search failed for "${query}": ${(yahooResults.reason as Error).message}`,
+      );
+    }
 
     const fmp = fmpResults.status === 'fulfilled' ? fmpResults.value : [];
     const upstox =
       upstoxResults.status === 'fulfilled' ? upstoxResults.value : [];
+    const yahoo =
+      yahooResults.status === 'fulfilled' ? yahooResults.value : [];
 
     const stripSuffix = (t: string) =>
       t.replace(/\.(NS|BO|NSE|BSE)$/i, '').toUpperCase();
@@ -80,7 +117,7 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     const seen = new Set<string>();
     const merged: SearchResult[] = [];
 
-    for (const item of [...fmp, ...upstox]) {
+    for (const item of [...upstox, ...yahoo, ...fmp]) {
       const key = stripSuffix(item.ticker);
       if (!seen.has(key)) {
         seen.add(key);
