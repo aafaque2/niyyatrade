@@ -6,6 +6,7 @@ import { MarketDataService } from './market-data.service';
 import { MockMarketDataProvider } from './providers/mock-market-data.provider';
 import { FmpMarketDataProvider } from './providers/fmp-market-data.provider';
 import { UpstoxMarketDataProvider } from './providers/upstox-market-data.provider';
+import { YahooFinanceMarketDataProvider } from './providers/yahoo-finance-market-data.provider';
 import { MultiMarketDataProvider } from './providers/multi-market-data.provider';
 import type { IMarketDataProvider } from './providers/market-data-provider.interface';
 
@@ -30,18 +31,11 @@ import type { IMarketDataProvider } from './providers/market-data-provider.inter
         const fmpKey = configService.get<string>('FMP_API_KEY');
         const upstoxToken = configService.get<string>('UPSTOX_ACCESS_TOKEN');
 
-        if (!fmpKey && !upstoxToken) {
-          return new MockMarketDataProvider();
-        }
-
         const fmp = fmpKey ? new FmpMarketDataProvider(configService) : null;
-
-        if (!fmp) {
-          return new MockMarketDataProvider();
-        }
+        const yahoo = new YahooFinanceMarketDataProvider();
 
         if (!upstoxToken) {
-          return fmp;
+          return fmp ?? new MockMarketDataProvider();
         }
 
         const redis = new Redis(
@@ -49,7 +43,15 @@ import type { IMarketDataProvider } from './providers/market-data-provider.inter
         );
         const upstox = new UpstoxMarketDataProvider(configService, redis);
 
-        return new MultiMarketDataProvider(fmp, upstox);
+        if (!fmp) {
+          return new MultiMarketDataProvider(
+            new MockMarketDataProvider(),
+            upstox,
+            yahoo,
+          );
+        }
+
+        return new MultiMarketDataProvider(fmp, upstox, yahoo);
       },
       inject: [ConfigService],
     },
