@@ -61,7 +61,7 @@ model Portfolio {
 model Position {
   id               String        @id @default(uuid()) @db.Uuid
   portfolioId      String        @db.Uuid
-  assetTicker      String        @db.VarChar(10)
+  assetTicker      String        @db.VarChar(20)
   quantity         Decimal       @db.Decimal(15, 6)
   averagePriceCents BigInt
 
@@ -75,7 +75,7 @@ model Position {
 model Order {
   id                  String       @id @default(uuid()) @db.Uuid
   portfolioId         String       @db.Uuid
-  assetTicker         String       @db.VarChar(10)
+  assetTicker         String       @db.VarChar(20)
   side                OrderSide
   quantity            Decimal      @db.Decimal(15, 6)
   targetPriceCents    BigInt?
@@ -98,7 +98,7 @@ model Transaction {
   portfolioId       String          @db.Uuid
   orderId           String          @unique @db.Uuid
   transactionType   TransactionType
-  assetTicker       String          @db.VarChar(10)
+  assetTicker       String          @db.VarChar(20)
   quantity          Decimal         @db.Decimal(15, 6)
   pricePerShareCents BigInt
   totalAmountCents  BigInt
@@ -112,7 +112,7 @@ model Transaction {
 }
 
 model Asset {
-  ticker    String   @id @db.VarChar(10)
+  ticker    String   @id @db.VarChar(20)
   name      String   @db.VarChar(255)
   sector    String   @db.VarChar(100)
   industry  String?
@@ -169,7 +169,7 @@ model Watchlist {
 model WatchlistItem {
   id        String   @id @default(uuid()) @db.Uuid
   watchlistId String @db.Uuid
-  assetTicker String @db.VarChar(10)
+  assetTicker String @db.VarChar(20)
   addedAt   DateTime @default(now())
 
   watchlist Watchlist @relation(fields: [watchlistId], references: [id])
@@ -181,7 +181,7 @@ model WatchlistItem {
 model ComplianceAudit {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @db.Uuid
-  assetTicker   String   @db.VarChar(10)
+  assetTicker   String   @db.VarChar(20)
   frameworkId   String   @db.Uuid
   verdict       String   @db.VarChar(20)
   rules         Json
