@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -8,6 +8,41 @@ import { TopNav } from "@/components/layout/top-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { getMe } from "@/lib/services/auth";
+import { X } from "lucide-react";
+
+const PAPER_BANNER_KEY = "niyyatrade_paper_banner_dismissed";
+
+function PaperTradingBanner() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const dismissed = sessionStorage.getItem(PAPER_BANNER_KEY);
+    if (!dismissed) setVisible(true);
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setVisible(false);
+    sessionStorage.setItem(PAPER_BANNER_KEY, "1");
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="sticky top-0 z-50 bg-primary/10 border-b border-primary/20 px-4 py-1.5 text-center relative">
+      <p className="text-[11px] font-medium text-primary">
+        Paper Trading — No real money involved. All trades are simulated for educational purposes.
+      </p>
+      <button
+        type="button"
+        onClick={dismiss}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/60 hover:text-primary transition-colors"
+        aria-label="Dismiss paper trading notice"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -59,11 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 bg-primary/10 border-b border-primary/20 px-4 py-1.5 text-center">
-        <p className="text-[11px] font-medium text-primary">
-          Paper Trading — No real money involved. All trades are simulated for educational purposes.
-        </p>
-      </div>
+      <PaperTradingBanner />
       <Sidebar />
       <TopNav />
       <main id="main-content" className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
