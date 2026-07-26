@@ -138,7 +138,8 @@ export class ComplianceService {
       total: totalRules,
       withData,
       withoutData: totalRules - withData,
-      percentage: totalRules > 0 ? Math.round((withData / totalRules) * 100) : 0,
+      percentage:
+        totalRules > 0 ? Math.round((withData / totalRules) * 100) : 0,
     };
 
     const report: EvaluationReport = {
@@ -173,7 +174,9 @@ export class ComplianceService {
           },
         });
       } catch (err) {
-        this.logger.warn(`Failed to save compliance audit: ${(err as Error).message}`);
+        this.logger.warn(
+          `Failed to save compliance audit: ${(err as Error).message}`,
+        );
       }
     }
 

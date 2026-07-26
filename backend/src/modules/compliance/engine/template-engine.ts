@@ -66,7 +66,8 @@ export function generateExplanations(
       const highCarbon = ['Energy', 'Utilities', 'Basic Materials'];
       const sectorStr = fundamentals.sector ?? 'N/A';
       if (fundamentals.sector == null) {
-        explanation = 'Sector data unavailable — cannot assess carbon exposure. Marked compliant pending data.';
+        explanation =
+          'Sector data unavailable — cannot assess carbon exposure. Marked compliant pending data.';
       } else {
         const isHighCarbon = highCarbon.includes(sectorStr);
         explanation = `The company operates in the "${sectorStr}" sector. ${

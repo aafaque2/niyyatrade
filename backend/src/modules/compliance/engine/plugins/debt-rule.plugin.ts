@@ -15,7 +15,11 @@ export class DebtRulePlugin implements IRuleEvaluator {
   evaluate(fundamentals: FinancialFundamentals, rule: RuleSpec): RuleResult {
     const threshold = rule.threshold ?? 33.33;
 
-    if (fundamentals.totalDebt == null || fundamentals.totalAssets == null || fundamentals.totalAssets === 0) {
+    if (
+      fundamentals.totalDebt == null ||
+      fundamentals.totalAssets == null ||
+      fundamentals.totalAssets === 0
+    ) {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Debt-to-Equity',

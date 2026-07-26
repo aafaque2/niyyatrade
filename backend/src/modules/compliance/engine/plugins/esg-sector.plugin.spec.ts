@@ -47,7 +47,10 @@ describe('EsgSectorPlugin', () => {
   });
 
   it('should pass a permissible sector like Technology', () => {
-    const result = plugin.evaluate(fundamentals({ sector: 'Technology' }), rule);
+    const result = plugin.evaluate(
+      fundamentals({ sector: 'Technology' }),
+      rule,
+    );
     expect(result.passed).toBe(true);
     expect(result.actualValue).toBe('Technology');
     expect(result.dataAvailable).toBe(true);
@@ -69,13 +72,19 @@ describe('EsgSectorPlugin', () => {
 
   it('should fail a sector explicitly in bannedSectors array', () => {
     const customRule = { ...rule, bannedSectors: ['Financials'] };
-    const result = plugin.evaluate(fundamentals({ sector: 'Financials' }), customRule);
+    const result = plugin.evaluate(
+      fundamentals({ sector: 'Financials' }),
+      customRule,
+    );
     expect(result.passed).toBe(false);
     expect(result.dataAvailable).toBe(true);
   });
 
   it('should pass an allowed sector not in default banned list', () => {
-    const result = plugin.evaluate(fundamentals({ sector: 'Healthcare' }), rule);
+    const result = plugin.evaluate(
+      fundamentals({ sector: 'Healthcare' }),
+      rule,
+    );
     expect(result.passed).toBe(true);
     expect(result.dataAvailable).toBe(true);
   });
