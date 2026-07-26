@@ -161,6 +161,10 @@ export function Sidebar() {
               </Link>
             );
           })}
+          <div className="flex items-center gap-3 px-2.5 pt-2 text-[10px] text-muted-foreground/60">
+            <Link href="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
+          </div>
         </div>
       </aside>
     </>

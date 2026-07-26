@@ -59,6 +59,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-50 bg-primary/10 border-b border-primary/20 px-4 py-1.5 text-center">
+        <p className="text-[11px] font-medium text-primary">
+          Paper Trading — No real money involved. All trades are simulated for educational purposes.
+        </p>
+      </div>
       <Sidebar />
       <TopNav />
       <main id="main-content" className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
@@ -66,6 +71,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+      <footer className="lg:ml-[232px] border-t border-border px-6 py-3">
+        <p className="text-[10px] text-muted-foreground text-center">
+          Market data provided by Yahoo Finance. Prices may be delayed up to 15 minutes for non-US markets.
+          NiyyaTrade is a paper trading platform — no real money is involved. This is not financial advice.
+        </p>
+      </footer>
     </div>
   );
 }
