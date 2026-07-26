@@ -7,6 +7,7 @@ export interface User {
   email: string;
   name: string | null;
   activeFrameworkId: string | null;
+  currency: string;
   portfolio?: {
     id: string;
     availableCashCents: number;

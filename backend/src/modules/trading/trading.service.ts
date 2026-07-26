@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ComplianceService } from '../compliance/compliance.service';
 import { OrderSide, type CreateOrderDto } from './dto/create-order.dto';
+import { getStartingBalance } from '../../shared/constants/currency';
 
 @Injectable()
 export class TradingService {
@@ -29,7 +30,7 @@ export class TradingService {
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { activeFrameworkId: true },
+        select: { activeFrameworkId: true, currency: true },
       }),
     ]);
 
@@ -38,7 +39,7 @@ export class TradingService {
     }
 
     const positions = portfolio.positions ?? [];
-    const baseCurrency = 'USD';
+    const baseCurrency = user?.currency ?? 'USD';
     let totalValueCents = new Decimal(portfolio.availableCashCents.toString());
 
     const positionDtos = await Promise.all(
@@ -408,12 +409,20 @@ export class TradingService {
   }
 
   async resetPortfolio(userId: string) {
-    const portfolio = await this.prisma.portfolio.findUnique({
-      where: { userId },
-    });
+    const [portfolio, user] = await Promise.all([
+      this.prisma.portfolio.findUnique({
+        where: { userId },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { currency: true },
+      }),
+    ]);
     if (!portfolio) {
       throw new NotFoundException('Portfolio not found');
     }
+
+    const startingBalance = getStartingBalance(user?.currency ?? 'USD');
 
     await this.prisma.$transaction(async (tx) => {
       await tx.transaction.deleteMany({
@@ -427,7 +436,7 @@ export class TradingService {
       });
       await tx.portfolio.update({
         where: { id: portfolio.id },
-        data: { availableCashCents: 10000000 },
+        data: { availableCashCents: startingBalance },
       });
     });
   }

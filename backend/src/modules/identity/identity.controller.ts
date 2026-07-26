@@ -16,6 +16,18 @@ import { ComplianceService } from '../compliance/compliance.service';
 import { UpdateFrameworkPrefsDto } from './dto/update-framework-prefs.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { getStartingBalance, VALID_CURRENCY_CODES } from '../../shared/constants/currency';
+
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  activeFrameworkId: true,
+  currency: true,
+  portfolio: {
+    select: { id: true, availableCashCents: true },
+  },
+} as const;
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -29,15 +41,7 @@ export class IdentityController {
   async getProfile(@Request() req: { user: { sub: string } }) {
     const user = await this.prisma.user.findUnique({
       where: { id: req.user.sub },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        activeFrameworkId: true,
-        portfolio: {
-          select: { id: true, availableCashCents: true },
-        },
-      },
+      select: USER_SELECT,
     });
 
     if (!user) {
@@ -52,18 +56,60 @@ export class IdentityController {
     @Request() req: { user: { sub: string } },
     @Body() body: UpdateProfileDto,
   ) {
+    const updateData: Record<string, unknown> = {};
+
+    if (body.name !== undefined) {
+      updateData.name = body.name;
+    }
+
+    if (body.currency !== undefined) {
+      if (!VALID_CURRENCY_CODES.includes(body.currency)) {
+        throw new BadRequestException(`Invalid currency: ${body.currency}`);
+      }
+
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: req.user.sub },
+        select: { currency: true },
+      });
+
+      if (currentUser && currentUser.currency !== body.currency) {
+        updateData.currency = body.currency;
+
+        const portfolio = await this.prisma.portfolio.findUnique({
+          where: { userId: req.user.sub },
+        });
+
+        if (portfolio) {
+          await this.prisma.$transaction(async (tx) => {
+            await tx.transaction.deleteMany({
+              where: { portfolioId: portfolio.id },
+            });
+            await tx.order.deleteMany({
+              where: { portfolioId: portfolio.id },
+            });
+            await tx.position.deleteMany({
+              where: { portfolioId: portfolio.id },
+            });
+            await tx.portfolio.update({
+              where: { id: portfolio.id },
+              data: { availableCashCents: getStartingBalance(body.currency!) },
+            });
+          });
+        }
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return this.prisma.user.findUnique({
+        where: { id: req.user.sub },
+        select: USER_SELECT,
+      });
+    }
+
     const user = await this.prisma.user.update({
       where: { id: req.user.sub },
-      data: { name: body.name },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        activeFrameworkId: true,
-        portfolio: {
-          select: { id: true, availableCashCents: true },
-        },
-      },
+      data: updateData,
+      select: USER_SELECT,
     });
     return user;
   }
@@ -114,15 +160,7 @@ export class IdentityController {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { activeFrameworkId: frameworkId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        activeFrameworkId: true,
-        portfolio: {
-          select: { id: true, availableCashCents: true },
-        },
-      },
+      select: USER_SELECT,
     });
     return user;
   }

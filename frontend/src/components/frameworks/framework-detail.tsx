@@ -183,6 +183,7 @@ export function FrameworkDetail({
         email: updatedUser.email,
         name: updatedUser.name,
         activeFrameworkId: updatedUser.activeFrameworkId,
+        currency: updatedUser.currency,
       });
       queryClient.invalidateQueries({ queryKey: ["portfolio"] });
       queryClient.invalidateQueries({ queryKey: ["framework-prefs"] });

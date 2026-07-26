@@ -3,6 +3,7 @@
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { ResetPortfolioDialog } from "@/components/settings/reset-portfolio-dialog";
+import { CurrencySelector } from "@/components/settings/currency-selector";
 
 export default function SettingsPage() {
   return (
@@ -17,6 +18,7 @@ export default function SettingsPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <ProfileForm />
+          <CurrencySelector />
           <ResetPortfolioDialog />
         </div>
         <div className="space-y-5">

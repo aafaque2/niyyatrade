@@ -32,6 +32,7 @@ model User {
   passwordHash       String?
   authProviderId     String?             @db.VarChar(255)
   activeFrameworkId  String?             @db.Uuid
+  currency           String              @default("USD") @db.VarChar(3)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 

@@ -54,6 +54,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         activeFrameworkId: user.activeFrameworkId,
+        currency: (user as Record<string, unknown>).currency ?? 'USD',
       },
       token,
     };
@@ -81,6 +82,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         activeFrameworkId: user.activeFrameworkId,
+        currency: (user as Record<string, unknown>).currency ?? 'USD',
       },
       token,
     };
@@ -94,6 +96,7 @@ export class AuthService {
         email: true,
         name: true,
         activeFrameworkId: true,
+        currency: true,
         portfolio: {
           select: {
             id: true,

@@ -37,7 +37,7 @@ export async function fetchFrameworkPrefs(): Promise<FrameworkPref[]> {
 
 export async function activateFramework(
   frameworkId: string,
-): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null }> {
+): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null; currency: string }> {
   const { data } = await api.put("/users/me/frameworks/active", { frameworkId });
   return data.data;
 }
@@ -49,8 +49,9 @@ export async function updateFrameworkPrefs(
   await api.put("/users/me/framework-prefs", { frameworkId, overrides });
 }
 
-export async function updateProfile(name: string): Promise<void> {
-  await api.put("/users/me/profile", { name });
+export async function updateProfile(name: string, currency?: string): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null; currency: string }> {
+  const { data } = await api.put("/users/me/profile", { name, ...(currency !== undefined ? { currency } : {}) });
+  return data.data;
 }
 
 export async function changePassword(
