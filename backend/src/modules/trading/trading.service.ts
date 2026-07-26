@@ -43,9 +43,11 @@ export class TradingService {
     const positionDtos = await Promise.all(
       positions.map(async (pos) => {
         let currentPriceCents = 0;
+        let currency = 'USD';
         try {
           const quote = await this.marketData.getQuote(pos.assetTicker);
           currentPriceCents = quote.priceCents;
+          currency = quote.currency;
         } catch {
           this.logger.warn(`Failed to fetch quote for ${pos.assetTicker}`);
         }
@@ -86,6 +88,7 @@ export class TradingService {
           returnCents: returnCents.toNumber(),
           returnPercent,
           complianceVerdict,
+          currency,
         };
       }),
     );
