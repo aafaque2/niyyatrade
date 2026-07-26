@@ -136,7 +136,6 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
           'summaryDetail',
           'defaultKeyStatistics',
           'assetProfile',
-          'incomeStatementHistoryQuarterly',
         ],
       }),
       this.yf.quote(ticker),
@@ -146,12 +145,6 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     const summaryDetail = quoteSummary.summaryDetail;
     const keyStats = quoteSummary.defaultKeyStatistics;
     const assetProfile = quoteSummary.assetProfile;
-    const incomeHistory = (quoteSummary as Record<string, unknown>)[
-      'incomeStatementHistoryQuarterly'
-    ] as
-      | { incomeStatementHistory?: Array<Record<string, unknown>> }
-      | undefined;
-    const latestIncome = incomeHistory?.incomeStatementHistory?.[0];
 
     const base = {
       ticker: ticker.toUpperCase(),
@@ -159,9 +152,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       totalAssets: keyStats?.totalAssets ?? null,
       totalDebt: financialData?.totalDebt ?? null,
       cashAndEquivalents: financialData?.totalCash ?? null,
-      interestIncome:
-        (latestIncome?.interestIncome as number) ??
-        null,
+      interestIncome: null as number | null,
       totalRevenue: financialData?.totalRevenue ?? null,
       sector: this.normalizeSector(assetProfile?.sector),
       industry: assetProfile?.industry ?? null,
@@ -183,38 +174,44 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       const entries = (ts as unknown as Array<Record<string, unknown>>).filter(
         (e) => e.periodType === '3M',
       );
-      if (entries.length > 0) {
-        const latest = entries[entries.length - 1];
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const entry = entries[i];
+        if (Object.keys(entry).length < 10) continue;
         if (
           base.interestIncome == null &&
-          typeof latest.interestIncome === 'number'
+          typeof entry.interestIncome === 'number'
         ) {
-          base.interestIncome = latest.interestIncome;
+          base.interestIncome = entry.interestIncome;
         }
         if (
           base.totalAssets == null &&
-          typeof latest.totalAssets === 'number'
+          typeof entry.totalAssets === 'number'
         ) {
-          base.totalAssets = latest.totalAssets;
+          base.totalAssets = entry.totalAssets;
         }
         if (
           base.totalRevenue == null &&
-          typeof latest.totalRevenue === 'number'
+          typeof entry.totalRevenue === 'number'
         ) {
-          base.totalRevenue = latest.totalRevenue;
+          base.totalRevenue = entry.totalRevenue;
         }
-        if (base.totalDebt == null && typeof latest.totalDebt === 'number') {
-          base.totalDebt = latest.totalDebt;
+        if (base.totalDebt == null && typeof entry.totalDebt === 'number') {
+          base.totalDebt = entry.totalDebt;
         }
         if (
           base.cashAndEquivalents == null &&
-          typeof latest.cashAndCashEquivalents === 'number'
+          typeof entry.cashAndCashEquivalents === 'number'
         ) {
-          base.cashAndEquivalents = latest.cashAndCashEquivalents;
+          base.cashAndEquivalents = entry.cashAndCashEquivalents;
         }
+        if (
+          base.interestIncome != null &&
+          base.totalRevenue != null &&
+          base.totalDebt != null
+        ) break;
       }
     } catch (err) {
-      this.logger.debug(
+      this.logger.warn(
         `fundamentalsTimeSeries failed for ${ticker}: ${(err as Error).message}`,
       );
     }
