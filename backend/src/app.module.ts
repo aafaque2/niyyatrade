@@ -12,6 +12,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MarketDataModule } from './modules/market-data/market-data.module';
 import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { HistoryModule } from './modules/history/history.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.interceptor';
 import { SentryInterceptor } from './interceptors/sentry.interceptor';
@@ -27,6 +28,7 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
         limit: 100,
       },
     ]),
+    RedisModule,
     AuthModule,
     PrismaModule,
     IdentityModule,
@@ -58,8 +60,6 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
-      .forRoutes('*');
+    consumer.apply(RequestIdMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

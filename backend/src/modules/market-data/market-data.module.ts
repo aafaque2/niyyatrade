@@ -1,4 +1,4 @@
-import { Module, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Module, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { MarketDataController } from './market-data.controller';
@@ -26,19 +26,6 @@ function createRedisClient(url: string): Redis {
   providers: [
     MarketDataService,
     {
-      provide: 'REDIS_CLIENT',
-      useFactory: async (configService: ConfigService) => {
-        const url = configService.get<string>(
-          'REDIS_URL',
-          'redis://localhost:6379',
-        );
-        const client = createRedisClient(url);
-        await client.connect();
-        return client;
-      },
-      inject: [ConfigService],
-    },
-    {
       provide: 'MARKET_DATA_PROVIDER',
       useFactory: (configService: ConfigService): IMarketDataProvider => {
         const fmpKey = configService.get<string>('FMP_API_KEY');
@@ -52,9 +39,15 @@ function createRedisClient(url: string): Redis {
         }
 
         const upstox = upstoxToken
-          ? new UpstoxMarketDataProvider(configService, createRedisClient(
-              configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
-            ))
+          ? new UpstoxMarketDataProvider(
+              configService,
+              createRedisClient(
+                configService.get<string>(
+                  'REDIS_URL',
+                  'redis://localhost:6379',
+                ),
+              ),
+            )
           : new MockMarketDataProvider();
 
         const fallback = fmp ?? new MockMarketDataProvider();
@@ -68,16 +61,4 @@ function createRedisClient(url: string): Redis {
   ],
   exports: [MarketDataService],
 })
-export class MarketDataModule implements OnModuleDestroy {
-  private redisClients: Redis[] = [];
-
-  constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
-  ) {
-    this.redisClients.push(redis);
-  }
-
-  async onModuleDestroy() {
-    await Promise.all(this.redisClients.map((c) => c.quit()));
-  }
-}
+export class MarketDataModule {}
