@@ -33,6 +33,9 @@ interface YahooChartResult {
     currency: string;
     exchangeName?: string;
     instrumentType: string;
+    regularMarketVolume?: number;
+    fiftyTwoWeekHigh?: number;
+    fiftyTwoWeekLow?: number;
   };
 }
 
@@ -118,25 +121,63 @@ export class YahooFinanceMarketDataProvider implements IMarketDataProvider {
       priceCents: Math.round(price * 100),
       changePercent: Math.round(changePercent * 100) / 100,
       timestamp: new Date().toISOString(),
+      currency: meta.currency ?? 'USD',
     });
   }
 
-  async getFundamentals(_ticker: string): Promise<FinancialFundamentals> {
+  async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
+    try {
+      const url = `${this.baseUrl}/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+      const data = await this.fetch<{ chart: { result: YahooChartResult[] } }>(
+        url,
+      );
+      const meta = data.chart?.result?.[0]?.meta;
+      if (!meta) {
+        return this.emptyFundamentals(ticker);
+      }
+
+      return FinancialFundamentalsSchema.parse({
+        ticker: ticker.toUpperCase(),
+        marketCap: null,
+        totalAssets: null,
+        totalDebt: null,
+        cashAndEquivalents: null,
+        interestIncome: null,
+        totalRevenue: null,
+        sector: null,
+        industry: null,
+        peRatio: null,
+        dividendYield: null,
+        volume: meta.regularMarketVolume ?? null,
+        week52High: meta.fiftyTwoWeekHigh ?? null,
+        week52Low: meta.fiftyTwoWeekLow ?? null,
+        currency: meta.currency ?? 'USD',
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Yahoo fundamentals failed for ${ticker}: ${(err as Error).message}`,
+      );
+      return this.emptyFundamentals(ticker);
+    }
+  }
+
+  private emptyFundamentals(ticker: string): FinancialFundamentals {
     return FinancialFundamentalsSchema.parse({
-      ticker: _ticker.toUpperCase(),
-      marketCap: 0,
+      ticker: ticker.toUpperCase(),
+      marketCap: null,
       totalAssets: null,
       totalDebt: null,
       cashAndEquivalents: null,
       interestIncome: null,
-      totalRevenue: 0,
-      sector: 'Other',
+      totalRevenue: null,
+      sector: null,
       industry: null,
       peRatio: null,
       dividendYield: null,
       volume: null,
       week52High: null,
       week52Low: null,
+      currency: 'USD',
     });
   }
 

@@ -71,6 +71,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
         priceCents: 10000,
         changePercent: 0.5,
         timestamp: new Date().toISOString(),
+        currency: 'USD',
       });
     }
 
@@ -79,6 +80,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
       priceCents: asset.price,
       changePercent: Math.random() * 4 - 2,
       timestamp: new Date().toISOString(),
+      currency: 'USD',
     });
   }
 
@@ -100,6 +102,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
         volume: null,
         week52High: null,
         week52Low: null,
+        currency: 'USD',
       });
     }
 
@@ -118,6 +121,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
       volume: 45_000_000,
       week52High: 198.23,
       week52Low: 142.15,
+      currency: 'USD',
     });
   }
 

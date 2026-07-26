@@ -87,6 +87,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       priceCents: Math.round(Number(quote.price) * 100),
       changePercent: Number(quote.changePercentage),
       timestamp: new Date().toISOString(),
+      currency: 'USD',
     });
   }
 
@@ -134,6 +135,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       volume: (p.averageVolume as number) ?? null,
       week52High,
       week52Low,
+      currency: 'USD',
     });
 
     if (result.success) return result.data;
@@ -156,6 +158,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       volume: null,
       week52High: null,
       week52Low: null,
+      currency: 'USD',
     });
   }
 

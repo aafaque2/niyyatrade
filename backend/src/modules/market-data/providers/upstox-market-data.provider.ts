@@ -10,7 +10,6 @@ import type {
 } from '../acl/market-data.schemas';
 import {
   MarketQuoteSchema,
-  FinancialFundamentalsSchema,
 } from '../acl/market-data.schemas';
 
 interface UpstoxInstrument {
@@ -139,111 +138,12 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       priceCents: Math.round(lastPrice * 100),
       changePercent: Math.round(changePercent * 100) / 100,
       timestamp: new Date().toISOString(),
+      currency: 'INR',
     });
   }
 
-  async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
-    const instrument = await this.resolveInstrumentKey(ticker);
-    const isin = instrument.isin;
-
-    const settled = await Promise.allSettled([
-      this.fetch<Record<string, unknown>>(`/fundamentals/key-ratios/${isin}`),
-      this.fetch<Record<string, unknown>>(
-        `/fundamentals/balance-sheet/${isin}`,
-      ),
-      this.fetch<Record<string, unknown>>(
-        `/fundamentals/income-statement/${isin}`,
-      ),
-      this.fetch<Record<string, unknown>>(
-        `/fundamentals/company-profile/${isin}`,
-      ),
-    ]);
-
-    const extract = (i: number): Record<string, unknown> =>
-      settled[i].status === 'fulfilled' ? settled[i].value : {};
-
-    const ratios = extract(0);
-    const balance = extract(1);
-    const income = extract(2);
-    const profile = extract(3);
-
-    const keyRatios = (ratios.keyRatios ?? ratios) as Record<string, unknown>;
-    const balanceData = (balance.balanceSheet ?? balance) as Record<
-      string,
-      Record<string, unknown>
-    >;
-    const latestBalance =
-      balanceData.latest ??
-      balanceData.annual?.[0] ??
-      balanceData.quarterly?.[0] ??
-      {};
-    const incomeData = (income.incomeStatement ?? income) as Record<
-      string,
-      Record<string, unknown>
-    >;
-    const latestIncome =
-      incomeData.latest ??
-      incomeData.annual?.[0] ??
-      incomeData.quarterly?.[0] ??
-      {};
-
-    const result = FinancialFundamentalsSchema.safeParse({
-      ticker: ticker.toUpperCase(),
-      marketCap:
-        (profile.marketCap as number) ??
-        (keyRatios.marketCap as number) ??
-        null,
-      totalAssets: (latestBalance.totalAssets as number) ?? null,
-      totalDebt:
-        (latestBalance.totalBorrowings as number) ??
-        (latestBalance.totalDebt as number) ??
-        null,
-      cashAndEquivalents:
-        (latestBalance.cashAndCashEquivalents as number) ?? null,
-      interestIncome: (latestIncome.interestIncome as number) ?? null,
-      totalRevenue:
-        (latestIncome.revenue as number) ??
-        (latestIncome.totalRevenue as number) ??
-        null,
-      sector: (profile.sector as string) ?? null,
-      industry: (profile.industry as string) ?? null,
-      peRatio:
-        (keyRatios.priceToEarnings as number) ??
-        (keyRatios.peRatio as number) ??
-        null,
-      dividendYield: (keyRatios.dividendYield as number) ?? null,
-      volume: (keyRatios.averageVolume as number) ?? null,
-      week52High:
-        (keyRatios['52WeekHigh'] as number) ??
-        (keyRatios.week52High as number) ??
-        null,
-      week52Low:
-        (keyRatios['52WeekLow'] as number) ??
-        (keyRatios.week52Low as number) ??
-        null,
-    });
-
-    if (result.success) return result.data;
-
-    this.logger.warn(
-      `Upstox fundamentals parse failed for ${ticker}: ${result.error.message}`,
-    );
-    return FinancialFundamentalsSchema.parse({
-      ticker: ticker.toUpperCase(),
-      marketCap: 0,
-      totalAssets: null,
-      totalDebt: null,
-      cashAndEquivalents: null,
-      interestIncome: null,
-      totalRevenue: 0,
-      sector: 'Other',
-      industry: null,
-      peRatio: null,
-      dividendYield: null,
-      volume: null,
-      week52High: null,
-      week52Low: null,
-    });
+  async getFundamentals(_ticker: string): Promise<FinancialFundamentals> {
+    throw new Error('Upstox free tier does not support fundamentals — use FMP provider');
   }
 
   async getCandles(
