@@ -136,6 +136,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
           'summaryDetail',
           'defaultKeyStatistics',
           'assetProfile',
+          'incomeStatementHistoryQuarterly',
         ],
       }),
       this.yf.quote(ticker),
@@ -145,6 +146,12 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     const summaryDetail = quoteSummary.summaryDetail;
     const keyStats = quoteSummary.defaultKeyStatistics;
     const assetProfile = quoteSummary.assetProfile;
+    const incomeHistory = (quoteSummary as Record<string, unknown>)[
+      'incomeStatementHistoryQuarterly'
+    ] as
+      | { incomeStatementHistory?: Array<Record<string, unknown>> }
+      | undefined;
+    const latestIncome = incomeHistory?.incomeStatementHistory?.[0];
 
     const base = {
       ticker: ticker.toUpperCase(),
@@ -152,7 +159,9 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       totalAssets: keyStats?.totalAssets ?? null,
       totalDebt: financialData?.totalDebt ?? null,
       cashAndEquivalents: financialData?.totalCash ?? null,
-      interestIncome: null as number | null,
+      interestIncome:
+        (latestIncome?.interestIncome as number) ??
+        null,
       totalRevenue: financialData?.totalRevenue ?? null,
       sector: this.normalizeSector(assetProfile?.sector),
       industry: assetProfile?.industry ?? null,
@@ -172,7 +181,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       });
 
       const entries = (ts as unknown as Array<Record<string, unknown>>).filter(
-        (e) => e.type === 'quarterly',
+        (e) => e.periodType === '3M',
       );
       if (entries.length > 0) {
         const latest = entries[entries.length - 1];
