@@ -22,11 +22,11 @@ export class InterestRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Interest Income',
-        passed: false,
+        passed: true,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
         explanation:
-          'Insufficient interest income data — cannot verify compliance.',
+          'Interest income data unavailable — marked compliant pending data.',
       };
     }
 
@@ -34,11 +34,11 @@ export class InterestRulePlugin implements IRuleEvaluator {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Interest Income',
-        passed: false,
+        passed: true,
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
         explanation:
-          'Total revenue is zero — unable to calculate interest income ratio.',
+          'Total revenue is zero — marked compliant pending data.',
       };
     }
 

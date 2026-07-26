@@ -141,8 +141,18 @@ export class ComplianceService {
     await this.cacheSet(cacheKey, CACHE_TTL_EVALUATION, report);
 
     if (userId) {
-      await this.prisma.complianceAudit
-        .create({
+      try {
+        await this.prisma.asset.upsert({
+          where: { ticker: ticker.toUpperCase() },
+          create: {
+            ticker: ticker.toUpperCase(),
+            name: ticker.toUpperCase(),
+            sector: fundamentals.sector ?? 'Other',
+            industry: fundamentals.industry,
+          },
+          update: {},
+        });
+        await this.prisma.complianceAudit.create({
           data: {
             userId,
             assetTicker: ticker.toUpperCase(),
@@ -150,10 +160,10 @@ export class ComplianceService {
             verdict: report.verdict,
             rules: JSON.parse(JSON.stringify(report.rules)),
           },
-        })
-        .catch((err: Error) => {
-          this.logger.warn(`Failed to save compliance audit: ${err.message}`);
         });
+      } catch (err) {
+        this.logger.warn(`Failed to save compliance audit: ${(err as Error).message}`);
+      }
     }
 
     return report;
