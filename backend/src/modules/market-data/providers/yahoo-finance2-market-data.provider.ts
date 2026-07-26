@@ -40,9 +40,41 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     return SECTOR_MAP[raw] ?? 'Other';
   }
 
-  private mapResolution(
-    resolution: string,
-  ): { interval: string; period1: Date } {
+  private deriveCurrencyFromTicker(ticker: string): string {
+    if (/\.(NS|BO|NSE|BSE)$/i.test(ticker)) return 'INR';
+    if (/\.(L|LN)$/i.test(ticker)) return 'GBP';
+    if (/\.(DE|F)$/i.test(ticker)) return 'EUR';
+    if (/\.(T)$/i.test(ticker)) return 'JPY';
+    if (/\.(TO)$/i.test(ticker)) return 'CAD';
+    if (/\.(AX)$/i.test(ticker)) return 'AUD';
+    if (/\.(HK)$/i.test(ticker)) return 'HKD';
+    if (/\.(SI)$/i.test(ticker)) return 'SGD';
+    return 'USD';
+  }
+
+  private mapMarketState(
+    state: string | undefined,
+  ): 'OPEN' | 'CLOSED' | 'PRE_MARKET' | 'POST_MARKET' | 'UNKNOWN' {
+    switch (state) {
+      case 'REGULAR':
+        return 'OPEN';
+      case 'PRE':
+        return 'PRE_MARKET';
+      case 'POST':
+        return 'POST_MARKET';
+      case 'PREPRE':
+      case 'POSTPOST':
+      case 'CLOSED':
+        return 'CLOSED';
+      default:
+        return 'UNKNOWN';
+    }
+  }
+
+  private mapResolution(resolution: string): {
+    interval: string;
+    period1: Date;
+  } {
     const now = new Date();
     switch (resolution) {
       case '1D':
@@ -88,9 +120,11 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     return MarketQuoteSchema.parse({
       ticker: quote.symbol?.toUpperCase() ?? ticker.toUpperCase(),
       priceCents: Math.round(quote.regularMarketPrice * 100),
-      changePercent: Math.round((quote.regularMarketChangePercent ?? 0) * 100) / 100,
+      changePercent:
+        Math.round((quote.regularMarketChangePercent ?? 0) * 100) / 100,
       timestamp: new Date().toISOString(),
       currency: quote.currency ?? 'USD',
+      marketStatus: this.mapMarketState(quote.marketState),
     });
   }
 
@@ -137,28 +171,43 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
         module: 'all',
       });
 
-      const entries = (ts as unknown as Array<Record<string, unknown>>)
-        .filter((e) => e.type === 'quarterly');
+      const entries = (ts as unknown as Array<Record<string, unknown>>).filter(
+        (e) => e.type === 'quarterly',
+      );
       if (entries.length > 0) {
-        const latest = entries[entries.length - 1] as Record<string, unknown>;
-        if (base.interestIncome == null && typeof latest.interestIncome === 'number') {
+        const latest = entries[entries.length - 1];
+        if (
+          base.interestIncome == null &&
+          typeof latest.interestIncome === 'number'
+        ) {
           base.interestIncome = latest.interestIncome;
         }
-        if (base.totalAssets == null && typeof latest.totalAssets === 'number') {
+        if (
+          base.totalAssets == null &&
+          typeof latest.totalAssets === 'number'
+        ) {
           base.totalAssets = latest.totalAssets;
         }
-        if (base.totalRevenue == null && typeof latest.totalRevenue === 'number') {
+        if (
+          base.totalRevenue == null &&
+          typeof latest.totalRevenue === 'number'
+        ) {
           base.totalRevenue = latest.totalRevenue;
         }
         if (base.totalDebt == null && typeof latest.totalDebt === 'number') {
           base.totalDebt = latest.totalDebt;
         }
-        if (base.cashAndEquivalents == null && typeof latest.cashAndCashEquivalents === 'number') {
+        if (
+          base.cashAndEquivalents == null &&
+          typeof latest.cashAndCashEquivalents === 'number'
+        ) {
           base.cashAndEquivalents = latest.cashAndCashEquivalents;
         }
       }
     } catch (err) {
-      this.logger.debug(`fundamentalsTimeSeries failed for ${ticker}: ${(err as Error).message}`);
+      this.logger.debug(
+        `fundamentalsTimeSeries failed for ${ticker}: ${(err as Error).message}`,
+      );
     }
 
     return FinancialFundamentalsSchema.parse(base);
@@ -178,7 +227,8 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       ...(to ? { period2: new Date(to * 1000) } : {}),
     });
 
-    const quotes = (result as { quotes?: Array<Record<string, unknown>> }).quotes ?? [];
+    const quotes =
+      (result as { quotes?: Array<Record<string, unknown>> }).quotes ?? [];
 
     const timestamps = quotes
       .filter(
@@ -205,7 +255,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       Math.round(t.low * 100),
       Math.round(t.close * 100),
       t.volume,
-    ]) as ChartCandle[];
+    ]);
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -218,6 +268,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
         name: (q.longname ?? q.shortname ?? q.symbol) as string,
         sector: (q.sector as string) ?? null,
         exchange: (q.exchDisp as string) ?? null,
+        currency: this.deriveCurrencyFromTicker(q.symbol as string),
       }));
   }
 }

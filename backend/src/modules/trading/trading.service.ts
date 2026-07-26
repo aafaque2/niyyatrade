@@ -38,6 +38,7 @@ export class TradingService {
     }
 
     const positions = portfolio.positions ?? [];
+    const baseCurrency = 'USD';
     let totalValueCents = new Decimal(portfolio.availableCashCents.toString());
 
     const positionDtos = await Promise.all(
@@ -54,7 +55,22 @@ export class TradingService {
 
         const qty = new Decimal(pos.quantity);
         const marketValue = qty.mul(currentPriceCents).toDecimalPlaces(0);
-        totalValueCents = totalValueCents.add(marketValue);
+
+        let convertedValue = marketValue;
+        if (currency.toUpperCase() !== baseCurrency) {
+          try {
+            const fxRate = await this.marketData.getFxRate(
+              currency,
+              baseCurrency,
+            );
+            convertedValue = marketValue.mul(fxRate.rate).toDecimalPlaces(0);
+          } catch {
+            this.logger.warn(
+              `FX conversion failed for ${currency}/${baseCurrency}, using raw value`,
+            );
+          }
+        }
+        totalValueCents = totalValueCents.add(convertedValue);
 
         const costBasis = qty
           .mul(Number(pos.averagePriceCents))

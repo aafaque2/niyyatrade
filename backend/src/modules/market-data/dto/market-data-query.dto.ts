@@ -19,3 +19,11 @@ export class CandlesQueryDto {
   @IsNumberString()
   to?: string;
 }
+
+export class FxQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+}

@@ -205,6 +205,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
         name: record.name ?? '',
         sector: record.sector ?? null,
         exchange: record.exchange ?? null,
+        currency: 'USD',
       };
     });
   }

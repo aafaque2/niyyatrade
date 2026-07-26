@@ -72,6 +72,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
         changePercent: 0.5,
         timestamp: new Date().toISOString(),
         currency: 'USD',
+        marketStatus: 'UNKNOWN' as const,
       });
     }
 
@@ -81,6 +82,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
       changePercent: Math.random() * 4 - 2,
       timestamp: new Date().toISOString(),
       currency: 'USD',
+      marketStatus: 'UNKNOWN' as const,
     });
   }
 
@@ -169,6 +171,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
           name: asset.name,
           sector: asset.sector,
           exchange: 'NASDAQ',
+          currency: 'USD',
         })),
     );
   }

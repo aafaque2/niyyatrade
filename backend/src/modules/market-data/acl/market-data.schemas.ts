@@ -21,6 +21,9 @@ export const MarketQuoteSchema = z.object({
   changePercent: z.number(),
   timestamp: z.string().datetime(),
   currency: z.string().default('USD'),
+  marketStatus: z
+    .enum(['OPEN', 'CLOSED', 'PRE_MARKET', 'POST_MARKET', 'UNKNOWN'])
+    .default('UNKNOWN'),
 });
 
 export type MarketQuote = z.infer<typeof MarketQuoteSchema>;
@@ -65,6 +68,7 @@ export const SearchResultSchema = z.object({
   name: z.string(),
   sector: z.string().nullable(),
   exchange: z.string().nullable(),
+  currency: z.string().nullable().default('USD'),
 });
 
 export type SearchResult = z.infer<typeof SearchResultSchema>;

@@ -80,9 +80,10 @@ export class YahooFinanceMarketDataProvider implements IMarketDataProvider {
     return res.json() as Promise<T>;
   }
 
-  private mapResolutionToYahoo(
-    resolution: string,
-  ): { interval: string; range: string } {
+  private mapResolutionToYahoo(resolution: string): {
+    interval: string;
+    range: string;
+  } {
     switch (resolution) {
       case '1D':
         return { interval: '5m', range: '1d' };
@@ -222,7 +223,8 @@ export class YahooFinanceMarketDataProvider implements IMarketDataProvider {
       const close = quote.close[i];
       const volume = quote.volume[i] ?? 0;
 
-      if (open == null || high == null || low == null || close == null) continue;
+      if (open == null || high == null || low == null || close == null)
+        continue;
 
       candles.push([
         timestamps[i],
@@ -248,6 +250,7 @@ export class YahooFinanceMarketDataProvider implements IMarketDataProvider {
         name: q.longname ?? q.shortname ?? q.symbol,
         sector: q.sector ?? null,
         exchange: q.exchDisp ?? null,
+        currency: 'USD',
       }));
   }
 }

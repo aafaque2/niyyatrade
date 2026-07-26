@@ -19,6 +19,7 @@ const CACHE_TTLS = {
   FUNDAMENTALS: 86400,
   CANDLES: 3600,
   SEARCH: 3600,
+  FX: 3600,
 } as const;
 
 @Injectable()
@@ -149,6 +150,56 @@ export class MarketDataService {
     } catch (err) {
       if (err instanceof HttpException) throw err;
       this.mapProviderError(err, `search(${query})`);
+    }
+  }
+
+  async getFxRate(
+    from: string,
+    to: string,
+  ): Promise<{ from: string; to: string; rate: number; timestamp: string }> {
+    const fromUpper = from.toUpperCase();
+    const toUpper = to.toUpperCase();
+
+    if (fromUpper === toUpper) {
+      return {
+        from: fromUpper,
+        to: toUpper,
+        rate: 1,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    const key = this.cacheKey('fx', fromUpper, toUpper);
+
+    const cached = await this.cacheGet<{
+      from: string;
+      to: string;
+      rate: number;
+      timestamp: string;
+    }>(key);
+    if (cached) return cached;
+
+    try {
+      const pair = `${fromUpper}${toUpper}=X`;
+      const quote = await this.provider.getQuote(pair);
+      const rate = quote.priceCents / 100;
+
+      const result = {
+        from: fromUpper,
+        to: toUpper,
+        rate,
+        timestamp: new Date().toISOString(),
+      };
+      await this.cacheSet(key, CACHE_TTLS.FX, result);
+      return result;
+    } catch (err) {
+      this.logger.warn(
+        `FX rate fetch failed for ${fromUpper}/${toUpper}: ${(err as Error).message}`,
+      );
+      throw new HttpException(
+        `FX rate not available for ${fromUpper}/${toUpper}`,
+        HttpStatus.BAD_GATEWAY,
+      );
     }
   }
 }

@@ -8,9 +8,7 @@ import type {
   ChartCandle,
   SearchResult,
 } from '../acl/market-data.schemas';
-import {
-  MarketQuoteSchema,
-} from '../acl/market-data.schemas';
+import { MarketQuoteSchema } from '../acl/market-data.schemas';
 
 interface UpstoxInstrument {
   instrument_key: string;
@@ -143,7 +141,9 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
   }
 
   async getFundamentals(_ticker: string): Promise<FinancialFundamentals> {
-    throw new Error('Upstox free tier does not support fundamentals — use FMP provider');
+    throw new Error(
+      'Upstox free tier does not support fundamentals — use FMP provider',
+    );
   }
 
   async getCandles(
@@ -189,6 +189,7 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
         name: item.name ?? item.trading_symbol,
         sector: null,
         exchange: item.exchange ?? null,
+        currency: 'INR',
       };
     });
   }
