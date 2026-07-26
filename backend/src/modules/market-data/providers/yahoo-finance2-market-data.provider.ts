@@ -1,0 +1,190 @@
+import { Injectable, Logger } from '@nestjs/common';
+import type { IMarketDataProvider } from './market-data-provider.interface';
+import type {
+  MarketQuote,
+  FinancialFundamentals,
+  ChartCandle,
+  SearchResult,
+} from '../acl/market-data.schemas';
+import {
+  MarketQuoteSchema,
+  FinancialFundamentalsSchema,
+} from '../acl/market-data.schemas';
+import YahooFinance from 'yahoo-finance2';
+
+const SECTOR_MAP: Record<string, string> = {
+  Technology: 'Technology',
+  'Financial Services': 'Financials',
+  'Consumer Cyclical': 'Consumer Cyclical',
+  'Consumer Defensive': 'Consumer Defensive',
+  'Communication Services': 'Communication Services',
+  Industrials: 'Industrials',
+  'Basic Materials': 'Basic Materials',
+  'Real Estate': 'Real Estate',
+  Utilities: 'Utilities',
+  Energy: 'Energy',
+  Healthcare: 'Healthcare',
+};
+
+@Injectable()
+export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
+  private readonly logger = new Logger(YahooFinance2MarketDataProvider.name);
+  private readonly yf: InstanceType<typeof YahooFinance>;
+
+  constructor() {
+    this.yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+  }
+
+  private normalizeSector(raw: string | undefined | null): string | null {
+    if (!raw) return null;
+    return SECTOR_MAP[raw] ?? 'Other';
+  }
+
+  private mapResolution(
+    resolution: string,
+  ): { interval: string; period1: Date } {
+    const now = new Date();
+    switch (resolution) {
+      case '1D':
+        return {
+          interval: '5m',
+          period1: new Date(now.getTime() - 1 * 86400000),
+        };
+      case '1W':
+        return {
+          interval: '15m',
+          period1: new Date(now.getTime() - 7 * 86400000),
+        };
+      case '1M':
+        return {
+          interval: '1d',
+          period1: new Date(now.getTime() - 30 * 86400000),
+        };
+      case '1Y':
+        return {
+          interval: '1d',
+          period1: new Date(now.getTime() - 365 * 86400000),
+        };
+      case 'ALL':
+        return {
+          interval: '1wk',
+          period1: new Date('1970-01-01'),
+        };
+      default:
+        return {
+          interval: '1d',
+          period1: new Date(now.getTime() - 30 * 86400000),
+        };
+    }
+  }
+
+  async getQuote(ticker: string): Promise<MarketQuote> {
+    const quote = await this.yf.quote(ticker);
+
+    if (!quote.regularMarketPrice) {
+      throw new Error(`No quote data for ${ticker}`);
+    }
+
+    return MarketQuoteSchema.parse({
+      ticker: quote.symbol?.toUpperCase() ?? ticker.toUpperCase(),
+      priceCents: Math.round(quote.regularMarketPrice * 100),
+      changePercent: Math.round((quote.regularMarketChangePercent ?? 0) * 100) / 100,
+      timestamp: new Date().toISOString(),
+      currency: quote.currency ?? 'USD',
+    });
+  }
+
+  async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
+    const [quoteSummary, quote] = await Promise.all([
+      this.yf.quoteSummary(ticker, {
+        modules: [
+          'financialData',
+          'summaryDetail',
+          'defaultKeyStatistics',
+          'assetProfile',
+        ],
+      }),
+      this.yf.quote(ticker),
+    ]);
+
+    const financialData = quoteSummary.financialData;
+    const summaryDetail = quoteSummary.summaryDetail;
+    const keyStats = quoteSummary.defaultKeyStatistics;
+    const assetProfile = quoteSummary.assetProfile;
+
+    return FinancialFundamentalsSchema.parse({
+      ticker: ticker.toUpperCase(),
+      marketCap: summaryDetail?.marketCap ?? null,
+      totalAssets: keyStats?.totalAssets ?? null,
+      totalDebt: financialData?.totalDebt ?? null,
+      cashAndEquivalents: financialData?.totalCash ?? null,
+      interestIncome: null,
+      totalRevenue: financialData?.totalRevenue ?? null,
+      sector: this.normalizeSector(assetProfile?.sector),
+      industry: assetProfile?.industry ?? null,
+      peRatio: summaryDetail?.trailingPE ?? null,
+      dividendYield: summaryDetail?.dividendYield ?? null,
+      volume: quote.regularMarketVolume ?? null,
+      week52High: quote.fiftyTwoWeekHigh ?? null,
+      week52Low: quote.fiftyTwoWeekLow ?? null,
+      currency: quote.currency ?? 'USD',
+    });
+  }
+
+  async getCandles(
+    ticker: string,
+    resolution: string,
+    from?: number,
+    to?: number,
+  ): Promise<ChartCandle[]> {
+    const { interval, period1 } = this.mapResolution(resolution);
+
+    const result = await this.yf.chart(ticker, {
+      interval: interval as '1m' | '5m' | '15m' | '1d' | '1wk',
+      period1,
+      ...(to ? { period2: new Date(to * 1000) } : {}),
+    });
+
+    const quotes = (result as { quotes?: Array<Record<string, unknown>> }).quotes ?? [];
+
+    const timestamps = quotes
+      .filter(
+        (q) =>
+          q.date != null &&
+          q.open != null &&
+          q.high != null &&
+          q.low != null &&
+          q.close != null,
+      )
+      .map((q) => ({
+        ts: Math.floor((q.date as Date).getTime() / 1000),
+        open: q.open as number,
+        high: q.high as number,
+        low: q.low as number,
+        close: q.close as number,
+        volume: (q.volume as number) ?? 0,
+      }));
+
+    return timestamps.map((t) => [
+      t.ts,
+      Math.round(t.open * 100),
+      Math.round(t.high * 100),
+      Math.round(t.low * 100),
+      Math.round(t.close * 100),
+      t.volume,
+    ]) as ChartCandle[];
+  }
+
+  async search(query: string): Promise<SearchResult[]> {
+    const result = await this.yf.search(query);
+
+    return (result.quotes ?? [])
+      .filter((q: Record<string, unknown>) => q.quoteType === 'EQUITY')
+      .map((q: Record<string, unknown>) => ({
+        ticker: q.symbol as string,
+        name: (q.longname ?? q.shortname ?? q.symbol) as string,
+        sector: (q.sector as string) ?? null,
+        exchange: (q.exchDisp as string) ?? null,
+      }));
+  }
+}
