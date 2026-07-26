@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { searchAssets } from "@/lib/services/market-data";
 import { searchKeys } from "@/lib/query-keys";
 import { Input } from "@/components/ui/input";
+import { ExchangeBadge } from "@/components/market/exchange-badge";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 
 export function CommandPalette({
@@ -113,11 +114,14 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
               <span className="truncate text-muted-foreground text-xs">
                 {result.name}
               </span>
-              {result.exchange && (
-                <span className="ml-auto text-[10px] text-muted-foreground">
-                  {result.exchange}
-                </span>
-              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                {result.currency && (
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {result.currency}
+                  </span>
+                )}
+                <ExchangeBadge exchange={result.exchange} />
+              </div>
             </button>
           ))}
         </div>

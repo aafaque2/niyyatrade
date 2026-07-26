@@ -2,6 +2,7 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatChange } from "@/lib/utils";
+import { MarketStatusBadge } from "@/components/market/market-status-badge";
 
 interface AssetHeaderProps {
   ticker: string;
@@ -9,6 +10,7 @@ interface AssetHeaderProps {
   priceCents?: number;
   changePercent?: number;
   currency?: string;
+  marketStatus?: "OPEN" | "CLOSED" | "PRE_MARKET" | "POST_MARKET" | "UNKNOWN";
   isLoading: boolean;
 }
 
@@ -18,6 +20,7 @@ export function AssetHeader({
   priceCents,
   changePercent,
   currency,
+  marketStatus,
   isLoading,
 }: AssetHeaderProps) {
   if (isLoading) {
@@ -41,6 +44,7 @@ export function AssetHeader({
         {companyName && (
           <span className="text-sm text-muted-foreground">{companyName}</span>
         )}
+        <MarketStatusBadge status={marketStatus} />
       </div>
       <div className="mt-1 flex items-baseline gap-3">
         {priceCents !== undefined && (

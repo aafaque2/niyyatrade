@@ -53,12 +53,21 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
         </div>
       )}
 
-      {isLoading && <Skeleton className="mt-3 h-24 w-full rounded-lg" />}
+      {isLoading && (
+        <div className="mt-3 space-y-3">
+          <Skeleton className="h-8 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+        </div>
+      )}
 
       {isError && (
-        <p className="mt-3 text-xs text-destructive">
-          {error?.message ?? "Failed to load compliance data"}
-        </p>
+        <div className="mt-3 rounded-lg border border-border bg-surface p-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            Compliance data unavailable for this asset. This may be due to market hours or data source limitations.
+          </p>
+        </div>
       )}
 
       {data && (
@@ -79,7 +88,7 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
             </Badge>
           </div>
 
-          {data.dataCoverage.withoutData > 0 && (
+          {data.dataCoverage && data.dataCoverage.withoutData > 0 && (
             <div className="mb-3 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/5 px-3 py-2">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
               <p className="text-[11px] leading-relaxed text-warning">

@@ -5,6 +5,7 @@ export interface SearchResult {
   name: string;
   sector: string | null;
   exchange: string | null;
+  currency: string | null;
 }
 
 export interface MarketQuote {
@@ -13,6 +14,14 @@ export interface MarketQuote {
   changePercent: number;
   timestamp: string;
   currency?: string;
+  marketStatus?: "OPEN" | "CLOSED" | "PRE_MARKET" | "POST_MARKET" | "UNKNOWN";
+}
+
+export interface FxRate {
+  from: string;
+  to: string;
+  rate: number;
+  timestamp: string;
 }
 
 export async function searchAssets(query: string): Promise<SearchResult[]> {
@@ -26,6 +35,13 @@ export async function getQuote(ticker: string): Promise<MarketQuote> {
   const { data } = await api.get<{ data: MarketQuote }>(
     `/market-data/${ticker}/quote`
   );
+  return data.data;
+}
+
+export async function getFxRate(from: string, to: string): Promise<FxRate> {
+  const { data } = await api.get<{ data: FxRate }>("/market-data/fx", {
+    params: { from, to },
+  });
   return data.data;
 }
 

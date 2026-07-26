@@ -24,6 +24,7 @@ export function AssetPageClient({
         priceCents={quote?.priceCents}
         changePercent={quote?.changePercent}
         currency={quote?.currency}
+        marketStatus={quote?.marketStatus}
         isLoading={quoteLoading}
       />
 
