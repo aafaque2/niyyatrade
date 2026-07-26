@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuote } from "@/lib/hooks/use-quote";
 import { usePlaceOrder } from "@/lib/hooks/use-place-order";
@@ -14,7 +13,7 @@ import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 export function OrderTicket({ ticker }: { ticker: string }) {
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const [limitPrice, setLimitPrice] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuote(ticker);
@@ -45,25 +44,30 @@ export function OrderTicket({ ticker }: { ticker: string }) {
     <div className="rounded-lg border border-border bg-surface/50 p-4">
       <h2 className="mb-4 text-xs font-medium text-muted-foreground">Trade</h2>
 
-      <Tabs
-        value={side}
-        onValueChange={(v) => setSide(v as "BUY" | "SELL")}
-        className="mb-4"
-        aria-label={`Order side: ${side === "BUY" ? "Buy" : "Sell"}`}
-      >
-        <TabsList className="w-full">
-          <TabsTrigger
-            value="BUY"
-            className="flex-1 data-[active]:text-emerald-light"
-            aria-label="Buy order"
-          >
-            Buy
-          </TabsTrigger>
-          <TabsTrigger value="SELL" className="flex-1" aria-label="Sell order">
-            Sell
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="mb-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setSide("BUY")}
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+            side === "BUY"
+              ? "border-primary bg-primary text-white"
+              : "border-primary text-primary hover:text-foreground hover:bg-surface-hover"
+          }`}
+        >
+          Buy
+        </button>
+        <button
+          type="button"
+          onClick={() => setSide("SELL")}
+          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+            side === "SELL"
+              ? "border-destructive bg-destructive text-white"
+              : "border-destructive text-destructive hover:text-destructive hover:bg-surface-hover"
+          }`}
+        >
+          Sell
+        </button>
+      </div>
 
       <div className="mb-4 flex gap-2">
         <button
