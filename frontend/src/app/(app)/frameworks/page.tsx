@@ -1,93 +1,77 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useFrameworks, useFrameworkPrefs } from "@/lib/hooks/use-frameworks";
-import { useAuthStore } from "@/lib/stores/auth-store";
-import { activateFramework } from "@/lib/services/identity";
-import { FrameworkCard } from "@/components/frameworks/framework-card";
+import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
 import { FrameworkDetail } from "@/components/frameworks/framework-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
-import { Shield, Plus, Sparkles } from "lucide-react";
+import {
+  ShieldCheck,
+  Leaf,
+  Moon,
+  ChevronRight,
+  Plus,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const FRAMEWORK_ORDER = ["standard", "esg", "halal-aaoifi"];
+const FRAMEWORK_ORDER = ["esg", "halal-aaoifi"];
+
+const FRAMEWORK_META: Record<
+  string,
+  { description: string; icon: typeof Leaf; color: string; activeRing: string; activeBg: string }
+> = {
+  esg: {
+    description: "Environmental, Social & Governance screening",
+    icon: Leaf,
+    color: "text-emerald-400",
+    activeRing: "ring-emerald-500/30",
+    activeBg: "bg-emerald-500/5",
+  },
+  "halal-aaoifi": {
+    description: "AAOIFI Shariah compliance screening",
+    icon: Moon,
+    color: "text-blue-400",
+    activeRing: "ring-blue-500/30",
+    activeBg: "bg-blue-500/5",
+  },
+};
+
+const FALLBACK_META = {
+  description: "Compliance screening framework.",
+  icon: ShieldCheck,
+  color: "text-muted-foreground",
+  activeRing: "ring-border",
+  activeBg: "bg-surface",
+};
 
 export default function FrameworksPage() {
-  const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
-  const queryClient = useQueryClient();
   const { data: frameworks, isLoading, isError, refetch } = useFrameworks();
   const { data: prefs } = useFrameworkPrefs();
-  const [selectedFrameworkId, setSelectedFrameworkId] = useState<string | null>(null);
-  const hasSyncedRef = useRef(false);
-  const autoActivated = useRef(false);
+  const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
+  const toggleFramework = useComplianceFrameworkStore((s) => s.toggleFramework);
+  const [viewingSlug, setViewingSlug] = useState<string | null>(null);
 
   const sortedFrameworks = useMemo(() => {
     if (!frameworks) return [];
-    return [...frameworks].sort((a, b) => {
-      const ia = FRAMEWORK_ORDER.indexOf(a.slug);
-      const ib = FRAMEWORK_ORDER.indexOf(b.slug);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
+    return [...frameworks]
+      .filter((f) => f.slug !== "standard")
+      .sort((a, b) => {
+        const ia = FRAMEWORK_ORDER.indexOf(a.slug);
+        const ib = FRAMEWORK_ORDER.indexOf(b.slug);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
   }, [frameworks]);
 
-  const frameworkList = useMemo(
-    () =>
-      sortedFrameworks.map((f) => ({
-        id: f.id,
-        slug: f.slug,
-        name: f.name,
-      })),
-    [sortedFrameworks],
+  const viewingData = useMemo(
+    () => sortedFrameworks.find((f) => f.slug === viewingSlug),
+    [sortedFrameworks, viewingSlug],
   );
-
-  const activeId = user?.activeFrameworkId;
-  const selectedFramework = useMemo(
-    () => sortedFrameworks.find((f) => f.id === selectedFrameworkId),
-    [sortedFrameworks, selectedFrameworkId],
-  );
-
-  const activateMutation = useMutation({
-    mutationFn: activateFramework,
-    onSuccess: (updatedUser) => {
-      setUser({
-        id: updatedUser.id,
-        email: updatedUser.email,
-        name: updatedUser.name,
-        activeFrameworkId: updatedUser.activeFrameworkId,
-      });
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-      queryClient.invalidateQueries({ queryKey: ["framework-prefs"] });
-    },
-    onError: (err: Error) => {
-      toast.error(err.message ?? "Failed to activate framework");
-    },
-  });
-
-  useEffect(() => {
-    if (sortedFrameworks.length === 0) return;
-
-    if (!user?.activeFrameworkId && !autoActivated.current) {
-      const esg = sortedFrameworks.find((f) => f.slug === "esg");
-      if (esg) {
-        autoActivated.current = true;
-        activateMutation.mutate(esg.id);
-      }
-    }
-  }, [sortedFrameworks, user?.activeFrameworkId]);
-
-  useEffect(() => {
-    if (activeId && sortedFrameworks.length > 0 && !hasSyncedRef.current) {
-      hasSyncedRef.current = true;
-      setSelectedFrameworkId(activeId);
-    }
-  }, [activeId, sortedFrameworks]);
-
-  const handleSelect = (id: string) => {
-    setSelectedFrameworkId((prev) => (prev === id ? null : id));
-  };
 
   if (isError) {
     return (
@@ -109,82 +93,222 @@ export default function FrameworksPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-semibold tracking-tight">Compliance Center</h1>
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight">Compliance Center</h1>
+          </div>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-lg">
+            Choose frameworks to screen your portfolio. Each applies its own rules to evaluate your holdings.
+          </p>
         </div>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Configure, customise, and understand your compliance frameworks.
-        </p>
       </div>
 
-      <section>
-        <h2 className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Available Frameworks
-        </h2>
-        {isLoading || activateMutation.isPending ? (
-          <div className="grid gap-3 md:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-4">
-            {frameworkList.map((f) => (
-              <FrameworkCard
-                key={f.id}
-                framework={f}
-                isActive={f.id === activeId}
-                isSelected={f.id === selectedFrameworkId}
-                onSelect={handleSelect}
-              />
-            ))}
-            <button
-              type="button"
-              onClick={() =>
-                toast.info("Custom frameworks coming soon — build your own compliance rules.")
-              }
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface/30 p-4 text-center transition-all duration-150 hover:border-primary/30 hover:bg-primary/5 cursor-pointer min-h-[80px]"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface transition-colors group-hover:bg-primary/10">
-                <Plus className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-                  Create Custom
-                </p>
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5 flex items-center justify-center gap-1">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  Coming soon
-                </p>
-              </div>
-            </button>
-          </div>
-        )}
-      </section>
+      {/* Master-Detail Layout */}
+      <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
+        {/* Left: Framework list + How it works */}
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sortedFrameworks.map((f) => {
+                const isEnabled = selectedFrameworks.includes(f.slug);
+                const meta = FRAMEWORK_META[f.slug] ?? FALLBACK_META;
+                const Icon = meta.icon;
+                const isViewing = viewingSlug === f.slug;
 
-      {selectedFramework ? (
-        <section>
-          <h2 className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Framework Details
-          </h2>
-          <FrameworkDetail
-            key={selectedFramework.id}
-            framework={selectedFramework}
-            activeId={activeId}
-            prefs={prefs}
-          />
-        </section>
-      ) : (
-        <section>
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Select a framework above to view its details and customise its rules.
-            </p>
+                return (
+                  <div key={f.id}>
+                    <div
+                      className={cn(
+                        "rounded-xl border p-4 transition-all duration-200",
+                        isViewing
+                          ? cn("border-primary/30 ring-1", meta.activeRing, meta.activeBg)
+                          : "border-border bg-surface/30 hover:border-border hover:bg-surface/50",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Icon */}
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+                            isEnabled ? "bg-primary/15" : "bg-surface",
+                          )}
+                        >
+                          <Icon className={cn("h-4.5 w-4.5", isEnabled ? meta.color : "text-muted-foreground")} />
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold leading-tight">{f.name}</h3>
+                            {isEnabled && (
+                              <span className="flex h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            {meta.description}
+                          </p>
+                        </div>
+
+                        {/* Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => toggleFramework(f.slug)}
+                          className={cn(
+                            "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 cursor-pointer",
+                            isEnabled ? "bg-primary" : "bg-border",
+                          )}
+                          aria-label={`${isEnabled ? "Disable" : "Enable"} ${f.name}`}
+                        >
+                          <span
+                            className={cn(
+                              "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
+                              isEnabled && "translate-x-4",
+                            )}
+                          />
+                        </button>
+                      </div>
+
+                      {/* View rules link */}
+                      <button
+                        type="button"
+                        onClick={() => setViewingSlug(isViewing ? null : f.slug)}
+                        className={cn(
+                          "mt-3 flex items-center gap-1 text-[11px] font-medium transition-colors cursor-pointer",
+                          isViewing ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <BookOpen className="h-3 w-3" />
+                        {isViewing ? "Hide rules" : "View rules"}
+                        <ChevronRight className={cn("h-3 w-3 transition-transform", isViewing && "rotate-90")} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Create Custom */}
+              <button
+                type="button"
+                onClick={() =>
+                  toast.info("Custom frameworks coming soon — build your own compliance rules.")
+                }
+                className="group flex items-center gap-3 rounded-xl border border-dashed border-border/60 bg-surface/20 p-4 text-left transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 cursor-pointer w-full"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-dashed border-border group-hover:border-primary/30 transition-colors">
+                  <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    Create Custom
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 mt-0.5">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Coming soon
+                  </p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* How it works — below the list */}
+          <div className="rounded-xl border border-border bg-surface/30 p-4">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              How it works
+            </h2>
+            <div className="space-y-3 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  1
+                </span>
+                <p>
+                  <span className="font-medium text-foreground">Toggle frameworks</span>{" "}
+                  on or off to activate screening rules.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  2
+                </span>
+                <p>
+                  <span className="font-medium text-foreground">Review rules</span>{" "}
+                  and customise thresholds for each framework.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  3
+                </span>
+                <p>
+                  <span className="font-medium text-foreground">See results</span>{" "}
+                  reflected across your portfolio and asset pages.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/portfolio"
+              className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary hover:underline"
+            >
+              View portfolio <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
-        </section>
-      )}
+        </div>
+
+        {/* Right: Detail panel */}
+        <div>
+          {viewingData ? (
+            <div className="rounded-xl border border-border bg-surface/30 p-5">
+              <div className="flex items-center gap-2.5 mb-4">
+                {(() => {
+                  const meta = FRAMEWORK_META[viewingData.slug] ?? FALLBACK_META;
+                  const Icon = meta.icon;
+                  return (
+                    <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15")}>
+                      <Icon className={cn("h-4 w-4", meta.color)} />
+                    </div>
+                  );
+                })()}
+                <div>
+                  <h2 className="text-sm font-semibold">{viewingData.name}</h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    {FRAMEWORK_META[viewingData.slug]?.description ?? "Compliance rules"}
+                  </p>
+                </div>
+              </div>
+              <FrameworkDetail
+                key={viewingData.id}
+                framework={viewingData}
+                activeId={null}
+                prefs={prefs}
+              />
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[300px] items-center justify-center rounded-xl border border-dashed border-border/60 bg-surface/20">
+              <div className="text-center px-6">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface">
+                  <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Select a framework to view its rules
+                </p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  Click &quot;View rules&quot; on any framework from the list.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

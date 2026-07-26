@@ -214,22 +214,7 @@ export function FrameworkDetail({
   const isActivating = activateMutation.isPending;
 
   return (
-    <div className="rounded-lg border border-border bg-surface/50 p-5 space-y-5">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-lg font-semibold">{framework.name}</h2>
-          {isActive && (
-            <Badge variant="default" className="bg-emerald/15 text-emerald-light border-emerald/20 text-[10px]">
-              Active
-            </Badge>
-          )}
-        </div>
-        {info && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{info.description}</p>
-        )}
-      </div>
-
+    <div className="space-y-4">
       {/* Learn More toggle */}
       {info && (
         <div>
@@ -352,7 +337,7 @@ export function FrameworkDetail({
 
       {/* Activate button when not the active framework */}
       {!isActive && (
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           <Button
             onClick={handleActivate}
             disabled={isActivating}
@@ -366,7 +351,7 @@ export function FrameworkDetail({
 
       {/* Save controls when active */}
       {isActive && isDirty && (
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
@@ -389,7 +374,7 @@ export function FrameworkDetail({
             variant="outline"
             size="sm"
           >
-            Reset to Defaults
+            Reset
           </Button>
         </div>
       )}
