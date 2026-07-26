@@ -20,6 +20,7 @@ export const MarketQuoteSchema = z.object({
   priceCents: z.number().int().positive(),
   changePercent: z.number(),
   timestamp: z.string().datetime(),
+  currency: z.string().default('USD'),
 });
 
 export type MarketQuote = z.infer<typeof MarketQuoteSchema>;
@@ -43,6 +44,7 @@ export const FinancialFundamentalsSchema = z.object({
   volume: z.coerce.number().nullable(),
   week52High: z.coerce.number().nullable(),
   week52Low: z.coerce.number().nullable(),
+  currency: z.string().default('USD'),
 });
 
 export type FinancialFundamentals = z.infer<typeof FinancialFundamentalsSchema>;
