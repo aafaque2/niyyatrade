@@ -23,6 +23,7 @@ export class EsgSectorPlugin implements IRuleEvaluator {
         actualValue: 'N/A',
         thresholdValue: `Excluded sectors: ${banned.join(', ')}`,
         explanation: 'Sector data unavailable — marked compliant pending data.',
+        dataAvailable: false,
       };
     }
 
@@ -35,6 +36,7 @@ export class EsgSectorPlugin implements IRuleEvaluator {
       actualValue: fundamentals.sector,
       thresholdValue: `Excluded sectors: ${banned.join(', ')}`,
       explanation: '',
+      dataAvailable: true,
     };
   }
 }

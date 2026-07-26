@@ -7,6 +7,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { AlertCircle } from "lucide-react";
 import type { RuleResult } from "@/lib/services/compliance";
 
 export function RuleAccordion({ rules }: { rules: RuleResult[] }) {
@@ -17,18 +18,29 @@ export function RuleAccordion({ rules }: { rules: RuleResult[] }) {
           <AccordionTrigger>
             <div className="flex w-full items-center justify-between pr-2">
               <span className="text-xs font-medium">{rule.name}</span>
-              <Badge
-                variant={
-                  rule.passed ? "default" : "destructive"
-                }
-                className={
-                  rule.passed
-                    ? "bg-emerald-subtle text-emerald-light border-emerald/20 text-[10px]"
-                    : "text-[10px]"
-                }
-              >
-                {rule.passed ? "Pass" : "Fail"}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                {!rule.dataAvailable && (
+                  <AlertCircle className="h-3 w-3 text-warning" />
+                )}
+                <Badge
+                  variant={
+                    rule.passed ? "default" : "destructive"
+                  }
+                  className={
+                    rule.passed
+                      ? rule.dataAvailable
+                        ? "bg-emerald-subtle text-emerald-light border-emerald/20 text-[10px]"
+                        : "border-warning/30 bg-warning/10 text-warning text-[10px]"
+                      : "text-[10px]"
+                  }
+                >
+                  {rule.passed
+                    ? rule.dataAvailable
+                      ? "Pass"
+                      : "Pending"
+                    : "Fail"}
+                </Badge>
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent>

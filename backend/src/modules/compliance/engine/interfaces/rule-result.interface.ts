@@ -5,4 +5,5 @@ export interface RuleResult {
   actualValue: string;
   thresholdValue: string;
   explanation: string;
+  dataAvailable: boolean;
 }

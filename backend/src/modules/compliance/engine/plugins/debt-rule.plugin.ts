@@ -15,7 +15,7 @@ export class DebtRulePlugin implements IRuleEvaluator {
   evaluate(fundamentals: FinancialFundamentals, rule: RuleSpec): RuleResult {
     const threshold = rule.threshold ?? 33.33;
 
-    if (fundamentals.totalDebt == null || fundamentals.totalAssets == null) {
+    if (fundamentals.totalDebt == null || fundamentals.totalAssets == null || fundamentals.totalAssets === 0) {
       return {
         ruleId: rule.ruleId,
         name: rule.name ?? 'Debt-to-Equity',
@@ -23,19 +23,8 @@ export class DebtRulePlugin implements IRuleEvaluator {
         actualValue: 'N/A',
         thresholdValue: `< ${threshold.toFixed(0)}%`,
         explanation:
-          'Debt data unavailable for this stock — marked compliant pending data.',
-      };
-    }
-
-    if (fundamentals.totalAssets === 0) {
-      return {
-        ruleId: rule.ruleId,
-        name: rule.name ?? 'Debt-to-Equity',
-        passed: true,
-        actualValue: 'N/A',
-        thresholdValue: `< ${threshold.toFixed(0)}%`,
-        explanation:
-          'Total assets is zero — marked compliant pending data.',
+          'Debt or asset data unavailable — marked compliant pending data.',
+        dataAvailable: false,
       };
     }
 
@@ -49,6 +38,7 @@ export class DebtRulePlugin implements IRuleEvaluator {
       actualValue: `${ratio.toFixed(1)}%`,
       thresholdValue: `< ${threshold.toFixed(0)}%`,
       explanation: '',
+      dataAvailable: true,
     };
   }
 }

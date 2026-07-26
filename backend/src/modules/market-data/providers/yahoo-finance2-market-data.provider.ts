@@ -112,13 +112,13 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     const keyStats = quoteSummary.defaultKeyStatistics;
     const assetProfile = quoteSummary.assetProfile;
 
-    return FinancialFundamentalsSchema.parse({
+    const base = {
       ticker: ticker.toUpperCase(),
       marketCap: summaryDetail?.marketCap ?? null,
       totalAssets: keyStats?.totalAssets ?? null,
       totalDebt: financialData?.totalDebt ?? null,
       cashAndEquivalents: financialData?.totalCash ?? null,
-      interestIncome: null,
+      interestIncome: null as number | null,
       totalRevenue: financialData?.totalRevenue ?? null,
       sector: this.normalizeSector(assetProfile?.sector),
       industry: assetProfile?.industry ?? null,
@@ -128,7 +128,40 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       week52High: quote.fiftyTwoWeekHigh ?? null,
       week52Low: quote.fiftyTwoWeekLow ?? null,
       currency: quote.currency ?? 'USD',
-    });
+    };
+
+    try {
+      const ts = await this.yf.fundamentalsTimeSeries(ticker, {
+        period1: new Date(Date.now() - 365 * 86400000),
+        type: 'quarterly',
+        module: 'all',
+      });
+
+      const entries = (ts as unknown as Array<Record<string, unknown>>)
+        .filter((e) => e.type === 'quarterly');
+      if (entries.length > 0) {
+        const latest = entries[entries.length - 1] as Record<string, unknown>;
+        if (base.interestIncome == null && typeof latest.interestIncome === 'number') {
+          base.interestIncome = latest.interestIncome;
+        }
+        if (base.totalAssets == null && typeof latest.totalAssets === 'number') {
+          base.totalAssets = latest.totalAssets;
+        }
+        if (base.totalRevenue == null && typeof latest.totalRevenue === 'number') {
+          base.totalRevenue = latest.totalRevenue;
+        }
+        if (base.totalDebt == null && typeof latest.totalDebt === 'number') {
+          base.totalDebt = latest.totalDebt;
+        }
+        if (base.cashAndEquivalents == null && typeof latest.cashAndCashEquivalents === 'number') {
+          base.cashAndEquivalents = latest.cashAndCashEquivalents;
+        }
+      }
+    } catch (err) {
+      this.logger.debug(`fundamentalsTimeSeries failed for ${ticker}: ${(err as Error).message}`);
+    }
+
+    return FinancialFundamentalsSchema.parse(base);
   }
 
   async getCandles(

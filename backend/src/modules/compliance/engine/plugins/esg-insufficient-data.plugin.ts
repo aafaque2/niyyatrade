@@ -21,6 +21,7 @@ export class EsgInsufficientDataPlugin implements IRuleEvaluator {
       thresholdValue: rule.description ?? 'Awaiting data integration',
       explanation:
         'We are working on integrating specialized ESG data sources to evaluate this criterion. Currently marked as compliant due to insufficient data.',
+      dataAvailable: false,
     };
   }
 }

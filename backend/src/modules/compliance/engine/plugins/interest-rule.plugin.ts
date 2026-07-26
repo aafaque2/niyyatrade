@@ -17,7 +17,8 @@ export class InterestRulePlugin implements IRuleEvaluator {
 
     if (
       fundamentals.interestIncome == null ||
-      fundamentals.totalRevenue == null
+      fundamentals.totalRevenue == null ||
+      fundamentals.totalRevenue === 0
     ) {
       return {
         ruleId: rule.ruleId,
@@ -27,18 +28,7 @@ export class InterestRulePlugin implements IRuleEvaluator {
         thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
         explanation:
           'Interest income data unavailable — marked compliant pending data.',
-      };
-    }
-
-    if (fundamentals.totalRevenue === 0) {
-      return {
-        ruleId: rule.ruleId,
-        name: rule.name ?? 'Interest Income',
-        passed: true,
-        actualValue: 'N/A',
-        thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
-        explanation:
-          'Total revenue is zero — marked compliant pending data.',
+        dataAvailable: false,
       };
     }
 
@@ -53,6 +43,7 @@ export class InterestRulePlugin implements IRuleEvaluator {
       actualValue: `${ratio.toFixed(1)}%`,
       thresholdValue: `< ${threshold.toFixed(0)}% of revenue`,
       explanation: '',
+      dataAvailable: true,
     };
   }
 }

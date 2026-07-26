@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { useComplianceReport } from "@/lib/hooks/use-compliance-report";
 import { useFrameworks } from "@/lib/hooks/use-frameworks";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -78,6 +78,17 @@ export function ComplianceCard({ ticker }: { ticker: string }) {
               {data.verdict === "COMPLIANT" ? "Compliant" : "Non-Compliant"}
             </Badge>
           </div>
+
+          {data.dataCoverage.withoutData > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/5 px-3 py-2">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+              <p className="text-[11px] leading-relaxed text-warning">
+                {data.dataCoverage.withoutData} of {data.dataCoverage.total} rules
+                evaluated with incomplete data ({data.dataCoverage.percentage}% coverage).
+                Results marked &quot;Pending&quot; require additional data sources.
+              </p>
+            </div>
+          )}
 
           <RuleAccordion rules={data.rules} />
         </>

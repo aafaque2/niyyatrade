@@ -65,12 +65,16 @@ export function generateExplanations(
     if (result.ruleId === 'esg_carbon') {
       const highCarbon = ['Energy', 'Utilities', 'Basic Materials'];
       const sectorStr = fundamentals.sector ?? 'N/A';
-      const isHighCarbon = highCarbon.includes(sectorStr);
-      explanation = `The company operates in the "${sectorStr}" sector. ${
-        isHighCarbon
-          ? `This sector is considered high-carbon (${sectorStr}). The ESG framework excludes companies with significant carbon exposure.`
-          : `This sector (${sectorStr}) is not classified as high-carbon. The company passes the carbon emissions screen.`
-      }`;
+      if (fundamentals.sector == null) {
+        explanation = 'Sector data unavailable — cannot assess carbon exposure. Marked compliant pending data.';
+      } else {
+        const isHighCarbon = highCarbon.includes(sectorStr);
+        explanation = `The company operates in the "${sectorStr}" sector. ${
+          isHighCarbon
+            ? `This sector is considered high-carbon (${sectorStr}). The ESG framework excludes companies with significant carbon exposure.`
+            : `This sector (${sectorStr}) is not classified as high-carbon. The company passes the carbon emissions screen.`
+        }`;
+      }
     }
 
     if (result.ruleId === 'esg_weapons') {

@@ -54,6 +54,7 @@ describe('InterestRulePlugin', () => {
     const result = plugin.evaluate(f, rule);
     expect(result.passed).toBe(true);
     expect(result.actualValue).toBe('3.0%');
+    expect(result.dataAvailable).toBe(true);
   });
 
   it('should fail when interest ratio exceeds threshold', () => {
@@ -64,6 +65,7 @@ describe('InterestRulePlugin', () => {
     const result = plugin.evaluate(f, rule);
     expect(result.passed).toBe(false);
     expect(result.actualValue).toBe('10.0%');
+    expect(result.dataAvailable).toBe(true);
   });
 
   it('should pass with N/A when interest data is null', () => {
@@ -71,5 +73,6 @@ describe('InterestRulePlugin', () => {
     const result = plugin.evaluate(f, rule);
     expect(result.passed).toBe(true);
     expect(result.actualValue).toBe('N/A');
+    expect(result.dataAvailable).toBe(false);
   });
 });

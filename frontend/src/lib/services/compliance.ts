@@ -7,6 +7,14 @@ export interface RuleResult {
   actualValue: string;
   thresholdValue: string;
   explanation: string;
+  dataAvailable: boolean;
+}
+
+export interface DataCoverage {
+  total: number;
+  withData: number;
+  withoutData: number;
+  percentage: number;
 }
 
 export interface EvaluationReport {
@@ -14,6 +22,7 @@ export interface EvaluationReport {
   frameworkId: string;
   verdict: "COMPLIANT" | "NON_COMPLIANT";
   rules: RuleResult[];
+  dataCoverage: DataCoverage;
 }
 
 export async function evaluateCompliance(

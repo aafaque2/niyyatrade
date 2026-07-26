@@ -10,6 +10,7 @@ import type { RuleResult } from './engine/interfaces/rule-result.interface';
 import type {
   EvaluationReport,
   Verdict,
+  DataCoverage,
 } from './engine/interfaces/evaluation-report.interface';
 import { generateExplanations } from './engine/template-engine';
 
@@ -131,11 +132,21 @@ export class ComplianceService {
       ? 'COMPLIANT'
       : 'NON_COMPLIANT';
 
+    const totalRules = enrichedResults.length;
+    const withData = enrichedResults.filter((r) => r.dataAvailable).length;
+    const dataCoverage: DataCoverage = {
+      total: totalRules,
+      withData,
+      withoutData: totalRules - withData,
+      percentage: totalRules > 0 ? Math.round((withData / totalRules) * 100) : 0,
+    };
+
     const report: EvaluationReport = {
       assetId: ticker.toUpperCase(),
       frameworkId: framework.id,
       verdict,
       rules: enrichedResults,
+      dataCoverage,
     };
 
     await this.cacheSet(cacheKey, CACHE_TTL_EVALUATION, report);

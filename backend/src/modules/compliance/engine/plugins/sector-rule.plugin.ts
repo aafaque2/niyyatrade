@@ -25,6 +25,7 @@ export class SectorRulePlugin implements IRuleEvaluator {
         actualValue: 'N/A',
         thresholdValue: `Not in: ${banned.join(', ')}`,
         explanation: 'Sector data unavailable — marked compliant pending data.',
+        dataAvailable: false,
       };
     }
 
@@ -37,6 +38,7 @@ export class SectorRulePlugin implements IRuleEvaluator {
       actualValue: fundamentals.sector,
       thresholdValue: `Not in: ${banned.join(', ')}`,
       explanation: '',
+      dataAvailable: true,
     };
   }
 }

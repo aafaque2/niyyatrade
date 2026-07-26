@@ -55,6 +55,7 @@ describe('DebtRulePlugin', () => {
     expect(result.passed).toBe(true);
     expect(result.actualValue).toBe('20.0%');
     expect(result.thresholdValue).toBe('< 33%');
+    expect(result.dataAvailable).toBe(true);
   });
 
   it('should fail when debt ratio exceeds threshold', () => {
@@ -65,6 +66,7 @@ describe('DebtRulePlugin', () => {
     const result = plugin.evaluate(f, rule);
     expect(result.passed).toBe(false);
     expect(result.actualValue).toBe('40.0%');
+    expect(result.dataAvailable).toBe(true);
   });
 
   it('should pass with N/A when debt data is null', () => {
@@ -72,5 +74,6 @@ describe('DebtRulePlugin', () => {
     const result = plugin.evaluate(f, rule);
     expect(result.passed).toBe(true);
     expect(result.actualValue).toBe('N/A');
+    expect(result.dataAvailable).toBe(false);
   });
 });
