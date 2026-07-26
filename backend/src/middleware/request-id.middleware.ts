@@ -6,8 +6,7 @@ import { randomUUID } from 'crypto';
 export class RequestIdMiddleware implements NestMiddleware {
   use(req: Request, _res: Response, next: NextFunction) {
     const existing = req.headers['x-request-id'];
-    req.headers['x-request-id'] =
-      (existing as string) || randomUUID();
+    req.headers['x-request-id'] = existing || randomUUID();
     next();
   }
 }

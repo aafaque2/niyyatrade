@@ -22,11 +22,20 @@ export class RequestLoggerMiddleware implements NestMiddleware {
       };
 
       if (res.statusCode >= 500) {
-        this.logger.error(log, `${method} ${url} ${res.statusCode} ${duration}ms`);
+        this.logger.error(
+          log,
+          `${method} ${url} ${res.statusCode} ${duration}ms`,
+        );
       } else if (res.statusCode >= 400) {
-        this.logger.warn(log, `${method} ${url} ${res.statusCode} ${duration}ms`);
+        this.logger.warn(
+          log,
+          `${method} ${url} ${res.statusCode} ${duration}ms`,
+        );
       } else {
-        this.logger.info(log, `${method} ${url} ${res.statusCode} ${duration}ms`);
+        this.logger.info(
+          log,
+          `${method} ${url} ${res.statusCode} ${duration}ms`,
+        );
       }
     });
 
