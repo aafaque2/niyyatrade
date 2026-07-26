@@ -1,7 +1,9 @@
 import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import Redis from 'ioredis';
 
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
@@ -12,6 +14,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Full health check (DB + Redis)' })
   async check() {
     const checks = await Promise.allSettled([
       this.checkDb(),

@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/nestjs';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { getPinoAdapter } from './shared/utils/nest-logger.adapter';
 
@@ -42,10 +42,13 @@ async function bootstrap() {
     logger: pinoAdapter,
   });
 
-  app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
-    crossOriginEmbedderPolicy: false,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   app.setGlobalPrefix('api/v1');
 
@@ -67,11 +70,24 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
+  const config = new DocumentBuilder()
+    .setTitle('NiyyaTrade API')
+    .setDescription(
+      'Paper trading platform with compliance analysis — trade with intentions, invest with ethics.',
+    )
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+
   const port = process.env.PORT || 4000;
   await app.listen(port);
 
   const logger = new Logger('Bootstrap');
   logger.log(`Backend running on http://localhost:${port}/api/v1`);
+  logger.log(`Swagger docs at http://localhost:${port}/docs`);
   logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   if (process.env.SENTRY_DSN) {
     logger.log('Sentry error tracking enabled');

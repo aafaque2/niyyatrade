@@ -8,18 +8,22 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TradingService } from './trading.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PortfolioQueryDto } from './dto/portfolio-query.dto';
 import { ResetPortfolioDto } from './dto/reset-portfolio.dto';
 
+@ApiTags('Portfolio')
+@ApiBearerAuth()
 @Controller('portfolio')
 @UseGuards(JwtAuthGuard)
 export class TradingController {
   constructor(private readonly tradingService: TradingService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get portfolio with positions and compliance' })
   async getPortfolio(
     @Request() req: { user: { sub: string } },
     @Query() query: PortfolioQueryDto,
@@ -31,6 +35,7 @@ export class TradingController {
   }
 
   @Post('orders')
+  @ApiOperation({ summary: 'Execute a paper market order' })
   async createOrder(
     @Request() req: { user: { sub: string } },
     @Body() body: CreateOrderDto,
@@ -39,6 +44,7 @@ export class TradingController {
   }
 
   @Post('reset')
+  @ApiOperation({ summary: 'Reset portfolio to starting balance' })
   async resetPortfolio(
     @Request() req: { user: { sub: string } },
     @Body() body: ResetPortfolioDto,
