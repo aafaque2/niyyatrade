@@ -9,10 +9,10 @@ export interface CurrencyConfig {
 export const CURRENCIES: CurrencyConfig[] = [
   { code: 'USD', name: 'US Dollar', symbol: '$', startingBalanceCents: 10_000_000 },
   { code: 'INR', name: 'Indian Rupee', symbol: '₹', startingBalanceCents: 10_000_000_00 },
-  { code: 'GBP', name: 'British Pound', symbol: '£', startingBalanceCents: 8_000_000 },
-  { code: 'EUR', name: 'Euro', symbol: '€', startingBalanceCents: 9_000_000 },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'AED', startingBalanceCents: 367_000_000 },
-  { code: 'SAR', name: 'Saudi Riyal', symbol: 'SAR', startingBalanceCents: 375_000_000 },
+  { code: 'GBP', name: 'British Pound', symbol: '£', startingBalanceCents: 10_000_000 },
+  { code: 'EUR', name: 'Euro', symbol: '€', startingBalanceCents: 10_000_000 },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'AED', startingBalanceCents: 500_000_000 },
+  { code: 'SAR', name: 'Saudi Riyal', symbol: 'SAR', startingBalanceCents: 500_000_000 },
 ];
 
 export const DEFAULT_CURRENCY = 'USD';

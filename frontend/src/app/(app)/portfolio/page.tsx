@@ -2,6 +2,7 @@
 
 import { usePortfolio } from "@/lib/hooks/use-portfolio";
 import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { DashboardSummary } from "@/components/portfolio/dashboard-summary";
 import { PortfolioComplianceGauge } from "@/components/portfolio/portfolio-compliance-gauge";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
@@ -15,6 +16,7 @@ import Link from "next/link";
 export default function PortfolioPage() {
   const { data, isLoading, isError, refetch } = usePortfolio(true);
   const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
+  const userCurrency = useAuthStore((s) => s.user?.currency ?? "USD");
 
   const summaryLoading = isLoading || !data;
 
@@ -51,6 +53,7 @@ export default function PortfolioPage() {
         totalValueCents={data?.totalValueCents}
         buyingPowerCents={data?.buyingPowerCents}
         overallComplianceScore={data?.overallComplianceScore}
+        baseCurrency={userCurrency}
         isLoading={summaryLoading}
       />
 

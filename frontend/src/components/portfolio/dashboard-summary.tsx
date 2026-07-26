@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  Banknote,
   Briefcase,
   Shield,
   Activity,
@@ -104,7 +104,7 @@ export function DashboardSummary({
     {
       label: "Cash Available",
       value: buyingPowerCents ?? 0,
-      icon: DollarSign,
+      icon: Banknote,
       iconColor: "text-emerald-light",
       format: (v: number) => formatCents(v, baseCurrency),
     },
