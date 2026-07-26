@@ -3,15 +3,11 @@ import dynamic from "next/dynamic";
 import { AssetHeader } from "@/components/asset/asset-header";
 import { KeyStats } from "@/components/asset/key-stats";
 import { AssetPageClient } from "./client";
+import { ComplianceSection } from "./compliance-section";
 
 const AssetChart = dynamic(
   () => import("@/components/charts/asset-chart").then((m) => ({ default: m.AssetChart })),
   { loading: () => <div className="h-[360px] w-full animate-pulse rounded-lg bg-surface/50" /> },
-);
-
-const ComplianceCard = dynamic(
-  () => import("@/components/compliance/compliance-card").then((m) => ({ default: m.ComplianceCard })),
-  { loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-surface/50" /> },
 );
 
 const OrderTicket = dynamic(
@@ -52,7 +48,7 @@ export default async function AssetDetailPage({
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <ComplianceCard ticker={ticker} />
+            <ComplianceSection ticker={ticker} />
             <OrderTicket ticker={ticker} />
           </div>
         </div>

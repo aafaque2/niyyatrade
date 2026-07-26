@@ -2,43 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { CommandPalette } from "./command-palette";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
 import { useFrameworks } from "@/lib/hooks/use-frameworks";
-import { activateFramework } from "@/lib/services/identity";
-import { Bell, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { Bell, LogOut, Settings, User, ChevronDown, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const FRAMEWORK_LABELS: Record<string, string> = {
+  esg: "Ethical",
+  "halal-aaoifi": "Halal",
+};
 
 export function TopNav() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
-  const queryClient = useQueryClient();
   const { data: frameworks } = useFrameworks();
-  const activeFramework = frameworks?.find((f) => f.id === user?.activeFrameworkId);
+  const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  const activateMutation = useMutation({
-    mutationFn: activateFramework,
-    onSuccess: (updatedUser) => {
-      setUser({
-        id: updatedUser.id,
-        email: updatedUser.email,
-        name: updatedUser.name,
-        activeFrameworkId: updatedUser.activeFrameworkId,
-      });
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-      queryClient.invalidateQueries({ queryKey: ["framework-prefs"] });
-    },
-    onError: (err: Error) => {
-      toast.error(err.message ?? "Failed to switch framework");
-    },
-  });
 
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
@@ -69,16 +53,11 @@ export function TopNav() {
     return () => document.removeEventListener("mousedown", handler);
   }, [userMenuOpen]);
 
-  const handleFrameworkSwitch = (frameworkId: string) => {
-    if (frameworkId !== user?.activeFrameworkId) {
-      activateMutation.mutate(frameworkId);
-    }
+  const getFrameworkLabel = (slug: string) => {
+    if (FRAMEWORK_LABELS[slug]) return FRAMEWORK_LABELS[slug];
+    const fw = frameworks?.find((f) => f.slug === slug);
+    return fw?.name ?? slug;
   };
-
-  const currentFrameworkSlug = activeFramework?.slug ?? "standard";
-  const standardFramework = frameworks?.find((f) => f.slug === "standard");
-  const halalFramework = frameworks?.find((f) => f.slug === "halal-aaoifi");
-  const esgFramework = frameworks?.find((f) => f.slug === "esg");
 
   return (
     <>
@@ -98,60 +77,30 @@ export function TopNav() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Framework Toggle */}
-            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
-              {standardFramework && (
-                <button
-                  type="button"
-                  onClick={() => handleFrameworkSwitch(standardFramework.id)}
-                  className={cn(
-                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
-                    currentFrameworkSlug === "standard"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
+            {/* Framework Badges */}
+            <div className="flex items-center gap-1.5">
+              {selectedFrameworks.length === 0 ? (
+                <span className="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-muted-foreground">
                   Standard
-                </button>
+                </span>
+              ) : (
+                selectedFrameworks.map((slug) => (
+                  <span
+                    key={slug}
+                    className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                  >
+                    {getFrameworkLabel(slug)}
+                  </span>
+                ))
               )}
-              {esgFramework && (
-                <button
-                  type="button"
-                  onClick={() => handleFrameworkSwitch(esgFramework.id)}
-                  className={cn(
-                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
-                    currentFrameworkSlug === "esg"
-                      ? "bg-emerald text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Ethical
-                  {currentFrameworkSlug === "esg" && (
-                    <span className="ml-1.5 inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold leading-none">
-                      ACTIVE
-                    </span>
-                  )}
-                </button>
-              )}
-              {halalFramework && (
-                <button
-                  type="button"
-                  onClick={() => handleFrameworkSwitch(halalFramework.id)}
-                  className={cn(
-                    "relative rounded-md px-3 py-1 text-xs font-medium transition-all duration-150",
-                    currentFrameworkSlug === "halal-aaoifi"
-                      ? "bg-emerald text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Halal
-                  {currentFrameworkSlug === "halal-aaoifi" && (
-                    <span className="ml-1.5 inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-semibold leading-none">
-                      ACTIVE
-                    </span>
-                  )}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => router.push("/frameworks")}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                aria-label="Manage frameworks"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             {/* Notifications */}
