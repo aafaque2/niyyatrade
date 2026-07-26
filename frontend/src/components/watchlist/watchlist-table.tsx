@@ -33,7 +33,7 @@ function PriceCell({ ticker }: { ticker: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-xs">{formatCents(data.priceCents)}</span>
+      <span className="font-mono text-xs">{formatCents(data.priceCents, data.currency)}</span>
       <span
         className={`font-mono text-[10px] ${
           positive ? "text-emerald-light" : "text-danger"

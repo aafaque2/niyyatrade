@@ -3,7 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { FINANCIAL_GLOSSARY } from "@/lib/constants/glossary";
-import { formatDollarsCompact } from "@/lib/utils";
+import { formatCents, formatDollarsCompact } from "@/lib/utils";
 import { useFundamentals } from "@/lib/hooks/use-fundamentals";
 
 interface KeyStatsProps {
@@ -57,6 +57,8 @@ export function KeyStats({ ticker }: KeyStatsProps) {
 
   if (!data) return null;
 
+  const currency = data.currency ?? "USD";
+
   const formatDividend = (val: number | null) => {
     if (val === null) return "N/A";
     return `${(val * 100).toFixed(2)}%`;
@@ -69,7 +71,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
 
   const formatPrice = (val: number | null) => {
     if (val === null) return "N/A";
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+    return formatCents(Math.round(val * 100), currency);
   };
 
   return (
@@ -80,7 +82,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
       <div className="divide-y divide-border">
         <StatRow
           label="Market Cap"
-          value={formatDollarsCompact(data.marketCap)}
+          value={formatDollarsCompact(data.marketCap, currency)}
           tooltipTerm="market-cap"
         />
         <StatRow
@@ -110,7 +112,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
         />
         <StatRow
           label="Total Revenue"
-          value={formatDollarsCompact(data.totalRevenue)}
+          value={formatDollarsCompact(data.totalRevenue, currency)}
           tooltipTerm="market-cap"
         />
         <StatRow

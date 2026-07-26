@@ -106,10 +106,10 @@ export function PortfolioTable({
                   {formatQuantity(pos.quantity)}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs">
-                  {formatCents(pos.avgPriceCents)}
+                  {formatCents(pos.avgPriceCents, pos.currency)}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs">
-                  {formatCents(pos.currentPriceCents)}
+                  {formatCents(pos.currentPriceCents, pos.currency)}
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <ReturnDisplay

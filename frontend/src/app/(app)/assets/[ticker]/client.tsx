@@ -23,6 +23,7 @@ export function AssetPageClient({
         companyName={fundamentals?.industry ?? undefined}
         priceCents={quote?.priceCents}
         changePercent={quote?.changePercent}
+        currency={quote?.currency}
         isLoading={quoteLoading}
       />
 

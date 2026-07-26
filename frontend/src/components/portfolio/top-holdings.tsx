@@ -59,7 +59,7 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
                   </span>
                 </div>
                 <span className="text-xs font-mono text-foreground">
-                  {formatCents(value)}
+                  {formatCents(value, pos.currency)}
                 </span>
               </Link>
             </div>

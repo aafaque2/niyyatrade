@@ -8,6 +8,7 @@ interface AssetHeaderProps {
   companyName?: string;
   priceCents?: number;
   changePercent?: number;
+  currency?: string;
   isLoading: boolean;
 }
 
@@ -16,6 +17,7 @@ export function AssetHeader({
   companyName,
   priceCents,
   changePercent,
+  currency,
   isLoading,
 }: AssetHeaderProps) {
   if (isLoading) {
@@ -43,7 +45,7 @@ export function AssetHeader({
       <div className="mt-1 flex items-baseline gap-3">
         {priceCents !== undefined && (
           <span className="text-3xl font-semibold tracking-tight font-mono">
-            {formatCents(priceCents)}
+            {formatCents(priceCents, currency)}
           </span>
         )}
         {change && (

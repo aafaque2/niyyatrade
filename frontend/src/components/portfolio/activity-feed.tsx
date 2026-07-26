@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { formatCents, formatQuantity } from "@/lib/utils";
+import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
 import type { RecentOrder } from "@/lib/services/portfolio";
 
 interface ActivityFeedProps {
@@ -81,7 +81,7 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-mono text-muted-foreground">
-                {formatCents(order.priceCents * order.quantity)}
+                {formatCents(order.priceCents * order.quantity, deriveCurrencyFromTicker(order.ticker))}
               </span>
               <span className="text-[10px] text-muted-foreground w-12 text-right">
                 {timeAgo(order.createdAt)}

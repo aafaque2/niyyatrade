@@ -22,6 +22,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const priceCents = quote?.priceCents ?? 0;
+  const currency = quote?.currency ?? "USD";
   const qty = parseFloat(quantity) || 0;
   const effectivePriceCents =
     orderType === "LIMIT" ? Math.round(parseFloat(limitPrice || "0") * 100) : priceCents;
@@ -100,7 +101,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           <p className="text-sm">
             {orderType === "MARKET" ? "Market price:" : "Last price:"}{" "}
             <span className="font-medium font-mono text-foreground">
-              {priceCents > 0 ? formatCents(priceCents) : "N/A"}
+              {priceCents > 0 ? formatCents(priceCents, currency) : "N/A"}
             </span>
           </p>
         )}
@@ -145,7 +146,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           <p className="text-sm text-muted-foreground">
             Estimated {side === "BUY" ? "cost" : "proceeds"}:{" "}
             <span className="font-medium font-mono text-foreground">
-              {formatCents(estimatedCost)}
+              {formatCents(estimatedCost, currency)}
             </span>
           </p>
         )}

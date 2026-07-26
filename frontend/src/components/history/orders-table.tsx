@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { formatCents, formatQuantity } from "@/lib/utils";
+import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
 import type { OrderHistoryItem } from "@/lib/services/history";
 
 interface OrdersTableProps {
@@ -87,12 +87,12 @@ export function OrdersTable({ items }: OrdersTableProps) {
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs">
                     {order.priceCents != null
-                      ? formatCents(order.priceCents)
+                      ? formatCents(order.priceCents, deriveCurrencyFromTicker(order.ticker))
                       : "--"}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs">
                     {order.priceCents != null
-                      ? formatCents(order.priceCents * order.quantity)
+                      ? formatCents(order.priceCents * order.quantity, deriveCurrencyFromTicker(order.ticker))
                       : "--"}
                   </td>
                   <td className="px-4 py-2.5 text-center">
