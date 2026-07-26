@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -13,6 +14,9 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { HistoryModule } from './modules/history/history.module';
 import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.interceptor';
+import { SentryInterceptor } from './interceptors/sentry.interceptor';
+import { RequestIdMiddleware } from './middleware/request-id.middleware';
+import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 
 @Module({
   imports: [
@@ -35,8 +39,16 @@ import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.in
   ],
   providers: [
     {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -44,4 +56,10 @@ import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.in
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
+      .forRoutes('*');
+  }
+}

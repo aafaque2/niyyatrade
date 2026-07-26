@@ -4,8 +4,10 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
+import * as Sentry from '@sentry/nestjs';
 
 interface ErrorResponse {
   error: {
@@ -21,8 +23,9 @@ interface ErrorResponse {
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
-    console.error('Unhandled exception:', exception);
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -50,6 +53,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           message = 'Validation failed';
         }
       }
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      try {
+        Sentry.captureException(exception);
+      } catch {
+        // Sentry not initialized
+      }
+    }
+
+    const requestId = (request.headers['x-request-id'] as string) || 'unknown';
+
+    if (status >= 500) {
+      this.logger.error(
+        `${request.method} ${request.url} ${status} ${code}: ${message}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    } else if (status >= 400) {
+      this.logger.warn(
+        `${request.method} ${request.url} ${status} ${code}: ${message}`,
+      );
     }
 
     const errorResponse: ErrorResponse = {
@@ -60,7 +83,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       },
       meta: {
         timestamp: new Date().toISOString(),
-        requestId: (request.headers['x-request-id'] as string) || 'unknown',
+        requestId,
       },
     };
 

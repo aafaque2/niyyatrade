@@ -1,14 +1,18 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
+import * as Sentry from '@sentry/nestjs';
 import { AppModule } from './app.module';
+import { getPinoAdapter } from './shared/utils/nest-logger.adapter';
 
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
 };
 
 function validateEnv() {
-  const required = ['JWT_SECRET'];
+  const required = ['JWT_SECRET', 'DATABASE_URL', 'REDIS_URL'];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
@@ -25,13 +29,32 @@ function validateEnv() {
 async function bootstrap() {
   validateEnv();
 
-  const app = await NestFactory.create(AppModule);
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    });
+  }
+
+  const pinoAdapter = getPinoAdapter();
+  const app = await NestFactory.create(AppModule, {
+    logger: pinoAdapter,
+  });
+
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    crossOriginEmbedderPolicy: false,
+  }));
 
   app.setGlobalPrefix('api/v1');
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+    maxAge: 86400,
   });
 
   app.useGlobalPipes(
@@ -42,10 +65,19 @@ async function bootstrap() {
     }),
   );
 
+  app.enableShutdownHooks();
+
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}/api/v1`);
+
+  const logger = new Logger('Bootstrap');
+  logger.log(`Backend running on http://localhost:${port}/api/v1`);
+  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  if (process.env.SENTRY_DSN) {
+    logger.log('Sentry error tracking enabled');
+  }
 }
+
 bootstrap().catch((err) => {
   console.error('Failed to start server', err);
   process.exit(1);

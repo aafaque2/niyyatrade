@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { MarketDataController } from './market-data.controller';
@@ -10,18 +10,31 @@ import { YahooFinance2MarketDataProvider } from './providers/yahoo-finance2-mark
 import { MultiMarketDataProvider } from './providers/multi-market-data.provider';
 import type { IMarketDataProvider } from './providers/market-data-provider.interface';
 
+function createRedisClient(url: string): Redis {
+  return new Redis(url, {
+    maxRetriesPerRequest: 3,
+    retryStrategy(times: number) {
+      if (times > 3) return null;
+      return Math.min(times * 200, 2000);
+    },
+    lazyConnect: true,
+  });
+}
+
 @Module({
   controllers: [MarketDataController],
   providers: [
     MarketDataService,
     {
       provide: 'REDIS_CLIENT',
-      useFactory: (configService: ConfigService) => {
+      useFactory: async (configService: ConfigService) => {
         const url = configService.get<string>(
           'REDIS_URL',
           'redis://localhost:6379',
         );
-        return new Redis(url);
+        const client = createRedisClient(url);
+        await client.connect();
+        return client;
       },
       inject: [ConfigService],
     },
@@ -38,12 +51,10 @@ import type { IMarketDataProvider } from './providers/market-data-provider.inter
           return yahoo2;
         }
 
-        const redis = new Redis(
-          configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
-        );
-
         const upstox = upstoxToken
-          ? new UpstoxMarketDataProvider(configService, redis)
+          ? new UpstoxMarketDataProvider(configService, createRedisClient(
+              configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+            ))
           : new MockMarketDataProvider();
 
         const fallback = fmp ?? new MockMarketDataProvider();
@@ -57,4 +68,16 @@ import type { IMarketDataProvider } from './providers/market-data-provider.inter
   ],
   exports: [MarketDataService],
 })
-export class MarketDataModule {}
+export class MarketDataModule implements OnModuleDestroy {
+  private redisClients: Redis[] = [];
+
+  constructor(
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {
+    this.redisClients.push(redis);
+  }
+
+  async onModuleDestroy() {
+    await Promise.all(this.redisClients.map((c) => c.quit()));
+  }
+}

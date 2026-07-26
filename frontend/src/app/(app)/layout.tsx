@@ -61,7 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <Sidebar />
       <TopNav />
-      <main className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
+      <main id="main-content" className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
         <div className="mx-auto max-w-[1400px] animate-fade-in">
           {children}
         </div>
