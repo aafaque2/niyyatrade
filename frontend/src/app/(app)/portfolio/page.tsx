@@ -1,8 +1,9 @@
 "use client";
 
 import { usePortfolio } from "@/lib/hooks/use-portfolio";
+import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
 import { DashboardSummary } from "@/components/portfolio/dashboard-summary";
-import { ComplianceGauge } from "@/components/portfolio/compliance-gauge";
+import { PortfolioComplianceGauge } from "@/components/portfolio/portfolio-compliance-gauge";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { ActivityFeed } from "@/components/portfolio/activity-feed";
 import { TopHoldings } from "@/components/portfolio/top-holdings";
@@ -13,6 +14,7 @@ import Link from "next/link";
 
 export default function PortfolioPage() {
   const { data, isLoading, isError, refetch } = usePortfolio(true);
+  const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
 
   const summaryLoading = isLoading || !data;
 
@@ -34,9 +36,7 @@ export default function PortfolioPage() {
     );
   }
 
-  const compliantCount =
-    data?.positions?.filter((p) => p.complianceVerdict === "COMPLIANT")
-      .length ?? 0;
+  const positionTickers = data?.positions?.map((p) => p.ticker) ?? [];
 
   return (
     <div className="space-y-5">
@@ -59,6 +59,7 @@ export default function PortfolioPage() {
           {data?.positions && data.positions.length > 0 ? (
             <PortfolioTable
               positions={data.positions}
+              frameworkSlugs={selectedFrameworks}
               isLoading={isLoading}
             />
           ) : !isLoading ? (
@@ -86,10 +87,9 @@ export default function PortfolioPage() {
         <div className="lg:col-span-2 space-y-4">
           {data && data.positions.length > 0 && (
             <>
-              <ComplianceGauge
-                score={data.overallComplianceScore}
-                totalPositions={data.positions.length}
-                compliantCount={compliantCount}
+              <PortfolioComplianceGauge
+                tickers={positionTickers}
+                frameworkSlugs={selectedFrameworks}
               />
               <TopHoldings
                 positions={data.positions}

@@ -2,31 +2,14 @@
 
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { formatCents, formatQuantity, formatPercent } from "@/lib/utils";
 import type { Position } from "@/lib/services/portfolio";
+import { PositionComplianceBadge } from "./position-compliance-badge";
 
 interface PortfolioTableProps {
   positions: Position[];
+  frameworkSlugs: string[];
   isLoading?: boolean;
-}
-
-function ComplianceBadge({ verdict }: { verdict?: string }) {
-  if (!verdict) return null;
-
-  if (verdict === "COMPLIANT") {
-    return (
-      <Badge variant="default" className="bg-emerald-subtle text-emerald-light border-emerald/20 text-[10px]">
-        Compliant
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="destructive" className="text-[10px]">
-      Non-Compliant
-    </Badge>
-  );
 }
 
 function ReturnDisplay({ cents, percent, currency }: { cents: number; percent: number; currency?: string }) {
@@ -44,6 +27,7 @@ function ReturnDisplay({ cents, percent, currency }: { cents: number; percent: n
 
 export function PortfolioTable({
   positions,
+  frameworkSlugs,
   isLoading,
 }: PortfolioTableProps) {
   if (isLoading) {
@@ -119,7 +103,10 @@ export function PortfolioTable({
                   />
                 </td>
                 <td className="px-4 py-2.5 text-center hidden md:table-cell">
-                  <ComplianceBadge verdict={pos.complianceVerdict} />
+                  <PositionComplianceBadge
+                    ticker={pos.ticker}
+                    frameworkSlugs={frameworkSlugs}
+                  />
                 </td>
               </tr>
             ))}
