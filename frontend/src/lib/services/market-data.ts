@@ -12,6 +12,7 @@ export interface MarketQuote {
   priceCents: number;
   changePercent: number;
   timestamp: string;
+  currency?: string;
 }
 
 export async function searchAssets(query: string): Promise<SearchResult[]> {
@@ -50,6 +51,7 @@ export interface Fundamentals {
   volume: number | null;
   week52High: number | null;
   week52Low: number | null;
+  currency?: string;
 }
 
 export interface AssetInfo {

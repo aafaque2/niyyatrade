@@ -8,6 +8,7 @@ export interface Position {
   returnCents: number;
   returnPercent: number;
   complianceVerdict?: string;
+  currency?: string;
 }
 
 export interface RecentOrder {
