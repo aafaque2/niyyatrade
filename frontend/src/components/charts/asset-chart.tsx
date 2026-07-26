@@ -29,8 +29,11 @@ export function AssetChart({ ticker }: { ticker: string }) {
 
   if (isError || !candles?.length) {
     return (
-      <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-        Chart data unavailable
+      <div className="flex h-[400px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
+        <p className="text-sm text-muted-foreground">Chart data unavailable</p>
+        <p className="mt-1 text-xs text-muted-foreground/60">
+          Historical data may be delayed or unavailable for this market
+        </p>
       </div>
     );
   }

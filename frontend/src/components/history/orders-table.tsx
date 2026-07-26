@@ -34,13 +34,13 @@ export function OrdersTable({ items }: OrdersTableProps) {
               <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Action
               </th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden sm:table-cell">
                 Qty
               </th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
                 Price
               </th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
                 Total
               </th>
               <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">
@@ -82,15 +82,15 @@ export function OrdersTable({ items }: OrdersTableProps) {
                       {order.side}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs">
+                  <td className="px-4 py-2.5 text-right font-mono text-xs hidden sm:table-cell">
                     {formatQuantity(order.quantity)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs">
+                  <td className="px-4 py-2.5 text-right font-mono text-xs hidden md:table-cell">
                     {order.priceCents != null
                       ? formatCents(order.priceCents, deriveCurrencyFromTicker(order.ticker))
                       : "--"}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs">
+                  <td className="px-4 py-2.5 text-right font-mono text-xs hidden md:table-cell">
                     {order.priceCents != null
                       ? formatCents(order.priceCents * order.quantity, deriveCurrencyFromTicker(order.ticker))
                       : "--"}

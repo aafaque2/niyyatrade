@@ -60,13 +60,13 @@ export function WatchlistTable({ items }: WatchlistTableProps) {
               <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Asset
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground hidden sm:table-cell">
                 Name
               </th>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Price / Change
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">
                 Sector
               </th>
               <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
@@ -88,13 +88,13 @@ export function WatchlistTable({ items }: WatchlistTableProps) {
                     {item.ticker}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">
+                <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate hidden sm:table-cell">
                   {item.name}
                 </td>
                 <td className="px-4 py-2.5">
                   <PriceCell ticker={item.ticker} />
                 </td>
-                <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
                   {item.sector}
                 </td>
                 <td className="px-4 py-2.5 text-right">

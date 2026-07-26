@@ -29,7 +29,7 @@ function ComplianceBadge({ verdict }: { verdict?: string }) {
   );
 }
 
-function ReturnDisplay({ cents, percent }: { cents: number; percent: number }) {
+function ReturnDisplay({ cents, percent, currency }: { cents: number; percent: number; currency?: string }) {
   const positive = cents >= 0;
   return (
     <span
@@ -37,7 +37,7 @@ function ReturnDisplay({ cents, percent }: { cents: number; percent: number }) {
         positive ? "text-emerald-light" : "text-danger"
       }`}
     >
-      {formatCents(cents)} ({formatPercent(percent / 100)})
+      {formatCents(cents, currency)} ({formatPercent(percent / 100)})
     </span>
   );
 }
@@ -71,10 +71,10 @@ export function PortfolioTable({
               <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
                 Asset
               </th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden sm:table-cell">
                 Qty
               </th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden md:table-cell">
                 Avg Price
               </th>
               <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
@@ -83,7 +83,7 @@ export function PortfolioTable({
               <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
                 Return
               </th>
-              <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground hidden md:table-cell">
                 Status
               </th>
             </tr>
@@ -102,10 +102,10 @@ export function PortfolioTable({
                     {pos.ticker}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs">
+                <td className="px-4 py-2.5 text-right font-mono text-xs hidden sm:table-cell">
                   {formatQuantity(pos.quantity)}
                 </td>
-                <td className="px-4 py-2.5 text-right font-mono text-xs">
+                <td className="px-4 py-2.5 text-right font-mono text-xs hidden md:table-cell">
                   {formatCents(pos.avgPriceCents, pos.currency)}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs">
@@ -115,9 +115,10 @@ export function PortfolioTable({
                   <ReturnDisplay
                     cents={pos.returnCents}
                     percent={pos.returnPercent}
+                    currency={pos.currency}
                   />
                 </td>
-                <td className="px-4 py-2.5 text-center">
+                <td className="px-4 py-2.5 text-center hidden md:table-cell">
                   <ComplianceBadge verdict={pos.complianceVerdict} />
                 </td>
               </tr>

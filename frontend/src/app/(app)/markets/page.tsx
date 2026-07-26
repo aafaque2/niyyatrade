@@ -91,7 +91,7 @@ export default function MarketsPage() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -137,7 +137,7 @@ export default function MarketsPage() {
                       Ticker <SortIcon field="ticker" />
                     </button>
                   </th>
-                  <th className="px-4 py-2.5 text-left">
+                  <th className="px-4 py-2.5 text-left hidden sm:table-cell">
                     <button
                       type="button"
                       onClick={() => handleSort("name")}
@@ -146,7 +146,7 @@ export default function MarketsPage() {
                       Company <SortIcon field="name" />
                     </button>
                   </th>
-                  <th className="px-4 py-2.5 text-left">
+                  <th className="px-4 py-2.5 text-left hidden md:table-cell">
                     <button
                       type="button"
                       onClick={() => handleSort("sector")}
@@ -209,10 +209,10 @@ function MarketRow({ result }: { result: SearchResult }) {
           {result.ticker}
         </Link>
       </td>
-      <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">
+      <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate hidden sm:table-cell">
         {result.name}
       </td>
-      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+      <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
         {result.sector || "--"}
       </td>
       <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">

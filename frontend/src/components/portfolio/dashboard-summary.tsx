@@ -59,6 +59,7 @@ interface DashboardSummaryProps {
   buyingPowerCents?: number;
   overallComplianceScore?: number;
   dailyChangePercent?: number;
+  baseCurrency?: string;
   isLoading?: boolean;
 }
 
@@ -67,6 +68,7 @@ export function DashboardSummary({
   buyingPowerCents,
   overallComplianceScore,
   dailyChangePercent,
+  baseCurrency = "USD",
   isLoading,
 }: DashboardSummaryProps) {
   if (isLoading) {
@@ -96,7 +98,7 @@ export function DashboardSummary({
       value: totalValueCents ?? 0,
       icon: Briefcase,
       iconColor: "text-primary",
-      format: formatCents,
+      format: (v: number) => formatCents(v, baseCurrency),
       change: dailyChangePercent != null ? { value: dailyChangePercent, positive } : null,
     },
     {
@@ -104,7 +106,7 @@ export function DashboardSummary({
       value: buyingPowerCents ?? 0,
       icon: DollarSign,
       iconColor: "text-emerald-light",
-      format: formatCents,
+      format: (v: number) => formatCents(v, baseCurrency),
     },
     {
       label: "Daily Change",
