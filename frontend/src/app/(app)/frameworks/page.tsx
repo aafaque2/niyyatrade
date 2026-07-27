@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useFrameworks, useFrameworkPrefs } from "@/lib/hooks/use-frameworks";
 import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
@@ -25,12 +25,13 @@ const FRAMEWORK_ORDER = ["esg", "halal-aaoifi", "bds"];
 
 const FRAMEWORK_META: Record<
   string,
-  { description: string; icon: typeof Leaf; color: string; activeRing: string; activeBg: string }
+  { description: string; icon: typeof Leaf; color: string; colorValue: string; activeRing: string; activeBg: string }
 > = {
   esg: {
     description: "Environmental, Social & Governance screening",
     icon: Leaf,
     color: "text-emerald-400",
+    colorValue: "#22c55e",
     activeRing: "ring-emerald-500/30",
     activeBg: "bg-emerald-500/5",
   },
@@ -38,6 +39,7 @@ const FRAMEWORK_META: Record<
     description: "AAOIFI Shariah compliance screening",
     icon: Moon,
     color: "text-blue-400",
+    colorValue: "#60a5fa",
     activeRing: "ring-blue-500/30",
     activeBg: "bg-blue-500/5",
   },
@@ -45,6 +47,7 @@ const FRAMEWORK_META: Record<
     description: "BDS Palestinian solidarity divestment screening",
     icon: Flag,
     color: "text-red-400",
+    colorValue: "#f87171",
     activeRing: "ring-red-500/30",
     activeBg: "bg-red-500/5",
   },
@@ -54,6 +57,7 @@ const FALLBACK_META = {
   description: "Compliance screening framework.",
   icon: ShieldCheck,
   color: "text-muted-foreground",
+  colorValue: "#94a3b8",
   activeRing: "ring-border",
   activeBg: "bg-surface",
 };
@@ -64,6 +68,7 @@ export default function FrameworksPage() {
   const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
   const toggleFramework = useComplianceFrameworkStore((s) => s.toggleFramework);
   const [viewingSlug, setViewingSlug] = useState<string | null>(null);
+  const initializedRef = useRef(false);
 
   const sortedFrameworks = useMemo(() => {
     if (!frameworks) return [];
@@ -80,6 +85,15 @@ export default function FrameworksPage() {
     () => sortedFrameworks.find((f) => f.slug === viewingSlug),
     [sortedFrameworks, viewingSlug],
   );
+
+  useEffect(() => {
+    if (initializedRef.current || sortedFrameworks.length === 0) return;
+    const firstEnabled = sortedFrameworks.find((f) => selectedFrameworks.includes(f.slug));
+    if (firstEnabled) {
+      setViewingSlug(firstEnabled.slug);
+    }
+    initializedRef.current = true;
+  }, [sortedFrameworks, selectedFrameworks]);
 
   if (isError) {
     return (
@@ -135,14 +149,18 @@ export default function FrameworksPage() {
                 const isViewing = viewingSlug === f.slug;
 
                 return (
-                  <div key={f.id}>
+                  <div key={f.id} className="relative">
                     <div
                       className={cn(
-                        "rounded-xl border p-4 transition-all duration-200",
+                        "rounded-xl border p-4 transition-all duration-200 cursor-pointer",
                         isViewing
                           ? cn("border-primary/30 ring-1", meta.activeRing, meta.activeBg)
                           : "border-border bg-surface/30 hover:border-border hover:bg-surface/50",
                       )}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setViewingSlug(isViewing ? null : f.slug); }}
+                      onClick={() => setViewingSlug(isViewing ? null : f.slug)}
                     >
                       <div className="flex items-center gap-3">
                         {/* Icon */}
@@ -171,7 +189,7 @@ export default function FrameworksPage() {
                         {/* Toggle */}
                         <button
                           type="button"
-                          onClick={() => toggleFramework(f.slug)}
+                          onClick={(e) => { e.stopPropagation(); toggleFramework(f.slug); }}
                           className={cn(
                             "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 cursor-pointer",
                             isEnabled ? "bg-primary" : "bg-border",
@@ -188,19 +206,26 @@ export default function FrameworksPage() {
                       </div>
 
                       {/* View rules link */}
-                      <button
-                        type="button"
-                        onClick={() => setViewingSlug(isViewing ? null : f.slug)}
-                        className={cn(
-                          "mt-3 flex items-center gap-1 text-[11px] font-medium transition-colors cursor-pointer",
-                          isViewing ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
+                      <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-primary">
                         <BookOpen className="h-3 w-3" />
-                        {isViewing ? "Hide rules" : "View rules"}
+                        {isViewing ? "Viewing rules" : "View rules"}
                         <ChevronRight className={cn("h-3 w-3 transition-transform", isViewing && "rotate-90")} />
-                      </button>
+                      </div>
                     </div>
+
+                    {/* Connector arrow pointing to detail panel */}
+                    {isViewing && (
+                      <div className="absolute right-[-13px] top-1/2 -translate-y-1/2 hidden lg:block">
+                        <div
+                          className="w-0 h-0"
+                          style={{
+                            borderTop: "6px solid transparent",
+                            borderBottom: "6px solid transparent",
+                            borderLeft: `8px solid ${meta.colorValue}`,
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -275,7 +300,10 @@ export default function FrameworksPage() {
         {/* Right: Detail panel */}
         <div>
           {viewingData ? (
-            <div className="rounded-xl border border-border bg-surface/30 p-5">
+            <div
+              className="rounded-xl border border-border bg-surface/30 p-5 transition-all duration-200"
+              style={{ borderLeftWidth: "3px", borderLeftColor: FRAMEWORK_META[viewingData.slug]?.colorValue ?? "#94a3b8" }}
+            >
               <div className="flex items-center gap-2.5 mb-4">
                 {(() => {
                   const meta = FRAMEWORK_META[viewingData.slug] ?? FALLBACK_META;
