@@ -8,6 +8,7 @@ import { DebtRulePlugin } from './engine/plugins/debt-rule.plugin';
 import { InterestRulePlugin } from './engine/plugins/interest-rule.plugin';
 import { EsgSectorPlugin } from './engine/plugins/esg-sector.plugin';
 import { EsgInsufficientDataPlugin } from './engine/plugins/esg-insufficient-data.plugin';
+import { TickerListRulePlugin } from './engine/plugins/ticker-list-rule.plugin';
 
 @Module({
   imports: [PrismaModule, MarketDataModule],
@@ -19,6 +20,7 @@ import { EsgInsufficientDataPlugin } from './engine/plugins/esg-insufficient-dat
     InterestRulePlugin,
     EsgSectorPlugin,
     EsgInsufficientDataPlugin,
+    TickerListRulePlugin,
     {
       provide: 'COMPLIANCE_RULE_PLUGINS',
       useFactory: (
@@ -27,13 +29,15 @@ import { EsgInsufficientDataPlugin } from './engine/plugins/esg-insufficient-dat
         interest: InterestRulePlugin,
         esgSector: EsgSectorPlugin,
         esgInsufficient: EsgInsufficientDataPlugin,
-      ) => [sector, debt, interest, esgSector, esgInsufficient],
+        tickerList: TickerListRulePlugin,
+      ) => [sector, debt, interest, esgSector, esgInsufficient, tickerList],
       inject: [
         SectorRulePlugin,
         DebtRulePlugin,
         InterestRulePlugin,
         EsgSectorPlugin,
         EsgInsufficientDataPlugin,
+        TickerListRulePlugin,
       ],
     },
   ],

@@ -9,6 +9,7 @@ export interface RuleSpec {
   operator: string;
   threshold?: number;
   bannedSectors?: string[];
+  bannedTickers?: string[];
 }
 
 export interface IRuleEvaluator {

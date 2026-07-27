@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Leaf,
   Moon,
+  Flag,
   ChevronRight,
   Plus,
   Sparkles,
@@ -20,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const FRAMEWORK_ORDER = ["esg", "halal-aaoifi"];
+const FRAMEWORK_ORDER = ["esg", "halal-aaoifi", "bds"];
 
 const FRAMEWORK_META: Record<
   string,
@@ -39,6 +40,13 @@ const FRAMEWORK_META: Record<
     color: "text-blue-400",
     activeRing: "ring-blue-500/30",
     activeBg: "bg-blue-500/5",
+  },
+  bds: {
+    description: "BDS Palestinian solidarity divestment screening",
+    icon: Flag,
+    color: "text-red-400",
+    activeRing: "ring-red-500/30",
+    activeBg: "bg-red-500/5",
   },
 };
 

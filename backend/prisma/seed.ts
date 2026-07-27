@@ -116,7 +116,56 @@ async function main() {
     },
   });
 
-  console.log("Seeded frameworks:", esgFramework.slug, aaoifiFramework.slug, standardFramework.slug);
+  const bdsFramework = await prisma.framework.upsert({
+    where: { slug: "bds" },
+    update: {},
+    create: {
+      slug: "bds",
+      name: "BDS Divestment",
+      defaultRules: {
+        rules: {
+          bds_companies: {
+            type: "ticker_list",
+            ruleId: "bds_companies",
+            name: "BDS Complicit Companies",
+            description:
+              "Companies identified by the BDS movement as complicit in the Israeli occupation, apartheid, or settlements. Based on the BoyStk database and AFSC Investigate divestment shortlist.",
+            bannedTickers: [
+              "ACN", "MRK", "NKE", "TMO", "ABT", "CVX", "DHR", "COP", "UBER", "GILD",
+              "PTC", "SLB", "ISRG", "FTNT", "APTV", "CDW", "WDC", "EW", "AKAM", "APD",
+              "A", "FFIV", "BKR", "EBAY", "BIIB", "DECK", "STE", "COO", "ILMN", "DGX",
+              "ICLR", "MRO", "RL", "VLTO", "J", "AVY", "DAL", "SCCO", "MCHP", "MNST",
+              "ETN", "APH", "K", "EXPE", "TGT", "KMB", "JBL", "EPAM", "ABBV", "TJX",
+              "PEP", "CDNS", "LLY", "WBA", "TSLA", "QCOM", "XOM", "TXN", "ROK", "PG",
+              "MU", "MMM", "META", "PANW", "MSI", "AAPL", "ADI", "ADM", "ADSK", "ALGN",
+              "AMAT", "AMD", "BSX", "CRM", "CSCO", "DOX", "EA", "EL", "FLEX", "FSLR",
+              "FWONA", "FWONK", "GEHC", "GLW", "GOOG", "GOOGL", "HAL", "HPQ", "IFF",
+              "INTC", "JNJ", "KDP", "KLAC", "KO", "MDLZ", "MDT", "MRVL", "MSFT", "NOW",
+              "NWS", "NWSA", "OKTA", "OMC", "ZBRA", "NVDA", "AMZN", "AVGO", "BKNG",
+              "LOW", "HON", "SYK", "ON", "VLO", "NTAP", "SOLV", "ULTA", "NXPI", "WST",
+              "TTWO", "HD", "ABNB", "MCK", "VMW", "NXT", "GE", "MCD", "SBUX", "GEV",
+              "DELL", "AXON", "IBM", "CCEP", "DOCU", "PVH", "CRI", "GAP", "GM", "SKX",
+              "ORCL", "WDAY", "LDOS", "TEVA", "WMT", "SNDK", "T", "DLR", "HPE", "VTRS",
+              "WSM", "CRWD", "STX", "TTD", "DDOG", "SUI", "CBRE", "CIEN", "TEAM", "APP",
+              "GPN", "NSRGY", "SAP", "AZN", "RHHBY", "NVS", "UL", "SNY", "LRLCY",
+              "ESLOY", "GSK", "RBGLY", "NOK", "ERIC", "ARM", "PSO", "RYAAY", "HNNMY",
+              "HENKY", "NVO", "ADDYY", "IDEXY", "FRCOY", "RNMBY", "VWAGY", "SMMNY",
+              "SMERY", "SBGSY", "SGPYY", "SGIOY", "SAABY", "HTHIY", "AIQUY", "RCRUY",
+              "ATLKY", "MIELY", "HOCPY", "AMADY", "FJTSY", "DNZOY", "KNYJY", "HXGBY",
+              "ATLCY", "ASCCY", "NJDCY", "MKKGY", "SYIEY", "SGAPY", "GBERY", "FANUY",
+              "WRTBY", "YASKY", "ORKLY", "MHGVY", "SDVKY", "BRDCY", "NDEKY", "IFNNY",
+              "GVDNY", "DSDVY", "OTSKY", "CHGCY", "CAJPY", "TOPPY", "SMGZY", "CMSQY",
+              "CHT", "LZAGY", "RO.SW", "ALC.SW", "2454.TW", "005930.KS", "068270.KS",
+              "012330.KS", "009150.KS", "000660.KS", "028260.KS", "267260.KS",
+              "009540.KS", "373220.KS",
+            ],
+          },
+        },
+      },
+    },
+  });
+
+  console.log("Seeded frameworks:", esgFramework.slug, aaoifiFramework.slug, standardFramework.slug, bdsFramework.slug);
 }
 
 main()

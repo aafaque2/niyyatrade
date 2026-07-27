@@ -94,6 +94,12 @@ export function generateExplanations(
       }`;
     }
 
+    if (result.ruleId === 'bds_companies') {
+      explanation = result.passed
+        ? `This company (${fundamentals.ticker ?? 'N/A'}) is not on the BDS divestment shortlist.`
+        : `This company (${fundamentals.ticker ?? 'N/A'}) is on the BDS divestment shortlist — identified by the BDS movement as complicit in the Israeli occupation, apartheid, or settlements. Consider divesting per the BDS movement's call.`;
+    }
+
     return { ...result, explanation };
   });
 }
