@@ -46,10 +46,12 @@ export class TradingService {
       positions.map(async (pos) => {
         let currentPriceCents = 0;
         let currency = 'USD';
+        let changePercent = 0;
         try {
           const quote = await this.marketData.getQuote(pos.assetTicker);
           currentPriceCents = quote.priceCents;
           currency = quote.currency;
+          changePercent = quote.changePercent ?? 0;
         } catch {
           this.logger.warn(`Failed to fetch quote for ${pos.assetTicker}`);
         }
@@ -104,6 +106,7 @@ export class TradingService {
           currentPriceCents,
           returnCents: returnCents.toNumber(),
           returnPercent,
+          changePercent,
           complianceVerdict,
           currency,
         };
@@ -117,6 +120,19 @@ export class TradingService {
       positionDtos.length > 0
         ? Math.round((compliantCount / positionDtos.length) * 100)
         : 100;
+
+    const totalPositionValue = positionDtos.reduce(
+      (sum, p) => sum + p.quantity * p.currentPriceCents,
+      0,
+    );
+    const dailyChangePercent =
+      totalPositionValue > 0
+        ? positionDtos.reduce(
+            (sum, p) =>
+              sum + (p.quantity * p.currentPriceCents * p.changePercent) / 100,
+            0,
+          ) / totalPositionValue
+        : 0;
 
     const recentOrders = await this.prisma.order.findMany({
       where: { portfolioId: portfolio.id },
@@ -138,6 +154,7 @@ export class TradingService {
       buyingPowerCents: Number(portfolio.availableCashCents),
       totalValueCents: totalValueCents.toNumber(),
       overallComplianceScore,
+      dailyChangePercent: Math.round(dailyChangePercent * 100) / 100,
       positions: positionDtos,
       recentOrders: recentOrders.map((o) => ({
         id: o.id,

@@ -7,6 +7,7 @@ export interface Position {
   currentPriceCents: number;
   returnCents: number;
   returnPercent: number;
+  changePercent?: number;
   complianceVerdict?: string;
   currency?: string;
 }
@@ -26,6 +27,7 @@ export interface Portfolio {
   buyingPowerCents: number;
   totalValueCents: number;
   overallComplianceScore: number;
+  dailyChangePercent?: number;
   positions: Position[];
   recentOrders: RecentOrder[];
 }
