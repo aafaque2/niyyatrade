@@ -11,7 +11,6 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 
 export function OrderTicket({ ticker }: { ticker: string }) {
-  const [side, setSide] = useState<"BUY" | "SELL">("BUY");
   const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
   const [quantity, setQuantity] = useState("1");
   const [limitPrice, setLimitPrice] = useState("");
@@ -27,7 +26,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
     orderType === "LIMIT" ? Math.round(parseFloat(limitPrice || "0") * 100) : priceCents;
   const estimatedCost = qty * effectivePriceCents;
 
-  const handleSubmit = () => {
+  const handleSubmit = (side: "BUY" | "SELL") => {
     if (qty <= 0) return;
     if (!isAuthenticated) {
       setShowAuthModal(true);
@@ -43,31 +42,6 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface/50 p-4">
       <h2 className="mb-4 text-xs font-medium text-muted-foreground">Trade</h2>
-
-      <div className="mb-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setSide("BUY")}
-          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-            side === "BUY"
-              ? "border-primary bg-primary text-white"
-              : "border-primary text-primary hover:text-foreground hover:bg-surface-hover"
-          }`}
-        >
-          Buy
-        </button>
-        <button
-          type="button"
-          onClick={() => setSide("SELL")}
-          className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-            side === "SELL"
-              ? "border-destructive bg-destructive text-white"
-              : "border-destructive text-destructive hover:text-destructive hover:bg-surface-hover"
-          }`}
-        >
-          Sell
-        </button>
-      </div>
 
       <div className="mb-4 flex gap-2">
         <button
@@ -148,7 +122,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
 
         {qty > 0 && effectivePriceCents > 0 && (
           <p className="text-sm text-muted-foreground">
-            Estimated {side === "BUY" ? "cost" : "proceeds"}:{" "}
+            Estimated cost:{" "}
             <span className="font-medium font-mono text-foreground">
               {formatCents(estimatedCost, currency)}
             </span>
@@ -165,20 +139,22 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           <p className="text-xs text-emerald-light">Order executed successfully!</p>
         )}
 
-        <Button
-          className={`w-full ${
-            side === "BUY"
-              ? "bg-primary hover:bg-emerald-muted text-white"
-              : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-          }`}
-          variant={side === "BUY" ? "default" : "destructive"}
-          disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
-          onClick={handleSubmit}
-        >
-          {isPending
-            ? "Submitting..."
-            : `${side === "BUY" ? "Buy" : "Sell"} ${ticker.toUpperCase()}`}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            className="flex-1 bg-primary text-white hover:bg-emerald-muted"
+            disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
+            onClick={() => handleSubmit("BUY")}
+          >
+            {isPending ? "Submitting..." : `Buy ${ticker.toUpperCase()}`}
+          </Button>
+          <Button
+            className="flex-1 bg-destructive text-white hover:bg-red-600"
+            disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
+            onClick={() => handleSubmit("SELL")}
+          >
+            {isPending ? "Submitting..." : `Sell ${ticker.toUpperCase()}`}
+          </Button>
+        </div>
       </div>
 
       <AuthInterceptModal
