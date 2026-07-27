@@ -40,7 +40,7 @@ function PriceCell({ ticker }: { ticker: string }) {
         }`}
       >
         {positive ? "+" : ""}
-        {formatPercent(data.changePercent)}
+        {formatPercent(data.changePercent / 100)}
       </span>
     </div>
   );
