@@ -15,6 +15,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const [quantity, setQuantity] = useState("1");
   const [limitPrice, setLimitPrice] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingSide, setPendingSide] = useState<"BUY" | "SELL">("BUY");
   const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuote(ticker);
   const { mutate, isPending, isSuccess, error } = usePlaceOrder();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -32,6 +33,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
       setShowAuthModal(true);
       return;
     }
+    setPendingSide(side);
     mutate({
       assetTicker: ticker,
       side,
@@ -145,14 +147,14 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
             onClick={() => handleSubmit("BUY")}
           >
-            {isPending ? "Submitting..." : `Buy ${ticker.toUpperCase()}`}
+            {isPending && pendingSide === "BUY" ? "Submitting..." : `Buy ${ticker.toUpperCase()}`}
           </Button>
           <Button
             className="flex-1 bg-destructive text-white hover:bg-red-600"
             disabled={qty <= 0 || isPending || effectivePriceCents <= 0}
             onClick={() => handleSubmit("SELL")}
           >
-            {isPending ? "Submitting..." : `Sell ${ticker.toUpperCase()}`}
+            {isPending && pendingSide === "SELL" ? "Submitting..." : `Sell ${ticker.toUpperCase()}`}
           </Button>
         </div>
       </div>
