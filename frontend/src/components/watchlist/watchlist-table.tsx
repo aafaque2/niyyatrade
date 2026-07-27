@@ -39,7 +39,6 @@ function PriceCell({ ticker }: { ticker: string }) {
           positive ? "text-emerald-light" : "text-danger"
         }`}
       >
-        {positive ? "+" : ""}
         {formatPercent(data.changePercent / 100)}
       </span>
     </div>
