@@ -12,6 +12,7 @@ import {
   Shield,
   Activity,
 } from "lucide-react";
+import { usePositionVerdict } from "./position-compliance-badge";
 
 interface AnimatedValueProps {
   value: number;
@@ -163,5 +164,77 @@ export function DashboardSummary({
         );
       })}
     </div>
+  );
+}
+
+function TickerScoreItem({
+  ticker,
+  frameworkSlugs,
+  onVerdict,
+}: {
+  ticker: string;
+  frameworkSlugs: string[];
+  onVerdict: (ticker: string, verdict: string) => void;
+}) {
+  const verdict = usePositionVerdict(ticker, frameworkSlugs);
+  // Report verdict up via effect to avoid stale closures
+  useEffect(() => {
+    onVerdict(ticker, verdict);
+  }, [ticker, verdict, onVerdict]);
+  return null;
+}
+
+interface PortfolioSummaryProps {
+  tickers: string[];
+  frameworkSlugs: string[];
+  totalValueCents?: number;
+  buyingPowerCents?: number;
+  dailyChangePercent?: number;
+  baseCurrency?: string;
+  isLoading?: boolean;
+}
+
+export function PortfolioSummary({
+  tickers,
+  frameworkSlugs,
+  totalValueCents,
+  buyingPowerCents,
+  dailyChangePercent,
+  baseCurrency,
+  isLoading,
+}: PortfolioSummaryProps) {
+  const [verdictMap, setVerdictMap] = useState<Record<string, string>>({});
+
+  const handleVerdict = (ticker: string, verdict: string) => {
+    setVerdictMap((prev) => {
+      if (prev[ticker] === verdict) return prev;
+      return { ...prev, [ticker]: verdict };
+    });
+  };
+
+  const total = tickers.length;
+  const compliantCount = Object.values(verdictMap).filter((v) => v === "COMPLIANT").length;
+  const score = total > 0 ? Math.round((compliantCount / total) * 100) : 100;
+
+  return (
+    <>
+      {frameworkSlugs.length > 0 &&
+        tickers.map((ticker) => (
+          <TickerScoreItem
+            key={ticker}
+            ticker={ticker}
+            frameworkSlugs={frameworkSlugs}
+            onVerdict={handleVerdict}
+          />
+        ))}
+      <DashboardSummary
+        totalValueCents={totalValueCents}
+        buyingPowerCents={buyingPowerCents}
+        overallComplianceScore={score}
+        dailyChangePercent={dailyChangePercent}
+        baseCurrency={baseCurrency}
+        isLoading={isLoading}
+      />
+    </>
   );
 }

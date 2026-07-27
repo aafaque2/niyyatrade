@@ -3,7 +3,7 @@
 import { usePortfolio } from "@/lib/hooks/use-portfolio";
 import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { DashboardSummary } from "@/components/portfolio/dashboard-summary";
+import { DashboardSummary, PortfolioSummary } from "@/components/portfolio/dashboard-summary";
 import { PortfolioComplianceGauge } from "@/components/portfolio/portfolio-compliance-gauge";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { ActivityFeed } from "@/components/portfolio/activity-feed";
@@ -49,10 +49,12 @@ export default function PortfolioPage() {
         </p>
       </div>
 
-      <DashboardSummary
+      <PortfolioSummary
+        tickers={positionTickers}
+        frameworkSlugs={selectedFrameworks}
         totalValueCents={data?.totalValueCents}
         buyingPowerCents={data?.buyingPowerCents}
-        overallComplianceScore={data?.overallComplianceScore}
+        dailyChangePercent={data?.dailyChangePercent}
         baseCurrency={userCurrency}
         isLoading={summaryLoading}
       />
