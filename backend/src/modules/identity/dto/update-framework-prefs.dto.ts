@@ -6,5 +6,5 @@ export class UpdateFrameworkPrefsDto {
 
   @IsObject()
   @IsOptional()
-  overrides?: Record<string, number>;
+  overrides?: Record<string, unknown>;
 }

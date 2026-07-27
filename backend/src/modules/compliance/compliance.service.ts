@@ -80,15 +80,15 @@ export class ComplianceService {
     frameworkId?: string,
     userId?: string,
   ): Promise<EvaluationReport> {
-    const cacheKey = `compliance:eval:${ticker.toUpperCase()}:${frameworkId ?? 'default'}:${userId ?? 'anon'}`;
-
-    const cached = await this.cacheGet<EvaluationReport>(cacheKey);
-    if (cached) return cached;
-
     const [fundamentals, framework] = await Promise.all([
       this.marketDataService.getFundamentals(ticker),
       this.resolveFramework(frameworkId),
     ]);
+
+    const cacheKey = `compliance:eval:${ticker.toUpperCase()}:${framework.id}:${userId ?? 'anon'}`;
+
+    const cached = await this.cacheGet<EvaluationReport>(cacheKey);
+    if (cached) return cached;
 
     const rulesSpecs = framework.defaultRules as {
       rules: Record<string, RuleSpec>;
@@ -96,21 +96,37 @@ export class ComplianceService {
     const ruleEntries = Object.entries(rulesSpecs.rules);
 
     let overrides: Record<string, number> | null = null;
+    let excludedTickers: string[] | null = null;
     if (userId) {
       const userOverride = await this.prisma.frameworkOverride.findUnique({
         where: { userId_frameworkId: { userId, frameworkId: framework.id } },
       });
       if (userOverride) {
-        overrides = userOverride.customThresholds as Record<string, number>;
+        const raw = userOverride.customThresholds as Record<string, unknown>;
+        const excluded = raw['__excludedTickers'];
+        if (Array.isArray(excluded)) {
+          excludedTickers = excluded.map((t) => String(t).toUpperCase());
+        }
+        const { __excludedTickers: _, ...rest } = raw;
+        overrides = rest as Record<string, number>;
       }
     }
 
     const ruleResults: RuleResult[] = [];
     for (const [ruleId, spec] of ruleEntries) {
-      const mergedSpec =
+      let mergedSpec =
         overrides && overrides[ruleId] != null
           ? { ...spec, threshold: overrides[ruleId], ruleId }
           : { ...spec, ruleId };
+
+      if (excludedTickers && spec.type === 'ticker_list' && spec.bannedTickers) {
+        mergedSpec = {
+          ...mergedSpec,
+          bannedTickers: (spec.bannedTickers as string[]).filter(
+            (t) => !excludedTickers!.includes(t.toUpperCase()),
+          ),
+        };
+      }
 
       const plugin = this.plugins.find((p) => p.canEvaluate(mergedSpec));
       if (!plugin) {

@@ -7,6 +7,7 @@ export interface RuleSpec {
   ruleId?: string;
   threshold?: number;
   bannedSectors?: string[];
+  bannedTickers?: string[];
   description: string;
 }
 
@@ -44,7 +45,7 @@ export async function activateFramework(
 
 export async function updateFrameworkPrefs(
   frameworkId: string,
-  overrides?: Record<string, number>,
+  overrides?: Record<string, unknown>,
 ): Promise<void> {
   await api.put("/users/me/framework-prefs", { frameworkId, overrides });
 }

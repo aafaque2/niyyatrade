@@ -183,14 +183,15 @@ export class IdentityController {
     @Body() body: UpdateFrameworkPrefsDto,
   ) {
     const { frameworkId, overrides } = body;
+    const jsonValue = overrides ?? {};
 
     await this.prisma.frameworkOverride.upsert({
       where: { userId_frameworkId: { userId: req.user.sub, frameworkId } },
-      update: { customThresholds: overrides ?? {} },
+      update: { customThresholds: jsonValue as any },
       create: {
         userId: req.user.sub,
         frameworkId,
-        customThresholds: overrides ?? {},
+        customThresholds: jsonValue as any,
       },
     });
 
