@@ -4,6 +4,7 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { ResetPortfolioDialog } from "@/components/settings/reset-portfolio-dialog";
 import { CurrencySelector } from "@/components/settings/currency-selector";
+import { ActiveFrameworkCard } from "@/components/settings/active-framework-card";
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,7 @@ export default function SettingsPage() {
         <div className="space-y-5">
           <ProfileForm />
           <CurrencySelector />
+          <ActiveFrameworkCard />
           <ResetPortfolioDialog />
         </div>
         <div className="space-y-5">

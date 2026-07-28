@@ -2,8 +2,11 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFrameworks, useFrameworkPrefs } from "@/lib/hooks/use-frameworks";
 import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { activateFramework, deactivateFramework } from "@/lib/services/identity";
 import { FrameworkDetail } from "@/components/frameworks/framework-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";
@@ -67,8 +70,27 @@ export default function FrameworksPage() {
   const { data: prefs } = useFrameworkPrefs();
   const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
   const toggleFramework = useComplianceFrameworkStore((s) => s.toggleFramework);
+  const queryClient = useQueryClient();
   const [viewingSlug, setViewingSlug] = useState<string | null>(null);
   const initializedRef = useRef(false);
+
+  const syncHalalMutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      if (enable) {
+        const halal = frameworks?.find((f) => f.slug === "halal-aaoifi");
+        if (!halal) throw new Error("Halal framework not found");
+        return activateFramework(halal.id);
+      }
+      return deactivateFramework();
+    },
+    onSuccess: (data) => {
+      useAuthStore.getState().setUser(data);
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to sync framework enforcement");
+    },
+  });
 
   const sortedFrameworks = useMemo(() => {
     if (!frameworks) return [];
@@ -94,6 +116,24 @@ export default function FrameworksPage() {
     }
     initializedRef.current = true;
   }, [sortedFrameworks, selectedFrameworks]);
+
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (syncedRef.current || !frameworks || syncHalalMutation.isPending) return;
+    const halalEnabled = selectedFrameworks.includes("halal-aaoifi");
+    const user = useAuthStore.getState().user;
+    const halalFramework = frameworks.find((f) => f.slug === "halal-aaoifi");
+    if (!halalFramework) return;
+    const serverHasHalal = user?.activeFrameworkId === halalFramework.id;
+
+    if (halalEnabled && !serverHasHalal) {
+      syncHalalMutation.mutate(true);
+      syncedRef.current = true;
+    } else if (!halalEnabled && serverHasHalal) {
+      syncHalalMutation.mutate(false);
+      syncedRef.current = true;
+    }
+  }, [frameworks, selectedFrameworks, syncHalalMutation]);
 
   if (isError) {
     return (
@@ -189,7 +229,13 @@ export default function FrameworksPage() {
                         {/* Toggle */}
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleFramework(f.slug); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFramework(f.slug);
+                            if (f.slug === "halal-aaoifi") {
+                              syncHalalMutation.mutate(!isEnabled);
+                            }
+                          }}
                           className={cn(
                             "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 cursor-pointer",
                             isEnabled ? "bg-primary" : "bg-border",

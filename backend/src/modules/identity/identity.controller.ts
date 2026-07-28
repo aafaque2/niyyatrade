@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Put,
+  Delete,
   Body,
   UseGuards,
   Request,
@@ -150,16 +151,26 @@ export class IdentityController {
   @Put('me/frameworks/active')
   async activateFramework(
     @Request() req: { user: { sub: string } },
-    @Body() body: Record<string, string>,
+    @Body() body: Record<string, string | null>,
   ) {
     const userId = req.user.sub;
-    const frameworkId = body.frameworkId;
-    if (!frameworkId) {
-      throw new BadRequestException('frameworkId is required');
-    }
+    const frameworkId = body.frameworkId ?? null;
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { activeFrameworkId: frameworkId },
+      select: USER_SELECT,
+    });
+    return user;
+  }
+
+  @Delete('me/frameworks/active')
+  async deactivateFramework(
+    @Request() req: { user: { sub: string } },
+  ) {
+    const userId = req.user.sub;
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { activeFrameworkId: null },
       select: USER_SELECT,
     });
     return user;

@@ -43,6 +43,11 @@ export async function activateFramework(
   return data.data;
 }
 
+export async function deactivateFramework(): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null; currency: string }> {
+  const { data } = await api.delete("/users/me/frameworks/active");
+  return data.data;
+}
+
 export async function updateFrameworkPrefs(
   frameworkId: string,
   overrides?: Record<string, unknown>,
