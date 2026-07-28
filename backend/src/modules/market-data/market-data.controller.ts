@@ -56,6 +56,7 @@ export class MarketDataController {
       query.resolution || '1M',
       query.from ? parseInt(query.from, 10) : undefined,
       query.to ? parseInt(query.to, 10) : undefined,
+      query.interval,
     );
   }
 }

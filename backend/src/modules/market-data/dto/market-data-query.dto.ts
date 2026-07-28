@@ -18,6 +18,10 @@ export class CandlesQueryDto {
   @IsOptional()
   @IsNumberString()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  interval?: string;
 }
 
 export class FxQueryDto {
