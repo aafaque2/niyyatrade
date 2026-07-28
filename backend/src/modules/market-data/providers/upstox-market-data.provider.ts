@@ -206,6 +206,7 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     _resolution: string,
     from?: number,
     to?: number,
+    _interval?: string,
   ): Promise<ChartCandle[]> {
     const instrument = await this.resolveInstrumentKey(ticker);
     const toDate = to

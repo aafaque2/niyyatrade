@@ -168,6 +168,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
     _resolution: string,
     from?: number,
     to?: number,
+    _interval?: string,
   ): Promise<ChartCandle[]> {
     const fromDate = from
       ? new Date(from * 1000).toISOString().split('T')[0]
