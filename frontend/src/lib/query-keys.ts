@@ -16,8 +16,12 @@ export const frameworkKeys = {
 };
 
 export const marketDataKeys = {
-  candles: (ticker: string, resolution?: string) =>
-    ["market-data", ticker.toUpperCase(), "candles", resolution] as const,
+  candles: (ticker: string, resolution?: string, interval?: string) => {
+    const parts = ["market-data", ticker.toUpperCase(), "candles"];
+    if (resolution) parts.push(resolution);
+    if (interval) parts.push(interval);
+    return parts;
+  },
   fundamentals: (ticker: string) =>
     ["market-data", ticker.toUpperCase(), "fundamentals"] as const,
   depth: (ticker: string) =>

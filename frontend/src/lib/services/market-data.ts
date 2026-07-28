@@ -81,12 +81,13 @@ export type Candle = [number, number, number, number, number, number];
 export async function getCandles(
   ticker: string,
   resolution?: string,
-  opts?: { from?: number; to?: number },
+  opts?: { from?: number; to?: number; interval?: string },
 ): Promise<Candle[]> {
   const params: Record<string, string | number> = {};
   if (resolution) params.resolution = resolution;
   if (opts?.from) params.from = opts.from;
   if (opts?.to) params.to = opts.to;
+  if (opts?.interval) params.interval = opts.interval;
 
   const { data } = await api.get<{ data: Candle[] }>(
     `/market-data/${ticker}/candles`,
