@@ -55,6 +55,7 @@ export class HistoryService {
           assetTicker: true,
           side: true,
           quantity: true,
+          targetPriceCents: true,
           executedPriceCents: true,
           status: true,
           executedAt: true,
@@ -70,7 +71,11 @@ export class HistoryService {
         ticker: o.assetTicker,
         side: o.side,
         quantity: Number(o.quantity),
-        priceCents: o.executedPriceCents ? Number(o.executedPriceCents) : null,
+        priceCents: o.executedPriceCents
+          ? Number(o.executedPriceCents)
+          : o.targetPriceCents
+            ? Number(o.targetPriceCents)
+            : null,
         status: o.status,
         executedAt: o.executedAt?.toISOString() ?? null,
         createdAt: o.createdAt.toISOString(),
