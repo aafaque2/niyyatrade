@@ -118,7 +118,8 @@ export class MarketDataService {
     from?: number,
     to?: number,
   ): Promise<ChartCandle[]> {
-    const key = this.cacheKey('candles', ticker.toUpperCase(), resolution);
+    const fromTo = from != null || to != null ? `:${from ?? ''}:${to ?? ''}` : '';
+    const key = this.cacheKey('candles', ticker.toUpperCase(), resolution + fromTo);
 
     const cached = await this.cacheGet<ChartCandle[]>(key);
     if (cached) return cached;
