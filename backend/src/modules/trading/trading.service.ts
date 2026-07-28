@@ -9,7 +9,7 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ComplianceService } from '../compliance/compliance.service';
-import { OrderSide, type CreateOrderDto } from './dto/create-order.dto';
+import { OrderSide, OrderType, type CreateOrderDto } from './dto/create-order.dto';
 import { getStartingBalance } from '../../shared/constants/currency';
 
 @Injectable()
@@ -192,6 +192,48 @@ export class TradingService {
     });
   }
 
+  async placeLimitOrder(userId: string, dto: CreateOrderDto) {
+    const limitPriceCents = dto.limitPriceCents;
+    if (!limitPriceCents || limitPriceCents <= 0) {
+      throw new BadRequestException('Invalid limit price');
+    }
+
+    const quantity = new Decimal(dto.quantity);
+    if (quantity.mul(limitPriceCents).toDecimalPlaces(0).lt(1)) {
+      throw new BadRequestException('Order total is less than 1 cent');
+    }
+
+    await this.ensureAssetExists(dto.assetTicker);
+
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    this.logger.log(
+      `Placing ${dto.side} LIMIT order for user=${userId} ticker=${dto.assetTicker} qty=${dto.quantity} limit=${limitPriceCents}`,
+    );
+
+    const order = await this.prisma.order.create({
+      data: {
+        portfolioId: portfolio.id,
+        assetTicker: dto.assetTicker,
+        side: dto.side,
+        quantity: quantity.toNumber(),
+        status: 'PENDING',
+        targetPriceCents: limitPriceCents,
+      },
+    });
+
+    return {
+      orderId: order.id,
+      status: order.status,
+      targetPriceCents: limitPriceCents,
+    };
+  }
+
   async executeMarketOrder(userId: string, dto: CreateOrderDto) {
     let quote;
     try {
@@ -248,6 +290,66 @@ export class TradingService {
     }
   }
 
+  async executePendingOrder(order: {
+    id: string;
+    portfolioId: string;
+    assetTicker: string;
+    side: string;
+    quantity: number;
+    targetPriceCents: number;
+  }) {
+    const priceCents = order.targetPriceCents;
+    const quantity = new Decimal(order.quantity);
+    const totalCostCents = quantity.mul(priceCents).toDecimalPlaces(0);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const portfolio = await tx.$queryRaw<
+          Array<{ id: string; availableCashCents: bigint }>
+        >(
+          Prisma.sql`SELECT "id", "availableCashCents" FROM "Portfolio" WHERE "id" = ${order.portfolioId} FOR UPDATE`,
+        );
+
+        if (!portfolio.length) {
+          throw new NotFoundException('Portfolio not found');
+        }
+
+        const result =
+          order.side === 'BUY'
+            ? await this.executeBuy(
+                tx,
+                portfolio[0],
+                order.assetTicker,
+                quantity,
+                priceCents,
+                totalCostCents.toNumber(),
+                order.id,
+              )
+            : await this.executeSell(
+                tx,
+                portfolio[0],
+                order.assetTicker,
+                quantity,
+                priceCents,
+                totalCostCents.toNumber(),
+                order.id,
+              );
+
+        return result;
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Pending order ${order.id} execution failed: ${(err as Error).message}`,
+      );
+      // Mark as FAILED
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'FAILED' },
+      });
+      return { orderId: order.id, status: 'FAILED', executedPriceCents: null };
+    }
+  }
+
   private async lockPortfolio(
     tx: Prisma.TransactionClient,
     userId: string,
@@ -272,6 +374,7 @@ export class TradingService {
     quantity: Decimal,
     priceCents: number,
     totalCostCents: number,
+    orderId?: string,
   ) {
     const cash = new Decimal(portfolio.availableCashCents.toString());
     if (cash.lt(totalCostCents)) {
@@ -320,17 +423,26 @@ export class TradingService {
       },
     });
 
-    const order = await tx.order.create({
-      data: {
-        portfolioId: portfolio.id,
-        assetTicker: ticker,
-        side: 'BUY',
-        quantity: quantity.toNumber(),
-        status: 'EXECUTED',
-        executedPriceCents: priceCents,
-        executedAt: new Date(),
-      },
-    });
+    const order = orderId
+      ? await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: 'EXECUTED',
+            executedPriceCents: priceCents,
+            executedAt: new Date(),
+          },
+        })
+      : await tx.order.create({
+          data: {
+            portfolioId: portfolio.id,
+            assetTicker: ticker,
+            side: 'BUY',
+            quantity: quantity.toNumber(),
+            status: 'EXECUTED',
+            executedPriceCents: priceCents,
+            executedAt: new Date(),
+          },
+        });
 
     await tx.transaction.create({
       data: {

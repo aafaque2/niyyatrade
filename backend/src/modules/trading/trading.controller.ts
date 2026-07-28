@@ -11,7 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TradingService } from './trading.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, OrderType } from './dto/create-order.dto';
 import { PortfolioQueryDto } from './dto/portfolio-query.dto';
 import { ResetPortfolioDto } from './dto/reset-portfolio.dto';
 
@@ -35,11 +35,20 @@ export class TradingController {
   }
 
   @Post('orders')
-  @ApiOperation({ summary: 'Execute a paper market order' })
+  @ApiOperation({ summary: 'Place a paper order (market or limit)' })
   async createOrder(
     @Request() req: { user: { sub: string } },
     @Body() body: CreateOrderDto,
   ) {
+    const orderType = body.orderType ?? OrderType.MARKET;
+    if (orderType === OrderType.LIMIT) {
+      if (!body.limitPriceCents || body.limitPriceCents <= 0) {
+        throw new BadRequestException(
+          'Limit price is required for limit orders',
+        );
+      }
+      return this.tradingService.placeLimitOrder(req.user.sub, body);
+    }
     return this.tradingService.executeMarketOrder(req.user.sub, body);
   }
 
