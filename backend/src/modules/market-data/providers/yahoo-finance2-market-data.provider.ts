@@ -226,11 +226,11 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     from?: number,
     to?: number,
   ): Promise<ChartCandle[]> {
-    const { interval, period1 } = this.mapResolution(resolution);
+    const { interval, period1: defaultPeriod1 } = this.mapResolution(resolution);
 
     const result = await this.yf.chart(ticker, {
       interval: interval as '1m' | '5m' | '15m' | '1d' | '1wk',
-      period1,
+      period1: from ? new Date(from * 1000) : defaultPeriod1,
       ...(to ? { period2: new Date(to * 1000) } : {}),
     });
 
@@ -254,6 +254,10 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
         close: q.close as number,
         volume: (q.volume as number) ?? 0,
       }));
+
+    this.logger.log(
+      `getCandles(${ticker}, ${resolution}, interval=${interval}): ${quotes.length} raw quotes, ${timestamps.length} valid candles`,
+    );
 
     return timestamps.map((t) => [
       t.ts,
