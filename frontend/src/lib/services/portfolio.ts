@@ -28,6 +28,8 @@ export interface Portfolio {
   totalValueCents: number;
   overallComplianceScore: number;
   dailyChangePercent?: number;
+  shortSellingAllowed?: boolean;
+  activeFrameworkSlug?: string | null;
   positions: Position[];
   recentOrders: RecentOrder[];
 }

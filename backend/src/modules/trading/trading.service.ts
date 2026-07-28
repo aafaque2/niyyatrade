@@ -38,6 +38,14 @@ export class TradingService {
       throw new NotFoundException('Portfolio not found');
     }
 
+    const activeFramework =
+      user?.activeFrameworkId
+        ? await this.prisma.framework.findUnique({
+            where: { id: user.activeFrameworkId },
+            select: { slug: true },
+          })
+        : null;
+
     const positions = portfolio.positions ?? [];
     const baseCurrency = user?.currency ?? 'USD';
     let totalValueCents = new Decimal(portfolio.availableCashCents.toString());
@@ -79,8 +87,9 @@ export class TradingService {
           .mul(Number(pos.averagePriceCents))
           .toDecimalPlaces(0);
         const returnCents = marketValue.sub(costBasis);
-        const returnPercent = costBasis.gt(0)
-          ? returnCents.div(costBasis).mul(100).toDecimalPlaces(2).toNumber()
+        const costBasisAbs = costBasis.abs();
+        const returnPercent = costBasisAbs.gt(0)
+          ? returnCents.div(costBasisAbs).mul(100).toDecimalPlaces(2).toNumber()
           : 0;
 
         let complianceVerdict: string | undefined;
@@ -121,17 +130,15 @@ export class TradingService {
         ? Math.round((compliantCount / positionDtos.length) * 100)
         : 100;
 
-    const totalPositionValue = positionDtos.reduce(
-      (sum, p) => sum + p.quantity * p.currentPriceCents,
+    const dailyChangeCents = positionDtos.reduce(
+      (sum, p) =>
+        sum + (p.quantity * p.currentPriceCents * (p.changePercent ?? 0)) / 100,
       0,
     );
+    const prevTotalValue = totalValueCents.toNumber() - dailyChangeCents;
     const dailyChangePercent =
-      totalPositionValue > 0
-        ? positionDtos.reduce(
-            (sum, p) =>
-              sum + (p.quantity * p.currentPriceCents * p.changePercent) / 100,
-            0,
-          ) / totalPositionValue
+      prevTotalValue > 0
+        ? Math.round((dailyChangeCents / prevTotalValue) * 10000) / 100
         : 0;
 
     const recentOrders = await this.prisma.order.findMany({
@@ -165,6 +172,10 @@ export class TradingService {
         status: o.status,
         createdAt: o.createdAt,
       })),
+      shortSellingAllowed: activeFramework
+        ? activeFramework.slug !== 'halal-aaoifi'
+        : true,
+      activeFrameworkSlug: activeFramework?.slug ?? null,
     };
   }
 
@@ -205,6 +216,10 @@ export class TradingService {
 
     await this.ensureAssetExists(dto.assetTicker);
 
+    if (dto.side === OrderSide.SELL) {
+      await this.assertShortSellAllowed(userId, dto.assetTicker, quantity);
+    }
+
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -234,6 +249,44 @@ export class TradingService {
     };
   }
 
+  private async assertShortSellAllowed(userId: string, ticker: string, quantity: Decimal) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { activeFrameworkId: true },
+    });
+    if (!user?.activeFrameworkId) return;
+
+    const framework = await this.prisma.framework.findUnique({
+      where: { id: user.activeFrameworkId },
+      select: { slug: true },
+    });
+    if (framework?.slug !== 'halal-aaoifi') return;
+
+    // Halal framework is active — check if this sell would create/reduce a short
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!portfolio) return;
+
+    const pos = await this.prisma.position.findUnique({
+      where: {
+        portfolioId_assetTicker: {
+          portfolioId: portfolio.id,
+          assetTicker: ticker,
+        },
+      },
+      select: { quantity: true },
+    });
+
+    const heldQty = pos ? new Decimal(pos.quantity) : new Decimal(0);
+    if (heldQty.lt(quantity)) {
+      throw new BadRequestException(
+        'Short selling is not permitted under the Halal (AAOIFI) framework',
+      );
+    }
+  }
+
   async executeMarketOrder(userId: string, dto: CreateOrderDto) {
     let quote;
     try {
@@ -253,6 +306,10 @@ export class TradingService {
     }
 
     await this.ensureAssetExists(dto.assetTicker);
+
+    if (dto.side === OrderSide.SELL && quantity.gt(0)) {
+      await this.assertShortSellAllowed(userId, dto.assetTicker, quantity);
+    }
 
     this.logger.log(
       `Executing ${dto.side} order for user=${userId} ticker=${dto.assetTicker} qty=${dto.quantity} price=${priceCents}`,
@@ -390,22 +447,49 @@ export class TradingService {
       },
     });
 
-    if (existing) {
-      const oldQty = new Decimal(existing.quantity);
-      const totalQty = oldQty.add(quantity);
-      const totalCost = oldQty
-        .mul(Number(existing.averagePriceCents))
-        .add(quantity.mul(priceCents));
-      const newAvgPrice = totalCost.div(totalQty).toDecimalPlaces(0);
+    let newQty: Decimal;
+    let newAvgPrice: number;
 
-      await tx.position.update({
-        where: { id: existing.id },
-        data: {
-          quantity: totalQty.toNumber(),
-          averagePriceCents: newAvgPrice.toNumber(),
-        },
-      });
+    if (existing) {
+      const heldQty = new Decimal(existing.quantity);
+      const currentAvgPrice = Number(existing.averagePriceCents);
+
+      if (heldQty.lt(0)) {
+        // Currently short — auto-cover first
+        const shortQty = heldQty.abs();
+        if (quantity.lte(shortQty)) {
+          // Partial cover: reduce short position
+          newQty = shortQty.sub(quantity).negated();
+          newAvgPrice = currentAvgPrice;
+        } else {
+          // Cover entire short + open new long
+          const newLongQty = quantity.sub(shortQty);
+          newQty = newLongQty;
+          newAvgPrice = priceCents;
+        }
+      } else {
+        // Already long — add to long (weighted average)
+        const totalQty = heldQty.add(quantity);
+        const totalCost = heldQty
+          .mul(currentAvgPrice)
+          .add(quantity.mul(priceCents));
+        newAvgPrice = totalCost.div(totalQty).toDecimalPlaces(0).toNumber();
+        newQty = totalQty;
+      }
+
+      if (newQty.isZero()) {
+        await tx.position.delete({ where: { id: existing.id } });
+      } else {
+        await tx.position.update({
+          where: { id: existing.id },
+          data: {
+            quantity: newQty.toNumber(),
+            averagePriceCents: newAvgPrice,
+          },
+        });
+      }
     } else {
+      // No position — open new long
       await tx.position.create({
         data: {
           portfolioId: portfolio.id,
@@ -478,25 +562,63 @@ export class TradingService {
       Prisma.sql`SELECT "id", "quantity", "averagePriceCents" FROM "Position" WHERE "portfolioId" = ${portfolio.id} AND "assetTicker" = ${ticker} FOR UPDATE`,
     );
 
-    if (!positionRows.length) {
-      throw new BadRequestException('No position found for this asset');
+    const sellQty = quantity;
+    let newQty: Decimal;
+    let newAvgPrice: number;
+
+    if (!positionRows.length || new Decimal(positionRows[0].quantity).isZero()) {
+      // No position — open new short
+      newQty = sellQty.negated();
+      newAvgPrice = priceCents;
+    } else {
+      const pos = positionRows[0];
+      const heldQty = new Decimal(pos.quantity);
+      const currentAvgPrice = Number(pos.averagePriceCents);
+
+      if (heldQty.gt(0)) {
+        // Currently long
+        if (sellQty.lte(heldQty)) {
+          // Selling within long position
+          newQty = heldQty.sub(sellQty);
+          newAvgPrice = currentAvgPrice;
+        } else {
+          // Selling more than held — going short
+          const shortQty = sellQty.sub(heldQty);
+          newQty = shortQty.negated();
+          newAvgPrice = priceCents;
+        }
+      } else {
+        // Already short — adding to short (weighted average)
+        const curShortQty = heldQty.abs();
+        const totalShortQty = curShortQty.add(sellQty);
+        const totalCost = curShortQty
+          .mul(currentAvgPrice)
+          .add(sellQty.mul(priceCents));
+        newAvgPrice = totalCost
+          .div(totalShortQty)
+          .toDecimalPlaces(0)
+          .toNumber();
+        newQty = totalShortQty.negated();
+      }
     }
-
-    const position = positionRows[0];
-    const heldQty = new Decimal(position.quantity);
-
-    if (heldQty.lt(quantity)) {
-      throw new BadRequestException('Insufficient shares');
-    }
-
-    const newQty = heldQty.sub(quantity);
 
     if (newQty.isZero()) {
-      await tx.position.delete({ where: { id: position.id } });
-    } else {
+      if (positionRows.length) {
+        await tx.position.delete({ where: { id: positionRows[0].id } });
+      }
+    } else if (positionRows.length) {
       await tx.$executeRaw(
-        Prisma.sql`UPDATE "Position" SET "quantity" = ${newQty.toNumber()}::decimal(15,6) WHERE "id" = ${position.id}::uuid`,
+        Prisma.sql`UPDATE "Position" SET "quantity" = ${newQty.toNumber()}::decimal(15,6), "averagePriceCents" = ${newAvgPrice} WHERE "id" = ${positionRows[0].id}::uuid`,
       );
+    } else {
+      await tx.position.create({
+        data: {
+          portfolioId: portfolio.id,
+          assetTicker: ticker,
+          quantity: newQty.toNumber(),
+          averagePriceCents: newAvgPrice,
+        },
+      });
     }
 
     const cash = new Decimal(portfolio.availableCashCents.toString());

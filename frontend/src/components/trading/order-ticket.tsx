@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuote } from "@/lib/hooks/use-quote";
 import { usePlaceOrder } from "@/lib/hooks/use-place-order";
+import { usePortfolio } from "@/lib/hooks/use-portfolio";
 import { formatCents } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
+
+const HALAL_SLUG = "halal-aaoifi";
 
 export function OrderTicket({ ticker }: { ticker: string }) {
   const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
@@ -16,7 +19,10 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const [limitPrice, setLimitPrice] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingSide, setPendingSide] = useState<"BUY" | "SELL">("BUY");
+  const [showShortConfirm, setShowShortConfirm] = useState(false);
+  const [halalWarning, setHalalWarning] = useState(false);
   const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuote(ticker);
+  const { data: portfolio } = usePortfolio();
   const { mutate, isPending, isSuccess, error } = usePlaceOrder();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -27,12 +33,11 @@ export function OrderTicket({ ticker }: { ticker: string }) {
     orderType === "LIMIT" ? Math.round(parseFloat(limitPrice || "0") * 100) : priceCents;
   const estimatedCost = qty * effectivePriceCents;
 
-  const handleSubmit = (side: "BUY" | "SELL") => {
-    if (qty <= 0) return;
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      return;
-    }
+  const position = portfolio?.positions?.find((p) => p.ticker === ticker);
+  const heldQty = position?.quantity ?? 0;
+  const halalBlocksShort = portfolio?.activeFrameworkSlug === HALAL_SLUG;
+
+  const doMutate = (side: "BUY" | "SELL") => {
     setPendingSide(side);
     mutate({
       assetTicker: ticker,
@@ -43,6 +48,30 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         ? { limitPriceCents: effectivePriceCents }
         : {}),
     });
+  };
+
+  const handleSubmit = (side: "BUY" | "SELL") => {
+    if (qty <= 0) return;
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (side === "SELL" && qty > heldQty) {
+      if (halalBlocksShort) {
+        setHalalWarning(true);
+        setShowShortConfirm(false);
+        return;
+      }
+      setShowShortConfirm(true);
+      setHalalWarning(false);
+      return;
+    }
+    doMutate(side);
+  };
+
+  const confirmShortSell = () => {
+    setShowShortConfirm(false);
+    doMutate("SELL");
   };
 
   return (
@@ -133,6 +162,37 @@ export function OrderTicket({ ticker }: { ticker: string }) {
               {formatCents(estimatedCost, currency)}
             </span>
           </p>
+        )}
+
+        {halalWarning && (
+          <p className="text-xs text-warning">
+            Short selling is not permitted under the Halal (AAOIFI) framework.
+          </p>
+        )}
+
+        {showShortConfirm && (
+          <div className="rounded-md border border-warning/30 bg-warning/5 p-3 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              You don&apos;t hold any {ticker.toUpperCase()} shares. Are you sure you want to short sell?
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={() => setShowShortConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-destructive text-white hover:bg-red-600 text-xs"
+                onClick={confirmShortSell}
+              >
+                Confirm Short Sell
+              </Button>
+            </div>
+          </div>
         )}
 
         {error && (
