@@ -5,6 +5,7 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
 import {
   MarketQuoteSchema,
@@ -276,5 +277,9 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
         exchange: (q.exchDisp as string) ?? null,
         currency: this.deriveCurrencyFromTicker(q.symbol as string),
       }));
+  }
+
+  async getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return null;
   }
 }

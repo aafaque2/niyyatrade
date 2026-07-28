@@ -5,6 +5,7 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
 
 const mockAssets: Record<
@@ -174,5 +175,9 @@ export class MockMarketDataProvider implements IMarketDataProvider {
           currency: 'USD',
         })),
     );
+  }
+
+  async getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return null;
   }
 }

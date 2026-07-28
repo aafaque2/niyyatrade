@@ -5,6 +5,7 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
 
 @Injectable()
@@ -161,5 +162,27 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     }
 
     return merged;
+  }
+
+  async getDepth(ticker: string): Promise<MarketDepth | null> {
+    try {
+      return await this.primary.getDepth(ticker);
+    } catch (err) {
+      this.logger.warn(
+        `Primary depth failed for ${ticker}: ${(err as Error).message}`,
+      );
+    }
+
+    if (this.isIndianTicker(ticker)) {
+      try {
+        return await this.upstox.getDepth(ticker);
+      } catch (err2) {
+        this.logger.warn(
+          `Upstox depth also failed for ${ticker}: ${(err2 as Error).message}`,
+        );
+      }
+    }
+
+    return null;
   }
 }

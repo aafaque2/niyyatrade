@@ -6,6 +6,7 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
 import {
   MarketQuoteSchema,
@@ -208,5 +209,9 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
         currency: 'USD',
       };
     });
+  }
+
+  async getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return null;
   }
 }

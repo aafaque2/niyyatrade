@@ -3,6 +3,7 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
 
 export interface IMarketDataProvider {
@@ -15,4 +16,5 @@ export interface IMarketDataProvider {
     to?: number,
   ): Promise<ChartCandle[]>;
   search(query: string): Promise<SearchResult[]>;
+  getDepth(ticker: string): Promise<MarketDepth | null>;
 }

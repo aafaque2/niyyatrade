@@ -39,6 +39,12 @@ export class MarketDataController {
     return this.marketDataService.getFundamentals(ticker);
   }
 
+  @Get(':ticker/depth')
+  @ApiOperation({ summary: 'Get market depth (order book) for an asset' })
+  async getDepth(@Param('ticker') ticker: string) {
+    return this.marketDataService.getDepth(ticker);
+  }
+
   @Get(':ticker/candles')
   @ApiOperation({ summary: 'Get historical candle data for charting' })
   async getCandles(

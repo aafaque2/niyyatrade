@@ -72,3 +72,22 @@ export const SearchResultSchema = z.object({
 });
 
 export type SearchResult = z.infer<typeof SearchResultSchema>;
+
+export const DepthLevelSchema = z.object({
+  price: z.number(),
+  quantity: z.number(),
+  orders: z.number(),
+});
+
+export type DepthLevel = z.infer<typeof DepthLevelSchema>;
+
+export const MarketDepthSchema = z.object({
+  ticker: z.string().toUpperCase(),
+  buy: z.array(DepthLevelSchema),
+  sell: z.array(DepthLevelSchema),
+  totalBuyQuantity: z.number(),
+  totalSellQuantity: z.number(),
+  timestamp: z.string().datetime(),
+});
+
+export type MarketDepth = z.infer<typeof MarketDepthSchema>;

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { AssetHeader } from "@/components/asset/asset-header";
 import { KeyStats } from "@/components/asset/key-stats";
 import { AssetPageClient } from "./client";
 import { ComplianceSection } from "./compliance-section";
@@ -8,6 +7,11 @@ import { ComplianceSection } from "./compliance-section";
 const AssetChart = dynamic(
   () => import("@/components/charts/asset-chart").then((m) => ({ default: m.AssetChart })),
   { loading: () => <div className="h-[360px] w-full animate-pulse rounded-lg bg-surface/50" /> },
+);
+
+const MarketDepth = dynamic(
+  () => import("@/components/market-depth").then((m) => ({ default: m.MarketDepth })),
+  { loading: () => <div className="h-[320px] w-full animate-pulse rounded-lg bg-surface/50" /> },
 );
 
 const OrderTicket = dynamic(
@@ -49,6 +53,7 @@ export default async function AssetDetailPage({
 
           <div className="lg:col-span-2 space-y-4">
             <ComplianceSection ticker={ticker} />
+            <MarketDepth ticker={ticker} />
             <OrderTicket ticker={ticker} />
           </div>
         </div>

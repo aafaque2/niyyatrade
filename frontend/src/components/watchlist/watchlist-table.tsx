@@ -17,8 +17,8 @@ function PriceCell({ ticker }: { ticker: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["quote", ticker],
     queryFn: () => getQuote(ticker),
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 2_500,
+    refetchInterval: 2_500,
   });
 
   if (isLoading) {

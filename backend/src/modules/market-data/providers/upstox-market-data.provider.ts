@@ -7,8 +7,9 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from '../acl/market-data.schemas';
-import { MarketQuoteSchema } from '../acl/market-data.schemas';
+import { MarketQuoteSchema, MarketDepthSchema } from '../acl/market-data.schemas';
 
 interface UpstoxInstrument {
   instrument_key: string;
@@ -86,6 +87,19 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     return /\.(BO|BSE)$/i.test(ticker);
   }
 
+  private mapMarketStatus(): 'OPEN' | 'CLOSED' | 'PRE_MARKET' | 'POST_MARKET' | 'UNKNOWN' {
+    const now = new Date();
+    const istMs = now.getTime() + 19_800_000;
+    const ist = new Date(istMs);
+    const day = ist.getUTCDay();
+    if (day === 0 || day === 6) return 'CLOSED';
+    const minutes = ist.getUTCHours() * 60 + ist.getUTCMinutes();
+    if (minutes < 540) return 'CLOSED';
+    if (minutes < 555) return 'PRE_MARKET';
+    if (minutes <= 930) return 'OPEN';
+    return 'CLOSED';
+  }
+
   private cacheKey(type: string, ...parts: string[]): string {
     return `upstox:${type}:${parts.join(':')}`;
   }
@@ -137,7 +151,48 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       changePercent: Math.round(changePercent * 100) / 100,
       timestamp: new Date().toISOString(),
       currency: 'INR',
+      marketStatus: this.mapMarketStatus(),
     });
+  }
+
+  async getDepth(ticker: string): Promise<MarketDepth | null> {
+    try {
+      const instrument = await this.resolveInstrumentKey(ticker);
+      const data = await this.fetch<Record<string, Record<string, unknown>>>(
+        `/market-quote/quotes?instrument_key=${instrument.instrument_key}`,
+      );
+
+      const quoteKey = `${instrument.segment}:${instrument.trading_symbol}`;
+      const quoteData = data[quoteKey] ?? data[instrument.instrument_key];
+      if (!quoteData) return null;
+
+      const depth = quoteData.depth as {
+        buy?: Array<{ price: number; quantity: number; orders: number }>;
+        sell?: Array<{ price: number; quantity: number; orders: number }>;
+      } | undefined;
+
+      if (!depth?.buy || !depth?.sell) return null;
+
+      return MarketDepthSchema.parse({
+        ticker: ticker.toUpperCase(),
+        buy: depth.buy.map((l) => ({
+          price: Math.round(l.price * 100) / 100,
+          quantity: l.quantity,
+          orders: l.orders,
+        })),
+        sell: depth.sell.map((l) => ({
+          price: Math.round(l.price * 100) / 100,
+          quantity: l.quantity,
+          orders: l.orders,
+        })),
+        totalBuyQuantity: Number(quoteData.total_buy_quantity ?? 0),
+        totalSellQuantity: Number(quoteData.total_sell_quantity ?? 0),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      this.logger.warn(`getDepth failed for ${ticker}: ${(err as Error).message}`);
+      return null;
+    }
   }
 
   async getFundamentals(_ticker: string): Promise<FinancialFundamentals> {

@@ -193,8 +193,8 @@ function MarketRow({ result }: { result: SearchResult }) {
   const { data: quote } = useQuery({
     queryKey: ["quote", result.ticker],
     queryFn: () => getQuote(result.ticker),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 2_500,
+    refetchInterval: 2_500,
   });
 
   const positive = (quote?.changePercent ?? 0) >= 0;

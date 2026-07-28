@@ -20,6 +20,8 @@ export const marketDataKeys = {
     ["market-data", ticker.toUpperCase(), "candles", resolution] as const,
   fundamentals: (ticker: string) =>
     ["market-data", ticker.toUpperCase(), "fundamentals"] as const,
+  depth: (ticker: string) =>
+    ["market-data", ticker.toUpperCase(), "depth"] as const,
 };
 
 export const searchKeys = {

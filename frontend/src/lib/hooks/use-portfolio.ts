@@ -8,7 +8,8 @@ export function usePortfolio(includeCompliance?: boolean) {
   return useQuery({
     queryKey: portfolioKeys.detail(),
     queryFn: () => fetchPortfolio(includeCompliance),
-    staleTime: 30_000,
+    staleTime: 2_500,
     retry: 1,
+    refetchInterval: 2_500,
   });
 }

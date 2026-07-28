@@ -81,10 +81,38 @@ export type Candle = [number, number, number, number, number, number];
 export async function getCandles(
   ticker: string,
   resolution?: string,
+  opts?: { from?: number; to?: number },
 ): Promise<Candle[]> {
+  const params: Record<string, string | number> = {};
+  if (resolution) params.resolution = resolution;
+  if (opts?.from) params.from = opts.from;
+  if (opts?.to) params.to = opts.to;
+
   const { data } = await api.get<{ data: Candle[] }>(
     `/market-data/${ticker}/candles`,
-    { params: resolution ? { resolution } : {} },
+    { params },
+  );
+  return data.data;
+}
+
+export interface DepthLevel {
+  price: number;
+  quantity: number;
+  orders: number;
+}
+
+export interface MarketDepth {
+  ticker: string;
+  buy: DepthLevel[];
+  sell: DepthLevel[];
+  totalBuyQuantity: number;
+  totalSellQuantity: number;
+  timestamp: string;
+}
+
+export async function getDepth(ticker: string): Promise<MarketDepth | null> {
+  const { data } = await api.get<{ data: MarketDepth | null }>(
+    `/market-data/${ticker}/depth`,
   );
   return data.data;
 }

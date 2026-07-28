@@ -12,12 +12,13 @@ import type {
   FinancialFundamentals,
   ChartCandle,
   SearchResult,
+  MarketDepth,
 } from './acl/market-data.schemas';
 
 const CACHE_TTLS = {
-  QUOTE: 60,
+  QUOTE: 3,
   FUNDAMENTALS: 86400,
-  CANDLES: 3600,
+  CANDLES: 5,
   SEARCH: 3600,
   FX: 3600,
 } as const;
@@ -150,6 +151,24 @@ export class MarketDataService {
     } catch (err) {
       if (err instanceof HttpException) throw err;
       this.mapProviderError(err, `search(${query})`);
+    }
+  }
+
+  async getDepth(ticker: string): Promise<MarketDepth | null> {
+    const key = this.cacheKey('depth', ticker.toUpperCase());
+
+    const cached = await this.cacheGet<MarketDepth>(key);
+    if (cached) return cached;
+
+    try {
+      const depth = await this.provider.getDepth(ticker);
+      if (depth) {
+        await this.cacheSet(key, 3, depth);
+      }
+      return depth;
+    } catch (err) {
+      this.logger.warn(`getDepth failed for ${ticker}: ${(err as Error).message}`);
+      return null;
     }
   }
 
