@@ -101,6 +101,8 @@ function ChartInner({
   const loadingMoreRef = useRef(false);
   const scrollHandlerRef = useRef<((range: LogicalRange | null) => void) | null>(null);
   const mountedRef = useRef(true);
+  const keyRef = useRef<string>("");
+  const rangeSetupRef = useRef(false);
 
   const liveQuote = useLiveQuote();
 
@@ -120,27 +122,46 @@ function ChartInner({
       if (loadingMoreRef.current) return;
       loadingMoreRef.current = true;
       try {
+        const chart = chartRef.current;
+        const series = seriesRef.current;
+        if (!chart || !series) return;
+
+        const visibleRange = chart.timeScale().getVisibleLogicalRange();
+        const dataCountBefore = allDataRef.current.size;
+        const wasAtRightEdge = visibleRange != null && visibleRange.to >= dataCountBefore - 3;
+
         const lookback = LOOKBACK_SECONDS[resolution] ?? 30 * 86400;
         const from = beforeTimestamp - lookback;
         const moreCandles = await getCandles(ticker, resolution, {
           from,
           to: beforeTimestamp - 1,
         });
-        if (!mountedRef.current || !moreCandles.length || !seriesRef.current) return;
+        if (!mountedRef.current || !moreCandles.length) return;
 
-        const prevEarliest = Math.min(...allDataRef.current.keys());
+        let hasNew = false;
         for (const c of moreCandles) {
           if (!allDataRef.current.has(c[0])) {
             allDataRef.current.set(c[0], c);
+            hasNew = true;
           }
         }
-        const newEarliest = Math.min(...allDataRef.current.keys());
-        if (newEarliest < prevEarliest) {
+
+        if (hasNew) {
           const sorted = Array.from(allDataRef.current.values()).sort(
             (a, b) => a[0] - b[0],
           );
-          seriesRef.current?.setData(sorted.map(toChartData));
-          chartRef.current?.timeScale().fitContent();
+          series.setData(sorted.map(toChartData));
+
+          const count = sorted.length;
+          if (wasAtRightEdge) {
+            const visibleCount = Math.min(count, Math.max(40, Math.floor(count * 0.6)));
+            chart.timeScale().setVisibleLogicalRange({
+              from: count - visibleCount,
+              to: count,
+            });
+          } else if (visibleRange) {
+            chart.timeScale().setVisibleLogicalRange(visibleRange);
+          }
         }
       } catch {
         // silently fail — we'll retry on next scroll
@@ -171,7 +192,6 @@ function ChartInner({
       crosshair: { mode: 0 },
       timeScale: {
         borderColor: "#232B35",
-        fixRightEdge: true,
         rightOffsetPixels: 20,
       },
       rightPriceScale: { borderColor: "#232B35" },
@@ -205,52 +225,75 @@ function ChartInner({
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
+      keyRef.current = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load initial data + subscribe to scroll for lazy loading
+  // Initial data load — ONLY runs when ticker or resolution changes
   useEffect(() => {
     const chart = chartRef.current;
     const series = seriesRef.current;
     if (!chart || !series) return;
 
-    allDataRef.current.clear();
-    const sorted = [...initialCandles].sort((a, b) => a[0] - b[0]);
-    for (const c of sorted) {
-      allDataRef.current.set(c[0], c);
-    }
+    const newKey = `${ticker}:${resolution}`;
+    const isFirstLoad = keyRef.current === "";
+    const keyChanged = keyRef.current !== newKey;
+    keyRef.current = newKey;
 
-    series.setData(sorted.map(toChartData));
-    chart.timeScale().fitContent();
-
-    if (scrollHandlerRef.current) {
-      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scrollHandlerRef.current);
-    }
-    const handler = (range: LogicalRange | null) => {
-      if (!range || loadingMoreRef.current) return;
-      if (range.from < 5) {
-        const timestamps = Array.from(allDataRef.current.keys()).sort(
-          (a, b) => a - b,
-        );
-        if (timestamps.length > 0) {
-          loadMoreHistory(timestamps[0]);
-        }
+    if (isFirstLoad || keyChanged) {
+      allDataRef.current.clear();
+      const sorted = [...initialCandles].sort((a, b) => a[0] - b[0]);
+      for (const c of sorted) {
+        allDataRef.current.set(c[0], c);
       }
-    };
-    scrollHandlerRef.current = handler;
-    chart.timeScale().subscribeVisibleLogicalRangeChange(handler);
+      series.setData(sorted.map(toChartData));
+
+      const count = sorted.length;
+      const visibleCount = Math.min(count, Math.max(40, Math.floor(count * 0.6)));
+      const newRange = {
+        from: count - visibleCount,
+        to: count,
+      };
+
+      if (scrollHandlerRef.current) {
+        chart.timeScale().unsubscribeVisibleLogicalRangeChange(scrollHandlerRef.current);
+      }
+
+      rangeSetupRef.current = true;
+      chart.timeScale().setVisibleLogicalRange(newRange);
+
+      const handler = (range: LogicalRange | null) => {
+        if (!range || loadingMoreRef.current) return;
+        if (rangeSetupRef.current) {
+          rangeSetupRef.current = false;
+          return;
+        }
+        if (range.from < 5) {
+          const timestamps = Array.from(allDataRef.current.keys()).sort(
+            (a, b) => a - b,
+          );
+          if (timestamps.length > 0) {
+            loadMoreHistory(timestamps[0]);
+          }
+        }
+      };
+      scrollHandlerRef.current = handler;
+      chart.timeScale().subscribeVisibleLogicalRangeChange(handler);
+    }
 
     return () => {
-      chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler);
-      scrollHandlerRef.current = null;
+      if (scrollHandlerRef.current) {
+        chart.timeScale().unsubscribeVisibleLogicalRangeChange(scrollHandlerRef.current);
+        scrollHandlerRef.current = null;
+      }
     };
-  }, [initialCandles, ticker, resolution, toChartData, loadMoreHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticker, resolution]);
 
-  // Live update from candle data refetch
+  // Live update from candle data refetch — merges new candles, never clears existing
   useEffect(() => {
-    const series = seriesRef.current;
-    if (!series || !initialCandles?.length) return;
+    if (!initialCandles?.length || !seriesRef.current) return;
 
     const sorted = [...initialCandles].sort((a, b) => a[0] - b[0]);
     const timestamps = Array.from(allDataRef.current.keys());
@@ -261,14 +304,13 @@ function ChartInner({
 
     for (const c of newCandles) {
       allDataRef.current.set(c[0], c);
-      series.update(toChartData(c));
+      seriesRef.current.update(toChartData(c));
     }
   }, [initialCandles, toChartData]);
 
   // Live update from quote — ticks the last candle's close/high/low in real time
   useEffect(() => {
-    const series = seriesRef.current;
-    if (!series || !liveQuote?.priceCents) return;
+    if (!liveQuote?.priceCents || !seriesRef.current) return;
 
     const timestamps = Array.from(allDataRef.current.keys());
     if (timestamps.length === 0) return;
@@ -288,7 +330,7 @@ function ChartInner({
 
     const updated: Candle = [lastCandle[0], lastCandle[1], newHigh, newLow, newClose, lastCandle[5]];
     allDataRef.current.set(lastTs, updated);
-    series.update(toChartData(updated));
+    seriesRef.current.update(toChartData(updated));
   }, [liveQuote, toChartData]);
 
   return <div ref={containerRef} className="w-full" />;
