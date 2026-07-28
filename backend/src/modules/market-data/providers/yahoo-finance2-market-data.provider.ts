@@ -72,42 +72,47 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     }
   }
 
+  private readonly INTERVAL_MAP: Record<string, string> = {
+    '1m': '1m',
+    '5m': '5m',
+    '15m': '15m',
+    '30m': '30m',
+    '1h': '60m',
+    '1d': '1d',
+    '1wk': '1wk',
+    '1M': '1mo',
+  };
+
+  private period1FromResolution(resolution: string): Date {
+    const now = new Date();
+    switch (resolution) {
+      case '1D': return new Date(now.getTime() - 1 * 86400000);
+      case '1W': return new Date(now.getTime() - 7 * 86400000);
+      case '1M': return new Date(now.getTime() - 30 * 86400000);
+      case '1Y': return new Date(now.getTime() - 365 * 86400000);
+      case 'ALL': return new Date('1970-01-01');
+      default: return new Date(now.getTime() - 30 * 86400000);
+    }
+  }
+
   private mapResolution(resolution: string): {
     interval: string;
     period1: Date;
   } {
-    const now = new Date();
+    return {
+      interval: this.defaultInterval(resolution),
+      period1: this.period1FromResolution(resolution),
+    };
+  }
+
+  private defaultInterval(resolution: string): string {
     switch (resolution) {
-      case '1D':
-        return {
-          interval: '5m',
-          period1: new Date(now.getTime() - 1 * 86400000),
-        };
-      case '1W':
-        return {
-          interval: '15m',
-          period1: new Date(now.getTime() - 7 * 86400000),
-        };
-      case '1M':
-        return {
-          interval: '1d',
-          period1: new Date(now.getTime() - 30 * 86400000),
-        };
-      case '1Y':
-        return {
-          interval: '1d',
-          period1: new Date(now.getTime() - 365 * 86400000),
-        };
-      case 'ALL':
-        return {
-          interval: '1wk',
-          period1: new Date('1970-01-01'),
-        };
-      default:
-        return {
-          interval: '1d',
-          period1: new Date(now.getTime() - 30 * 86400000),
-        };
+      case '1D': return '5m';
+      case '1W': return '15m';
+      case '1M': return '1d';
+      case '1Y': return '1d';
+      case 'ALL': return '1wk';
+      default: return '1d';
     }
   }
 
@@ -225,12 +230,17 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     resolution: string,
     from?: number,
     to?: number,
+    interval?: string,
   ): Promise<ChartCandle[]> {
-    const { interval, period1: defaultPeriod1 } = this.mapResolution(resolution);
+    const yahooInterval = interval ? this.INTERVAL_MAP[interval] : null;
+    const actualInterval = yahooInterval ?? this.defaultInterval(resolution);
+    const period1 = from
+      ? new Date(from * 1000)
+      : this.period1FromResolution(resolution);
 
     const result = await this.yf.chart(ticker, {
-      interval: interval as '1m' | '5m' | '15m' | '1d' | '1wk',
-      period1: from ? new Date(from * 1000) : defaultPeriod1,
+      interval: actualInterval as '1m' | '5m' | '15m' | '1d' | '1wk',
+      period1,
       ...(to ? { period2: new Date(to * 1000) } : {}),
     });
 
@@ -256,7 +266,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       }));
 
     this.logger.log(
-      `getCandles(${ticker}, ${resolution}, interval=${interval}): ${quotes.length} raw quotes, ${timestamps.length} valid candles`,
+      `getCandles(${ticker}, ${resolution}, interval=${actualInterval}): ${quotes.length} raw quotes, ${timestamps.length} valid candles`,
     );
 
     return timestamps.map((t) => [
