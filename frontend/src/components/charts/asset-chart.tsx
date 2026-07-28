@@ -18,6 +18,11 @@ import { useCandles } from "@/lib/hooks/use-candles";
 import { useMarketStatus, useLiveQuote } from "@/app/(app)/assets/[ticker]/client";
 import { getCandles } from "@/lib/services/market-data";
 import { cn } from "@/lib/utils";
+import {
+  CandleIntervalSelector,
+  DEFAULT_INTERVAL,
+  MAX_VISIBLE_CANDLES,
+} from "@/components/charts/candle-interval-selector";
 
 type Candle = [number, number, number, number, number, number];
 
@@ -39,8 +44,15 @@ const LOOKBACK_SECONDS: Record<string, number> = {
 
 export function AssetChart({ ticker }: { ticker: string }) {
   const [resolution, setResolution] = useState("1M");
+  const [interval, setInterval] = useState(DEFAULT_INTERVAL["1M"]);
   const marketStatus = useMarketStatus();
-  const { data: initialCandles, isLoading, isError } = useCandles(ticker, resolution, { marketStatus });
+
+  const handleResolutionChange = (r: string) => {
+    setResolution(r);
+    setInterval(DEFAULT_INTERVAL[r] ?? "1d");
+  };
+
+  const { data: initialCandles, isLoading, isError } = useCandles(ticker, resolution, { marketStatus, interval });
 
   if (isLoading) {
     return (
@@ -63,13 +75,13 @@ export function AssetChart({ ticker }: { ticker: string }) {
 
   return (
     <div>
-      <ChartInner ticker={ticker} resolution={resolution} initialCandles={initialCandles} />
+      <ChartInner ticker={ticker} resolution={resolution} interval={interval} initialCandles={initialCandles} onIntervalChange={setInterval} />
       <div className="mt-3 flex items-center gap-0.5">
         {TIMEFRAMES.map((tf) => (
           <button
             key={tf.resolution}
             type="button"
-            onClick={() => setResolution(tf.resolution)}
+            onClick={() => handleResolutionChange(tf.resolution)}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150",
               resolution === tf.resolution
@@ -88,11 +100,15 @@ export function AssetChart({ ticker }: { ticker: string }) {
 function ChartInner({
   ticker,
   resolution,
+  interval,
   initialCandles,
+  onIntervalChange,
 }: {
   ticker: string;
   resolution: string;
+  interval: string;
   initialCandles: Candle[];
+  onIntervalChange: (interval: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -135,6 +151,7 @@ function ChartInner({
         const moreCandles = await getCandles(ticker, resolution, {
           from,
           to: beforeTimestamp - 1,
+          interval,
         });
         if (!mountedRef.current || !moreCandles.length) return;
 
@@ -154,9 +171,8 @@ function ChartInner({
 
           const count = sorted.length;
           if (wasAtRightEdge) {
-            const visibleCount = Math.min(count, Math.max(40, Math.floor(count * 0.6)));
             chart.timeScale().setVisibleLogicalRange({
-              from: count - visibleCount,
+              from: Math.max(0, count - dataCountBefore),
               to: count,
             });
           } else if (visibleRange) {
@@ -169,7 +185,7 @@ function ChartInner({
         loadingMoreRef.current = false;
       }
     },
-    [ticker, resolution, toChartData],
+    [ticker, resolution, interval, toChartData],
   );
 
   // Create chart once
@@ -230,13 +246,13 @@ function ChartInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Initial data load — ONLY runs when ticker or resolution changes
+  // Initial data load — ONLY runs when ticker, resolution, or interval changes
   useEffect(() => {
     const chart = chartRef.current;
     const series = seriesRef.current;
     if (!chart || !series) return;
 
-    const newKey = `${ticker}:${resolution}`;
+    const newKey = `${ticker}:${resolution}:${interval}`;
     const isFirstLoad = keyRef.current === "";
     const keyChanged = keyRef.current !== newKey;
     keyRef.current = newKey;
@@ -249,19 +265,19 @@ function ChartInner({
       }
       series.setData(sorted.map(toChartData));
 
-      const count = sorted.length;
-      const visibleCount = Math.min(count, Math.max(40, Math.floor(count * 0.6)));
-      const newRange = {
-        from: count - visibleCount,
-        to: count,
-      };
-
       if (scrollHandlerRef.current) {
         chart.timeScale().unsubscribeVisibleLogicalRangeChange(scrollHandlerRef.current);
       }
 
       rangeSetupRef.current = true;
-      chart.timeScale().setVisibleLogicalRange(newRange);
+
+      const count = sorted.length;
+      const maxVisible = MAX_VISIBLE_CANDLES[interval] ?? 150;
+      const visibleCount = Math.min(count, maxVisible);
+      chart.timeScale().setVisibleLogicalRange({
+        from: count - visibleCount,
+        to: count,
+      });
 
       const handler = (range: LogicalRange | null) => {
         if (!range || loadingMoreRef.current) return;
@@ -289,7 +305,7 @@ function ChartInner({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticker, resolution]);
+  }, [ticker, resolution, interval]);
 
   // Live update from candle data refetch — merges new candles, never clears existing
   useEffect(() => {
@@ -333,5 +349,17 @@ function ChartInner({
     seriesRef.current.update(toChartData(updated));
   }, [liveQuote, toChartData]);
 
-  return <div ref={containerRef} className="w-full" />;
+  return (
+    <div ref={containerRef} className="relative w-full" style={{ height: 400 }}>
+      <div className="pointer-events-none absolute left-2 top-2 z-10">
+        <div className="pointer-events-auto">
+          <CandleIntervalSelector
+            resolution={resolution}
+            interval={interval}
+            onChange={onIntervalChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
