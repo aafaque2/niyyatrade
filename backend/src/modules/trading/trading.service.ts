@@ -135,7 +135,7 @@ export class TradingService {
         : 0;
 
     const recentOrders = await this.prisma.order.findMany({
-      where: { portfolioId: portfolio.id },
+      where: { portfolioId: portfolio.id, status: { not: 'PENDING' as const } },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
