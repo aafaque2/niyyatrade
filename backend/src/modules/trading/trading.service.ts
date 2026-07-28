@@ -470,6 +470,7 @@ export class TradingService {
     quantity: Decimal,
     priceCents: number,
     totalCostCents: number,
+    orderId?: string,
   ) {
     const positionRows = await tx.$queryRaw<
       Array<{ id: string; quantity: string; averagePriceCents: bigint }>
@@ -506,17 +507,26 @@ export class TradingService {
       },
     });
 
-    const order = await tx.order.create({
-      data: {
-        portfolioId: portfolio.id,
-        assetTicker: ticker,
-        side: 'SELL',
-        quantity: quantity.toNumber(),
-        status: 'EXECUTED',
-        executedPriceCents: priceCents,
-        executedAt: new Date(),
-      },
-    });
+    const order = orderId
+      ? await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: 'EXECUTED',
+            executedPriceCents: priceCents,
+            executedAt: new Date(),
+          },
+        })
+      : await tx.order.create({
+          data: {
+            portfolioId: portfolio.id,
+            assetTicker: ticker,
+            side: 'SELL',
+            quantity: quantity.toNumber(),
+            status: 'EXECUTED',
+            executedPriceCents: priceCents,
+            executedAt: new Date(),
+          },
+        });
 
     await tx.transaction.create({
       data: {
