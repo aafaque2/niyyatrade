@@ -42,6 +42,8 @@ export interface CreateOrderPayload {
   assetTicker: string;
   side: "BUY" | "SELL";
   quantity: number;
+  orderType?: "MARKET" | "LIMIT";
+  limitPriceCents?: number;
 }
 
 export async function fetchPortfolio(

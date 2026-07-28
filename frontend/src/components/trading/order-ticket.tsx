@@ -38,6 +38,10 @@ export function OrderTicket({ ticker }: { ticker: string }) {
       assetTicker: ticker,
       side,
       quantity: qty,
+      orderType,
+      ...(orderType === "LIMIT" && effectivePriceCents > 0
+        ? { limitPriceCents: effectivePriceCents }
+        : {}),
     });
   };
 
@@ -137,9 +141,19 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           </p>
         )}
 
-        {isSuccess && (
-          <p className="text-xs text-emerald-light">Order executed successfully!</p>
-        )}
+        {isSuccess &&
+          (orderType === "LIMIT" ? (
+            <p className="text-xs text-amber-400">
+              Limit order placed — will execute when price reaches{" "}
+              <span className="font-mono">
+                {formatCents(effectivePriceCents, currency)}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-emerald-light">
+              Order executed successfully!
+            </p>
+          ))}
 
         <div className="flex gap-2">
           <Button
