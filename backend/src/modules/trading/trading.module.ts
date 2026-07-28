@@ -4,11 +4,12 @@ import { MarketDataModule } from '../market-data/market-data.module';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { TradingController } from './trading.controller';
 import { TradingService } from './trading.service';
+import { OrderWatcherService } from './order-watcher.service';
 
 @Module({
   imports: [PrismaModule, MarketDataModule, ComplianceModule],
   controllers: [TradingController],
-  providers: [TradingService],
+  providers: [TradingService, OrderWatcherService],
   exports: [TradingService],
 })
 export class TradingModule {}
