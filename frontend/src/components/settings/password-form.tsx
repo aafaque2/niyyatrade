@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { changePassword } from "@/lib/services/identity";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,8 +15,18 @@ export function PasswordForm() {
 
   const mutation = useMutation({
     mutationFn: () => changePassword(current, newPw),
-    onSuccess: () => {
-      toast.success("Password updated");
+    onSuccess: (data) => {
+      // The backend bumped tokenVersion, invalidating the old JWT everywhere.
+      // Swap in the fresh token so this device stays signed in.
+      if (data.token) {
+        const store = useAuthStore.getState();
+        if (store.user) {
+          store.setAuth(store.user, data.token);
+        }
+      }
+      toast.success(
+        "Password updated — other devices have been signed out",
+      );
       setCurrent("");
       setNewPw("");
       setConfirm("");

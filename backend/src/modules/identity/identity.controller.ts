@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { Prisma } from '../../generated/prisma/client';
+import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { ComplianceService } from '../compliance/compliance.service';
@@ -41,6 +42,7 @@ export class IdentityController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly compliance: ComplianceService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Get('me')
@@ -122,12 +124,12 @@ export class IdentityController {
 
   @Put('me/password')
   async changePassword(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { sub: string; email: string } },
     @Body() body: ChangePasswordDto,
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: req.user.sub },
-      select: { passwordHash: true },
+      select: { passwordHash: true, tokenVersion: true },
     });
 
     if (!user || !user.passwordHash) {
@@ -145,12 +147,24 @@ export class IdentityController {
     }
 
     const passwordHash = await bcrypt.hash(body.newPassword, 12);
-    await this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: req.user.sub },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        // Invalidate all existing JWTs — other devices must sign in again.
+        tokenVersion: { increment: 1 },
+      },
     });
 
-    return { message: 'Password updated successfully' };
+    // Issue a fresh token for the device that just changed the password so
+    // the current session stays alive while every other device is signed out.
+    const token = this.jwtService.sign({
+      sub: req.user.sub,
+      email: req.user.email,
+      ver: updated.tokenVersion,
+    });
+
+    return { message: 'Password updated successfully', token };
   }
 
   @Put('me/frameworks/active')

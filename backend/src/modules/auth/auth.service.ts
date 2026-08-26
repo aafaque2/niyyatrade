@@ -60,7 +60,11 @@ export class AuthService {
       include: { portfolio: true },
     });
 
-    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      ver: user.tokenVersion,
+    });
 
     return {
       user: {
@@ -88,7 +92,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      ver: user.tokenVersion,
+    });
 
     return {
       user: {
@@ -199,7 +207,8 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
     // Mark the token used and update the password atomically; also invalidate
-    // any other outstanding tokens for the user.
+    // any other outstanding reset tokens. Bumping tokenVersion immediately
+    // kills every existing JWT for this user (all devices signed out).
     await this.prisma.$transaction([
       this.prisma.passwordResetToken.update({
         where: { id: record.id },
@@ -207,7 +216,10 @@ export class AuthService {
       }),
       this.prisma.user.update({
         where: { id: record.userId },
-        data: { passwordHash },
+        data: {
+          passwordHash,
+          tokenVersion: { increment: 1 },
+        },
       }),
       this.prisma.passwordResetToken.updateMany({
         where: { userId: record.userId, usedAt: null },
