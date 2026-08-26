@@ -122,6 +122,15 @@ export default function LoginPage() {
           >
             {mutation.isPending ? "Signing in..." : "Sign in"}
           </Button>
+
+          <p className="text-center">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Forgot your password?
+            </Link>
+          </p>
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
