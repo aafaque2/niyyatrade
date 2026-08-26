@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: halaltrade-postgres
+    container_name: niyyatrade-postgres
     environment:
       POSTGRES_USER: halaltrade
       POSTGRES_PASSWORD: halaltrade_dev
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: halaltrade-redis
+    container_name: niyyatrade-redis
     ports:
       - "6379:6379"
     volumes:

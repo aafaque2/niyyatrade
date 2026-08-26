@@ -24,8 +24,18 @@ function validateEnv() {
     process.exit(1);
   }
 
-  if (process.env.JWT_SECRET === 'dev-secret-change-in-production') {
-    console.error('JWT_SECRET must be changed from the default dev value');
+  const placeholderSecrets = [
+    'dev-secret-change-in-production',
+    'change-me-in-production',
+  ];
+  if (placeholderSecrets.includes(process.env.JWT_SECRET ?? '')) {
+    console.error(
+      'JWT_SECRET must be changed from the default/placeholder value',
+    );
+    process.exit(1);
+  }
+  if ((process.env.JWT_SECRET ?? '').length < 16) {
+    console.error('JWT_SECRET must be at least 16 characters long');
     process.exit(1);
   }
 }
@@ -84,14 +94,19 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // Don't expose the full API surface (incl. bearer auth) in production.
+  if (process.env.NODE_ENV !== 'production') {
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
 
   const logger = new Logger('Bootstrap');
   logger.log(`Backend running on http://localhost:${port}/api/v1`);
-  logger.log(`Swagger docs at http://localhost:${port}/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    logger.log(`Swagger docs at http://localhost:${port}/docs`);
+  }
   logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   if (process.env.SENTRY_DSN) {
     logger.log('Sentry error tracking enabled');
