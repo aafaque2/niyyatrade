@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
@@ -9,7 +10,7 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ComplianceService } from '../compliance/compliance.service';
-import { OrderSide, OrderType, type CreateOrderDto } from './dto/create-order.dto';
+import { OrderSide, type CreateOrderDto } from './dto/create-order.dto';
 import { getStartingBalance } from '../../shared/constants/currency';
 
 @Injectable()
@@ -38,13 +39,12 @@ export class TradingService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const activeFramework =
-      user?.activeFrameworkId
-        ? await this.prisma.framework.findUnique({
-            where: { id: user.activeFrameworkId },
-            select: { slug: true },
-          })
-        : null;
+    const activeFramework = user?.activeFrameworkId
+      ? await this.prisma.framework.findUnique({
+          where: { id: user.activeFrameworkId },
+          select: { slug: true },
+        })
+      : null;
 
     const positions = portfolio.positions ?? [];
     const baseCurrency = user?.currency ?? 'USD';
@@ -249,7 +249,11 @@ export class TradingService {
     };
   }
 
-  private async assertShortSellAllowed(userId: string, ticker: string, quantity: Decimal) {
+  private async assertShortSellAllowed(
+    userId: string,
+    ticker: string,
+    quantity: Decimal,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { activeFrameworkId: true },
@@ -269,10 +273,22 @@ export class TradingService {
     });
     if (!portfolio) return;
 
+    await this.assertShortSellAllowedForPortfolio(
+      portfolio.id,
+      ticker,
+      quantity,
+    );
+  }
+
+  private async assertShortSellAllowedForPortfolio(
+    portfolioId: string,
+    ticker: string,
+    quantity: Decimal,
+  ) {
     const pos = await this.prisma.position.findUnique({
       where: {
         portfolioId_assetTicker: {
-          portfolioId: portfolio.id,
+          portfolioId,
           assetTicker: ticker,
         },
       },
@@ -297,7 +313,14 @@ export class TradingService {
       );
     }
 
-    const priceCents = quote.priceCents;
+    // Settle everything in the user's base currency — portfolio cash is
+    // held in a single currency, so foreign-priced assets must be converted
+    // before debiting/crediting. Fail closed if FX data is unavailable.
+    const priceCents = await this.resolvePriceCentsInBaseCurrency(
+      userId,
+      quote.priceCents,
+      quote.currency,
+    );
     const quantity = new Decimal(dto.quantity);
     const totalCostCents = quantity.mul(priceCents).toDecimalPlaces(0);
 
@@ -347,6 +370,37 @@ export class TradingService {
     }
   }
 
+  /**
+   * Convert a quote price (in the asset's quote currency) into the user's
+   * base-currency cents. Throws if conversion is impossible so a trade is
+   * never settled in the wrong currency.
+   */
+  private async resolvePriceCentsInBaseCurrency(
+    userId: string,
+    priceCents: number,
+    quoteCurrency?: string,
+  ): Promise<number> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currency: true },
+    });
+    const baseCurrency = user?.currency ?? 'USD';
+    const quoteCcy = (quoteCurrency ?? 'USD').toUpperCase();
+
+    if (quoteCcy === baseCurrency) {
+      return priceCents;
+    }
+
+    try {
+      const fxRate = await this.marketData.getFxRate(quoteCcy, baseCurrency);
+      return Math.round(priceCents * fxRate.rate);
+    } catch {
+      throw new BadRequestException(
+        `Unable to convert ${quoteCcy} price to ${baseCurrency} — trade cancelled`,
+      );
+    }
+  }
+
   async executePendingOrder(order: {
     id: string;
     portfolioId: string;
@@ -356,6 +410,9 @@ export class TradingService {
     targetPriceCents: number;
   }) {
     const priceCents = order.targetPriceCents;
+    // Limit prices are placed in the user's base currency (the UI quotes
+    // prices converted to the user's display currency), so no FX conversion
+    // is needed here — targetPriceCents settles directly against cash.
     const quantity = new Decimal(order.quantity);
     const totalCostCents = quantity.mul(priceCents).toDecimalPlaces(0);
 
@@ -369,6 +426,17 @@ export class TradingService {
 
         if (!portfolio.length) {
           throw new NotFoundException('Portfolio not found');
+        }
+
+        // Re-validate compliance at execution time — holdings may have changed
+        // since placement (e.g. shares sold elsewhere), and a SELL exceeding
+        // current holdings would otherwise open a short under the Halal framework.
+        if (order.side === 'SELL') {
+          await this.assertShortSellAllowedForPortfolio(
+            order.portfolioId,
+            order.assetTicker,
+            quantity,
+          );
         }
 
         const result =
@@ -507,15 +575,27 @@ export class TradingService {
       },
     });
 
-    const order = orderId
-      ? await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: 'EXECUTED',
-            executedPriceCents: priceCents,
-            executedAt: new Date(),
-          },
-        })
+    // Claim the order atomically — if another instance already executed it,
+    // this update matches nothing and we abort (rolling back all mutations).
+    const claimedOrderId = orderId;
+    if (claimedOrderId) {
+      const claimed = await tx.order.updateMany({
+        where: { id: claimedOrderId, status: 'PENDING' },
+        data: {
+          status: 'EXECUTED',
+          executedPriceCents: priceCents,
+          executedAt: new Date(),
+        },
+      });
+      if (claimed.count === 0) {
+        throw new ConflictException(
+          `Order ${claimedOrderId} is no longer pending`,
+        );
+      }
+    }
+
+    const order = claimedOrderId
+      ? { id: claimedOrderId, status: 'EXECUTED' as const }
       : await tx.order.create({
           data: {
             portfolioId: portfolio.id,
@@ -566,7 +646,10 @@ export class TradingService {
     let newQty: Decimal;
     let newAvgPrice: number;
 
-    if (!positionRows.length || new Decimal(positionRows[0].quantity).isZero()) {
+    if (
+      !positionRows.length ||
+      new Decimal(positionRows[0].quantity).isZero()
+    ) {
       // No position — open new short
       newQty = sellQty.negated();
       newAvgPrice = priceCents;
@@ -629,15 +712,26 @@ export class TradingService {
       },
     });
 
-    const order = orderId
-      ? await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: 'EXECUTED',
-            executedPriceCents: priceCents,
-            executedAt: new Date(),
-          },
-        })
+    // Claim the order atomically — see executeBuy.
+    const claimedOrderId = orderId;
+    if (claimedOrderId) {
+      const claimed = await tx.order.updateMany({
+        where: { id: claimedOrderId, status: 'PENDING' },
+        data: {
+          status: 'EXECUTED',
+          executedPriceCents: priceCents,
+          executedAt: new Date(),
+        },
+      });
+      if (claimed.count === 0) {
+        throw new ConflictException(
+          `Order ${claimedOrderId} is no longer pending`,
+        );
+      }
+    }
+
+    const order = claimedOrderId
+      ? { id: claimedOrderId, status: 'EXECUTED' as const }
       : await tx.order.create({
           data: {
             portfolioId: portfolio.id,

@@ -1,4 +1,4 @@
-import { Module, Inject } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { MarketDataController } from './market-data.controller';
@@ -28,11 +28,20 @@ function createRedisClient(url: string): Redis {
     {
       provide: 'MARKET_DATA_PROVIDER',
       useFactory: (configService: ConfigService): IMarketDataProvider => {
+        const isProd = configService.get<string>('NODE_ENV') === 'production';
         const fmpKey = configService.get<string>('FMP_API_KEY');
         const upstoxToken = configService.get<string>('UPSTOX_ACCESS_TOKEN');
 
         const yahoo2 = new YahooFinance2MarketDataProvider();
         const fmp = fmpKey ? new FmpMarketDataProvider(configService) : null;
+
+        // Never let fabricated prices back real trades in production.
+        if (isProd && (!fmp || !upstoxToken)) {
+          throw new Error(
+            'Market data misconfiguration: FMP_API_KEY and UPSTOX_ACCESS_TOKEN must both be set when NODE_ENV=production. ' +
+              'Without them, trades would fall back to a mock provider with hard-coded prices.',
+          );
+        }
 
         if (!fmp && !upstoxToken) {
           return yahoo2;

@@ -9,7 +9,10 @@ import type {
   SearchResult,
   MarketDepth,
 } from '../acl/market-data.schemas';
-import { MarketQuoteSchema, MarketDepthSchema } from '../acl/market-data.schemas';
+import {
+  MarketQuoteSchema,
+  MarketDepthSchema,
+} from '../acl/market-data.schemas';
 
 interface UpstoxInstrument {
   instrument_key: string;
@@ -43,9 +46,14 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     };
   }
 
+  private static readonly FETCH_TIMEOUT_MS = 10_000;
+
   private async fetch<T>(path: string): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, { headers: this.authHeaders });
+    const res = await fetch(url, {
+      headers: this.authHeaders,
+      signal: AbortSignal.timeout(UpstoxMarketDataProvider.FETCH_TIMEOUT_MS),
+    });
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -87,7 +95,8 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
     return /\.(BO|BSE)$/i.test(ticker);
   }
 
-  private mapMarketStatus(): 'OPEN' | 'CLOSED' | 'PRE_MARKET' | 'POST_MARKET' | 'UNKNOWN' {
+  private mapMarketStatus():
+    'OPEN' | 'CLOSED' | 'PRE_MARKET' | 'POST_MARKET' | 'UNKNOWN' {
     const now = new Date();
     const istMs = now.getTime() + 19_800_000;
     const ist = new Date(istMs);
@@ -166,10 +175,12 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
       const quoteData = data[quoteKey] ?? data[instrument.instrument_key];
       if (!quoteData) return null;
 
-      const depth = quoteData.depth as {
-        buy?: Array<{ price: number; quantity: number; orders: number }>;
-        sell?: Array<{ price: number; quantity: number; orders: number }>;
-      } | undefined;
+      const depth = quoteData.depth as
+        | {
+            buy?: Array<{ price: number; quantity: number; orders: number }>;
+            sell?: Array<{ price: number; quantity: number; orders: number }>;
+          }
+        | undefined;
 
       if (!depth?.buy || !depth?.sell) return null;
 
@@ -190,14 +201,18 @@ export class UpstoxMarketDataProvider implements IMarketDataProvider {
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
-      this.logger.warn(`getDepth failed for ${ticker}: ${(err as Error).message}`);
+      this.logger.warn(
+        `getDepth failed for ${ticker}: ${(err as Error).message}`,
+      );
       return null;
     }
   }
 
-  async getFundamentals(_ticker: string): Promise<FinancialFundamentals> {
-    throw new Error(
-      'Upstox free tier does not support fundamentals — use FMP provider',
+  getFundamentals(_ticker: string): Promise<FinancialFundamentals> {
+    return Promise.reject(
+      new Error(
+        'Upstox free tier does not support fundamentals — use FMP provider',
+      ),
     );
   }
 

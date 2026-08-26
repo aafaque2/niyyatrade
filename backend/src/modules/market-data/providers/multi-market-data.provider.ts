@@ -90,7 +90,13 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     interval?: string,
   ): Promise<ChartCandle[]> {
     try {
-      return await this.primary.getCandles(ticker, resolution, from, to, interval);
+      return await this.primary.getCandles(
+        ticker,
+        resolution,
+        from,
+        to,
+        interval,
+      );
     } catch (err) {
       this.logger.warn(
         `Primary candles failed for ${ticker}: ${(err as Error).message}`,
@@ -99,7 +105,13 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
 
     if (this.isIndianTicker(ticker)) {
       try {
-        return await this.upstox.getCandles(ticker, resolution, from, to, interval);
+        return await this.upstox.getCandles(
+          ticker,
+          resolution,
+          from,
+          to,
+          interval,
+        );
       } catch (err2) {
         this.logger.warn(
           `Upstox candles also failed for ${ticker}: ${(err2 as Error).message}`,
@@ -107,7 +119,13 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
       }
     } else {
       try {
-        return await this.fmp.getCandles(ticker, resolution, from, to, interval);
+        return await this.fmp.getCandles(
+          ticker,
+          resolution,
+          from,
+          to,
+          interval,
+        );
       } catch (err2) {
         this.logger.warn(
           `FMP candles also failed for ${ticker}: ${(err2 as Error).message}`,

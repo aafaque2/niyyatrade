@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { TradingService } from './trading.service';
@@ -15,7 +20,9 @@ export class OrderWatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.interval = setInterval(() => this.checkPendingOrders(), 2500);
+    this.interval = setInterval(() => {
+      void this.checkPendingOrders();
+    }, 2500);
     this.logger.log('Order watcher started (interval: 2.5s)');
   }
 
@@ -84,9 +91,7 @@ export class OrderWatcherService implements OnModuleInit, OnModuleDestroy {
         }
       }
     } catch (err) {
-      this.logger.error(
-        `Order watcher error: ${(err as Error).message}`,
-      );
+      this.logger.error(`Order watcher error: ${(err as Error).message}`);
     }
   }
 }

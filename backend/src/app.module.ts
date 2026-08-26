@@ -15,7 +15,6 @@ import { HistoryModule } from './modules/history/history.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.interceptor';
-import { SentryInterceptor } from './interceptors/sentry.interceptor';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 
@@ -48,10 +47,6 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: SentryInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

@@ -4,6 +4,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
+type Json = Record<string, unknown>;
+
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -33,10 +35,11 @@ describe('App (e2e)', () => {
       .get('/api/v1/health')
       .expect(200)
       .expect((res) => {
-        expect(res.body).toHaveProperty('status');
-        expect(['ok', 'degraded']).toContain(res.body.status);
-        expect(res.body).toHaveProperty('db');
-        expect(res.body).toHaveProperty('redis');
+        const body = res.body as Json;
+        expect(body).toHaveProperty('status');
+        expect(['ok', 'degraded']).toContain(body.status);
+        expect(body).toHaveProperty('db');
+        expect(body).toHaveProperty('redis');
       });
   });
 
@@ -45,7 +48,7 @@ describe('App (e2e)', () => {
       .get('/api/v1/health/live')
       .expect(200)
       .expect((res) => {
-        expect(res.body.status).toBe('ok');
+        expect((res.body as Json).status).toBe('ok');
       });
   });
 
@@ -54,8 +57,9 @@ describe('App (e2e)', () => {
       .get('/api/v1/health/ready')
       .expect(200)
       .expect((res) => {
-        expect(res.body).toHaveProperty('status');
-        expect(['ok', 'not_ready']).toContain(res.body.status);
+        const body = res.body as Json;
+        expect(body).toHaveProperty('status');
+        expect(['ok', 'not_ready']).toContain(body.status);
       });
   });
 
@@ -64,7 +68,7 @@ describe('App (e2e)', () => {
       .get('/api/v1/compliance')
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(Array.isArray((res.body as Json).data)).toBe(true);
       });
   });
 });

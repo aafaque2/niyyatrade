@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import Redis from 'ioredis';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import type {
@@ -107,7 +108,8 @@ export class ComplianceService {
         if (Array.isArray(excluded)) {
           excludedTickers = excluded.map((t) => String(t).toUpperCase());
         }
-        const { __excludedTickers: _, ...rest } = raw;
+        const { __excludedTickers: _ignored, ...rest } = raw;
+        void _ignored;
         overrides = rest as Record<string, number>;
       }
     }
@@ -119,11 +121,15 @@ export class ComplianceService {
           ? { ...spec, threshold: overrides[ruleId], ruleId }
           : { ...spec, ruleId };
 
-      if (excludedTickers && spec.type === 'ticker_list' && spec.bannedTickers) {
+      if (
+        excludedTickers &&
+        spec.type === 'ticker_list' &&
+        spec.bannedTickers
+      ) {
         mergedSpec = {
           ...mergedSpec,
-          bannedTickers: (spec.bannedTickers as string[]).filter(
-            (t) => !excludedTickers!.includes(t.toUpperCase()),
+          bannedTickers: spec.bannedTickers.filter(
+            (t) => !excludedTickers.includes(t.toUpperCase()),
           ),
         };
       }
@@ -186,7 +192,9 @@ export class ComplianceService {
             assetTicker: ticker.toUpperCase(),
             frameworkId: framework.id,
             verdict: report.verdict,
-            rules: JSON.parse(JSON.stringify(report.rules)),
+            rules: JSON.parse(
+              JSON.stringify(report.rules),
+            ) as Prisma.InputJsonValue,
           },
         });
       } catch (err) {

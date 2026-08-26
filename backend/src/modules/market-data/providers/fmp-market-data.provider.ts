@@ -41,11 +41,14 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
     return this.apiKey;
   }
 
+  private static readonly FETCH_TIMEOUT_MS = 10_000;
+
   private async fetch<T>(path: string, attempt = 0): Promise<T> {
     const separator = path.includes('?') ? '&' : '?';
     const url = `${this.baseUrl}${path}${separator}apikey=${this.apiKey}`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'HalalTrade/1.0' },
+      signal: AbortSignal.timeout(FmpMarketDataProvider.FETCH_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -212,7 +215,7 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
     });
   }
 
-  async getDepth(_ticker: string): Promise<MarketDepth | null> {
-    return null;
+  getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return Promise.resolve(null);
   }
 }

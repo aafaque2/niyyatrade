@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  Min,
-} from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
 
 export enum OrderSide {
   BUY = 'BUY',

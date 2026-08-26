@@ -119,9 +119,14 @@ export class MarketDataService {
     to?: number,
     interval?: string,
   ): Promise<ChartCandle[]> {
-    const fromTo = from != null || to != null ? `:${from ?? ''}:${to ?? ''}` : '';
+    const fromTo =
+      from != null || to != null ? `:${from ?? ''}:${to ?? ''}` : '';
     const intervalPart = interval ? `:${interval}` : '';
-    const key = this.cacheKey('candles', ticker.toUpperCase(), resolution + intervalPart + fromTo);
+    const key = this.cacheKey(
+      'candles',
+      ticker.toUpperCase(),
+      resolution + intervalPart + fromTo,
+    );
 
     const cached = await this.cacheGet<ChartCandle[]>(key);
     if (cached) return cached;
@@ -171,7 +176,9 @@ export class MarketDataService {
       }
       return depth;
     } catch (err) {
-      this.logger.warn(`getDepth failed for ${ticker}: ${(err as Error).message}`);
+      this.logger.warn(
+        `getDepth failed for ${ticker}: ${(err as Error).message}`,
+      );
       return null;
     }
   }

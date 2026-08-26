@@ -11,13 +11,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from '../../generated/prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { ComplianceService } from '../compliance/compliance.service';
 import { UpdateFrameworkPrefsDto } from './dto/update-framework-prefs.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { getStartingBalance, VALID_CURRENCY_CODES } from '../../shared/constants/currency';
+import {
+  getStartingBalance,
+  VALID_CURRENCY_CODES,
+} from '../../shared/constants/currency';
 
 const USER_SELECT = {
   id: true,
@@ -164,9 +168,7 @@ export class IdentityController {
   }
 
   @Delete('me/frameworks/active')
-  async deactivateFramework(
-    @Request() req: { user: { sub: string } },
-  ) {
+  async deactivateFramework(@Request() req: { user: { sub: string } }) {
     const userId = req.user.sub;
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -194,15 +196,16 @@ export class IdentityController {
     @Body() body: UpdateFrameworkPrefsDto,
   ) {
     const { frameworkId, overrides } = body;
-    const jsonValue = overrides ?? {};
+    const jsonValue: Prisma.InputJsonValue =
+      (overrides as Prisma.InputJsonValue | undefined) ?? {};
 
     await this.prisma.frameworkOverride.upsert({
       where: { userId_frameworkId: { userId: req.user.sub, frameworkId } },
-      update: { customThresholds: jsonValue as any },
+      update: { customThresholds: jsonValue },
       create: {
         userId: req.user.sub,
         frameworkId,
-        customThresholds: jsonValue as any,
+        customThresholds: jsonValue,
       },
     });
 

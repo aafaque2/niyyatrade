@@ -27,6 +27,24 @@ const SECTOR_MAP: Record<string, string> = {
   Healthcare: 'Healthcare',
 };
 
+interface YfQuoteShape {
+  symbol?: string;
+  regularMarketPrice?: number | null;
+  regularMarketChangePercent?: number | null;
+  regularMarketVolume?: number | null;
+  fiftyTwoWeekHigh?: number | null;
+  fiftyTwoWeekLow?: number | null;
+  currency?: string;
+  marketState?: string;
+}
+
+interface YfQuoteSummaryShape {
+  financialData?: Record<string, number | null>;
+  summaryDetail?: Record<string, number | null>;
+  defaultKeyStatistics?: Record<string, number | null>;
+  assetProfile?: { sector?: string; industry?: string };
+}
+
 @Injectable()
 export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
   private readonly logger = new Logger(YahooFinance2MarketDataProvider.name);
@@ -34,6 +52,24 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
 
   constructor() {
     this.yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+  }
+
+  private static readonly FETCH_TIMEOUT_MS = 10_000;
+
+  /**
+   * Yahoo's client library does not expose a fetch timeout — enforce one here
+   * so a hanging upstream call cannot stall order placement or the order watcher.
+   */
+  private call<T>(promise: Promise<T>): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Yahoo Finance request timed out')),
+          YahooFinance2MarketDataProvider.FETCH_TIMEOUT_MS,
+        ),
+      ),
+    ]);
   }
 
   private normalizeSector(raw: string | undefined | null): string | null {
@@ -86,12 +122,18 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
   private period1FromResolution(resolution: string): Date {
     const now = new Date();
     switch (resolution) {
-      case '1D': return new Date(now.getTime() - 1 * 86400000);
-      case '1W': return new Date(now.getTime() - 7 * 86400000);
-      case '1M': return new Date(now.getTime() - 30 * 86400000);
-      case '1Y': return new Date(now.getTime() - 365 * 86400000);
-      case 'ALL': return new Date('1970-01-01');
-      default: return new Date(now.getTime() - 30 * 86400000);
+      case '1D':
+        return new Date(now.getTime() - 1 * 86400000);
+      case '1W':
+        return new Date(now.getTime() - 7 * 86400000);
+      case '1M':
+        return new Date(now.getTime() - 30 * 86400000);
+      case '1Y':
+        return new Date(now.getTime() - 365 * 86400000);
+      case 'ALL':
+        return new Date('1970-01-01');
+      default:
+        return new Date(now.getTime() - 30 * 86400000);
     }
   }
 
@@ -107,17 +149,25 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
 
   private defaultInterval(resolution: string): string {
     switch (resolution) {
-      case '1D': return '5m';
-      case '1W': return '15m';
-      case '1M': return '1d';
-      case '1Y': return '1d';
-      case 'ALL': return '1wk';
-      default: return '1d';
+      case '1D':
+        return '5m';
+      case '1W':
+        return '15m';
+      case '1M':
+        return '1d';
+      case '1Y':
+        return '1d';
+      case 'ALL':
+        return '1wk';
+      default:
+        return '1d';
     }
   }
 
   async getQuote(ticker: string): Promise<MarketQuote> {
-    const quote = await this.yf.quote(ticker);
+    const quote = (await this.call(
+      this.yf.quote(ticker),
+    )) as unknown as YfQuoteShape;
 
     if (!quote.regularMarketPrice) {
       throw new Error(`No quote data for ${ticker}`);
@@ -135,17 +185,21 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
   }
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
-    const [quoteSummary, quote] = await Promise.all([
-      this.yf.quoteSummary(ticker, {
-        modules: [
-          'financialData',
-          'summaryDetail',
-          'defaultKeyStatistics',
-          'assetProfile',
-        ],
-      }),
-      this.yf.quote(ticker),
+    const [quoteSummaryRaw, quoteRaw] = await Promise.all([
+      this.call(
+        this.yf.quoteSummary(ticker, {
+          modules: [
+            'financialData',
+            'summaryDetail',
+            'defaultKeyStatistics',
+            'assetProfile',
+          ],
+        }),
+      ),
+      this.call(this.yf.quote(ticker)),
     ]);
+    const quoteSummary = quoteSummaryRaw as unknown as YfQuoteSummaryShape;
+    const quote = quoteRaw as unknown as YfQuoteShape;
 
     const financialData = quoteSummary.financialData;
     const summaryDetail = quoteSummary.summaryDetail;
@@ -171,11 +225,13 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
     };
 
     try {
-      const ts = await this.yf.fundamentalsTimeSeries(ticker, {
-        period1: new Date(Date.now() - 365 * 86400000),
-        type: 'quarterly',
-        module: 'all',
-      });
+      const ts = await this.call(
+        this.yf.fundamentalsTimeSeries(ticker, {
+          period1: new Date(Date.now() - 365 * 86400000),
+          type: 'quarterly',
+          module: 'all',
+        }),
+      );
 
       const entries = (ts as unknown as Array<Record<string, unknown>>).filter(
         (e) => e.periodType === '3M',
@@ -189,10 +245,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
         ) {
           base.interestIncome = entry.interestIncome;
         }
-        if (
-          base.totalAssets == null &&
-          typeof entry.totalAssets === 'number'
-        ) {
+        if (base.totalAssets == null && typeof entry.totalAssets === 'number') {
           base.totalAssets = entry.totalAssets;
         }
         if (
@@ -214,7 +267,8 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
           base.interestIncome != null &&
           base.totalRevenue != null &&
           base.totalDebt != null
-        ) break;
+        )
+          break;
       }
     } catch (err) {
       this.logger.warn(
@@ -238,11 +292,13 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       ? new Date(from * 1000)
       : this.period1FromResolution(resolution);
 
-    const result = await this.yf.chart(ticker, {
-      interval: actualInterval as '1m' | '5m' | '15m' | '1d' | '1wk',
-      period1,
-      ...(to ? { period2: new Date(to * 1000) } : {}),
-    });
+    const result = await this.call(
+      this.yf.chart(ticker, {
+        interval: actualInterval as '1m' | '5m' | '15m' | '1d' | '1wk',
+        period1,
+        ...(to ? { period2: new Date(to * 1000) } : {}),
+      }),
+    );
 
     const quotes =
       (result as { quotes?: Array<Record<string, unknown>> }).quotes ?? [];
@@ -280,7 +336,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const result = await this.yf.search(query);
+    const result = await this.call(this.yf.search(query));
 
     return (result.quotes ?? [])
       .filter((q: Record<string, unknown>) => q.quoteType === 'EQUITY')
@@ -293,7 +349,7 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       }));
   }
 
-  async getDepth(_ticker: string): Promise<MarketDepth | null> {
-    return null;
+  getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return Promise.resolve(null);
   }
 }

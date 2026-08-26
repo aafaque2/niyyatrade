@@ -177,7 +177,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
     );
   }
 
-  async getDepth(_ticker: string): Promise<MarketDepth | null> {
-    return null;
+  getDepth(_ticker: string): Promise<MarketDepth | null> {
+    return Promise.resolve(null);
   }
 }

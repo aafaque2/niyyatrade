@@ -30,7 +30,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = 'INTERNAL_SERVER_ERROR';
     let message = 'An unexpected error occurred.';
     let details: Record<string, unknown> | undefined;
@@ -54,7 +54,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Never leak internal error details (Prisma, providers, etc.) to clients.
+      // The real message is logged below and captured in Sentry.
+      message = 'An unexpected error occurred.';
       try {
         Sentry.captureException(exception);
       } catch {
@@ -66,7 +68,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (status >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} ${status} ${code}: ${message}`,
+        `${request.method} ${request.url} ${status} ${code}: ${exception instanceof Error ? exception.message : 'unknown'}`,
         exception instanceof Error ? exception.stack : undefined,
       );
     } else if (status >= 400) {

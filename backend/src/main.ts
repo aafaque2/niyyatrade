@@ -7,9 +7,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { getPinoAdapter } from './shared/utils/nest-logger.adapter';
 
-(BigInt.prototype as any).toJSON = function () {
-  return Number(this);
-};
+// Serialize BigInt as Number for JSON responses (cents values).
+// Safe here: cent amounts are far below Number.MAX_SAFE_INTEGER in practice.
+Object.defineProperty(BigInt.prototype, 'toJSON', {
+  value: function (this: bigint) {
+    return Number(this);
+  },
+});
 
 function validateEnv() {
   const required = ['JWT_SECRET', 'DATABASE_URL', 'REDIS_URL'];

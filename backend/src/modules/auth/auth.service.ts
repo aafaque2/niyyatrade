@@ -9,6 +9,10 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import {
+  DEFAULT_CURRENCY,
+  getStartingBalance,
+} from '../../shared/constants/currency';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +43,7 @@ export class AuthService {
         passwordHash,
         portfolio: {
           create: {
-            availableCashCents: 10000000,
+            availableCashCents: getStartingBalance(DEFAULT_CURRENCY),
           },
         },
       },
