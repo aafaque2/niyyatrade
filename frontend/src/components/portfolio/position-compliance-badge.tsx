@@ -1,8 +1,12 @@
 "use client";
 
+import { useQueries } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useComplianceReport } from "@/lib/hooks/use-compliance-report";
+import { evaluateCompliance } from "@/lib/services/compliance";
+import { complianceKeys } from "@/lib/query-keys";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 function SingleFrameworkBadge({ ticker, frameworkSlug }: { ticker: string; frameworkSlug: string }) {
   const { data, isLoading } = useComplianceReport(ticker, frameworkSlug);
@@ -50,7 +54,17 @@ export function PositionComplianceBadge({
 }
 
 export function usePositionVerdict(ticker: string, frameworkSlugs: string[]) {
-  const reports = frameworkSlugs.map((slug) => useComplianceReport(ticker, slug));
+  const user = useAuthStore((s) => s.user);
+
+  const reports = useQueries({
+    queries: frameworkSlugs.map((slug) => ({
+      queryKey: complianceKeys.evaluate(ticker, slug, user?.id),
+      queryFn: () => evaluateCompliance(ticker, slug),
+      enabled: ticker.length > 0,
+      staleTime: 60_000,
+      retry: 1,
+    })),
+  });
 
   const isLoading = reports.some((r) => r.isLoading);
   const verdicts = reports.map((r) => r.data?.verdict).filter(Boolean);

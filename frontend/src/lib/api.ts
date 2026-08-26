@@ -25,6 +25,21 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== "undefined") {
       useAuthStore.getState().logout();
     }
+
+    const data = error.response?.data;
+    const serverMessage =
+      typeof data?.message === "string"
+        ? data.message
+        : Array.isArray(data?.message) && data.message.length > 0
+          ? data.message[0]
+          : undefined;
+
+    if (serverMessage) {
+      error.message = serverMessage;
+    } else if (!error.response) {
+      error.message = "Cannot reach the server. Check your connection and try again.";
+    }
+
     return Promise.reject(error);
   }
 );
