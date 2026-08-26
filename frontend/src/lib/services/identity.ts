@@ -63,8 +63,12 @@ export async function updateProfile(name: string, currency?: string): Promise<{ 
 export async function changePassword(
   currentPassword: string,
   newPassword: string,
-): Promise<void> {
-  await api.put("/users/me/password", { currentPassword, newPassword });
+): Promise<{ message: string; token: string }> {
+  const { data } = await api.put<{ message: string; token: string }>(
+    "/users/me/password",
+    { currentPassword, newPassword },
+  );
+  return data;
 }
 
 export async function resetPortfolio(): Promise<void> {
