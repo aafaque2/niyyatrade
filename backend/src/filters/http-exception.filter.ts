@@ -68,7 +68,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (status >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} ${status} ${code}: ${exception instanceof Error ? exception.message : 'unknown'}`,
+        `${request.method} ${request.url} ${status} ${code}: ${describeException(exception)}`,
         exception instanceof Error ? exception.stack : undefined,
       );
     } else if (status >= 400) {
@@ -89,7 +89,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       },
     };
 
-    response.status(status).json(errorResponse);
+    // The client may have disconnected (navigation, crawl, timeout) — writing
+    // to a dead socket throws, which would bounce us into Nest's fallback
+    // ExceptionHandler and produce useless "msg": {} logs.
+    try {
+      if (!response.headersSent) {
+        response.status(status).json(errorResponse);
+      }
+    } catch {
+      this.logger.warn(
+        `Could not deliver error response for ${request.method} ${request.url} — client likely disconnected`,
+      );
+    }
   }
 
   private getCodeFromStatus(statusCode: number): string {
@@ -98,8 +109,38 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       401: 'UNAUTHORIZED',
       403: 'FORBIDDEN',
       404: 'NOT_FOUND',
+      409: 'CONFLICT',
       429: 'RATE_LIMIT_EXCEEDED',
     };
     return statusMap[statusCode] ?? 'INTERNAL_SERVER_ERROR';
+  }
+}
+
+/**
+ * Extract a useful description from any thrown value — exceptions that are
+ * not Error instances (strings, plain objects, undefined) previously logged
+ * as "unknown", hiding the actual failure.
+ */
+function describeException(exception: unknown): string {
+  if (exception instanceof Error) {
+    return exception.message || exception.name || 'Error with no message';
+  }
+  if (typeof exception === 'string') return exception;
+  if (exception && typeof exception === 'object') {
+    const maybe = exception as Record<string, unknown>;
+    if (typeof maybe['message'] === 'string') return maybe['message'];
+    try {
+      return JSON.stringify(exception);
+    } catch {
+      return Object.prototype.toString.call(exception);
+    }
+  }
+  switch (typeof exception) {
+    case 'number':
+    case 'boolean':
+    case 'bigint':
+      return exception.toString();
+    default:
+      return 'unknown';
   }
 }

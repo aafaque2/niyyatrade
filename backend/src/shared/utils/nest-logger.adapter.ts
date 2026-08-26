@@ -19,35 +19,85 @@ export class PinoLoggerAdapter implements LoggerService {
     });
   }
 
-  log(message: string, ...optionalParams: unknown[]) {
-    const context = optionalParams.pop();
-    const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
-    this.logger.info({ ...meta, context }, message);
+  /**
+   * Nest's internal ExceptionHandler passes raw exception objects (not
+   * strings) to logger.error — e.g. when an exception filter itself throws.
+   * Coerce anything we receive into a useful string instead of letting pino
+   * serialize an Error as "msg": {}.
+   */
+  private static toMessage(message: unknown): string {
+    if (typeof message === 'string') return message;
+    if (message instanceof Error) {
+      return message.message || message.name || 'Unknown error';
+    }
+    if (message && typeof message === 'object') {
+      const maybe = message as Record<string, unknown>;
+      if (typeof maybe['message'] === 'string') return maybe['message'];
+      try {
+        return JSON.stringify(message);
+      } catch {
+        return Object.prototype.toString.call(message);
+      }
+    }
+    switch (typeof message) {
+      case 'number':
+      case 'boolean':
+      case 'bigint':
+        return message.toString();
+      default:
+        return 'unknown';
+    }
   }
 
-  error(message: string, ...optionalParams: unknown[]) {
+  log(message: unknown, ...optionalParams: unknown[]) {
     const context = optionalParams.pop();
-    const trace = optionalParams.pop();
     const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
-    this.logger.error({ ...meta, context, trace }, message);
+    this.logger.info(
+      { ...meta, context },
+      PinoLoggerAdapter.toMessage(message),
+    );
   }
 
-  warn(message: string, ...optionalParams: unknown[]) {
+  error(message: unknown, ...optionalParams: unknown[]) {
     const context = optionalParams.pop();
+    let trace = optionalParams.pop();
+    // Nest sometimes passes (exception-object, stack) — pull the stack out of
+    // the object itself if no explicit trace was given.
+    if (!trace && message instanceof Error) {
+      trace = message.stack;
+    }
     const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
-    this.logger.warn({ ...meta, context }, message);
+    this.logger.error(
+      { ...meta, context, trace },
+      PinoLoggerAdapter.toMessage(message),
+    );
   }
 
-  debug(message: string, ...optionalParams: unknown[]) {
+  warn(message: unknown, ...optionalParams: unknown[]) {
     const context = optionalParams.pop();
     const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
-    this.logger.debug({ ...meta, context }, message);
+    this.logger.warn(
+      { ...meta, context },
+      PinoLoggerAdapter.toMessage(message),
+    );
   }
 
-  verbose(message: string, ...optionalParams: unknown[]) {
+  debug(message: unknown, ...optionalParams: unknown[]) {
     const context = optionalParams.pop();
     const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
-    this.logger.trace({ ...meta, context }, message);
+    this.logger.debug(
+      { ...meta, context },
+      PinoLoggerAdapter.toMessage(message),
+    );
+  }
+
+  verbose(message: unknown, ...optionalParams: unknown[]) {
+    const context = optionalParams.pop();
+    const meta = optionalParams.length > 0 ? { data: optionalParams } : {};
+    this.logger.trace(
+      { ...meta, context },
+      PinoLoggerAdapter.toMessage(message),
+    );
   }
 
   getPinoLogger(): pino.Logger {
