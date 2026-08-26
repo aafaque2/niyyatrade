@@ -18,6 +18,7 @@ import { ComplianceService } from '../compliance/compliance.service';
 import { UpdateFrameworkPrefsDto } from './dto/update-framework-prefs.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ActivateFrameworkDto } from './dto/activate-framework.dto';
 import {
   getStartingBalance,
   VALID_CURRENCY_CODES,
@@ -155,10 +156,21 @@ export class IdentityController {
   @Put('me/frameworks/active')
   async activateFramework(
     @Request() req: { user: { sub: string } },
-    @Body() body: Record<string, string | null>,
+    @Body() dto: ActivateFrameworkDto,
   ) {
     const userId = req.user.sub;
-    const frameworkId = body.frameworkId ?? null;
+    const frameworkId = dto.frameworkId ?? null;
+
+    if (frameworkId) {
+      const framework = await this.prisma.framework.findUnique({
+        where: { id: frameworkId },
+        select: { id: true },
+      });
+      if (!framework) {
+        throw new NotFoundException('Framework not found');
+      }
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { activeFrameworkId: frameworkId },

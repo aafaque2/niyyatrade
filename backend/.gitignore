@@ -8,3 +8,7 @@ coverage
 
 /generated
 /src/generated
+
+scripts/*.js
+scripts/*.js.map
+scripts/*.d.ts
