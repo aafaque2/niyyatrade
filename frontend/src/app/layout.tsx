@@ -4,10 +4,40 @@ import { QueryProvider } from "@/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://niyyatrade.com";
+
 export const metadata: Metadata = {
-  title: "NiyyaTrade — Framework-driven investing",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "NiyyaTrade — Framework-driven investing",
+    template: "%s | NiyyaTrade",
+  },
   description:
     "A framework-driven paper trading platform. Evaluate investments through ESG, Shariah, and custom compliance frameworks with transparent, explainable verdicts.",
+  openGraph: {
+    type: "website",
+    siteName: "NiyyaTrade",
+    url: SITE_URL,
+    title: "NiyyaTrade — Framework-driven investing",
+    description:
+      "Practice investing with ESG, Shariah (AAOIFI), and BDS screening. $100,000 in virtual capital, real market data, zero risk.",
+    locale: "en_US",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1024,
+        height: 1024,
+        alt: "NiyyaTrade",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "NiyyaTrade — Framework-driven investing",
+    description:
+      "Practice investing with ESG, Shariah (AAOIFI), and BDS screening. $100,000 virtual capital, real market data, zero risk.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

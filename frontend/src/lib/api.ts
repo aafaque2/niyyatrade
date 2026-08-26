@@ -2,8 +2,19 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL && process.env.NODE_ENV === "production") {
+  // A prod bundle without this env var would silently hit the developer's
+  // own machine — fail loudly so it gets caught immediately.
+  console.error(
+    "NEXT_PUBLIC_API_URL is not set. The app cannot reach the backend — " +
+      "set it at build time (e.g. https://niyyatrade-backend.onrender.com/api/v1).",
+  );
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1",
+  baseURL: API_URL || "http://localhost:4000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
