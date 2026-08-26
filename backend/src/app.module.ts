@@ -24,7 +24,8 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([
       {
-        ttl: 60,
+        // ttl is in milliseconds (throttler v5+)
+        ttl: 60_000,
         limit: 100,
       },
     ]),

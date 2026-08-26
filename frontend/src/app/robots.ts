@@ -5,7 +5,15 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/"],
+      disallow: [
+        "/api/",
+        "/portfolio",
+        "/watchlist",
+        "/history",
+        "/settings",
+        "/frameworks",
+        "/assets/",
+      ],
     },
     sitemap: `${process.env.NEXT_PUBLIC_SITE_URL || "https://niyyatrade.com"}/sitemap.xml`,
   };
