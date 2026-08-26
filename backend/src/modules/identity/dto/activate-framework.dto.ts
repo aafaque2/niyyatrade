@@ -1,7 +1,7 @@
-import { IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsUUID } from 'class-validator';
 
 export class ActivateFrameworkDto {
-  @IsString()
-  @IsUUID()
-  frameworkId: string;
+  @IsOptional()
+  @IsUUID(undefined, { message: 'frameworkId must be a valid UUID' })
+  frameworkId?: string | null;
 }

@@ -36,6 +36,7 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
+  activeFramework    Framework?          @relation(fields: [activeFrameworkId], references: [id])
   portfolio           Portfolio?
   frameworkOverrides  FrameworkOverride[]
   watchlists          Watchlist[]
@@ -140,6 +141,7 @@ model Framework {
 
   overrides          FrameworkOverride[]
   complianceAudits   ComplianceAudit[]
+  activeUsers        User[]
 }
 
 model FrameworkOverride {
