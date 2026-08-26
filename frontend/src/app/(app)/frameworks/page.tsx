@@ -112,6 +112,8 @@ export default function FrameworksPage() {
     if (initializedRef.current || sortedFrameworks.length === 0) return;
     const firstEnabled = sortedFrameworks.find((f) => selectedFrameworks.includes(f.slug));
     if (firstEnabled) {
+      // One-shot default-selection sync from async data — runs exactly once.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewingSlug(firstEnabled.slug);
     }
     initializedRef.current = true;

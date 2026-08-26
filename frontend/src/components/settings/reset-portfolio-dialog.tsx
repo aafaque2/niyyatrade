@@ -26,6 +26,8 @@ export function ResetPortfolioDialog() {
     onSuccess: () => {
       toast.success(`Portfolio reset to ${balance}`);
       queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
       setConfirming(false);
     },
     onError: (err: Error) => {

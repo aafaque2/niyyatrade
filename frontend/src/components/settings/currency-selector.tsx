@@ -29,7 +29,7 @@ export function CurrencySelector() {
           currency: updatedUser.currency,
         });
       }
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.clear();
       toast.success(`Currency changed to ${selected}. Portfolio has been reset.`);
       setConfirming(false);
     },

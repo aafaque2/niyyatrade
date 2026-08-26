@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 export const api = axios.create({
@@ -22,8 +23,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      localStorage.getItem("auth_token")
+    ) {
+      // Only fires for expired/invalidated sessions — a failed login attempt
+      // has no token and is surfaced inline by the auth forms instead.
       useAuthStore.getState().logout();
+      toast.error("Your session has expired. Please sign in again.");
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.assign(`/login?next=${next}`);
+      }
     }
 
     const data = error.response?.data;

@@ -170,10 +170,10 @@ export function FrameworkDetail({
   const [initialExcludedTickers, setInitialExcludedTickers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Reset local form state when the framework's server-side defaults change.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setEnabledRules(new Set(defaultEnabledRules));
-  }, [defaultEnabledRules]);
 
-  useEffect(() => {
     if (activePref?.customThresholds) {
       const th = { ...activePref.customThresholds };
       const excluded = (th as Record<string, unknown>)["__excludedTickers"];
@@ -192,7 +192,8 @@ export function FrameworkDetail({
       setExcludedTickers(new Set());
       setInitialExcludedTickers(new Set());
     }
-  }, [activePref?.customThresholds]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [activePref?.customThresholds, defaultEnabledRules]);
 
   const currentValues = useMemo(() => {
     const vals = { ...defaultValues };

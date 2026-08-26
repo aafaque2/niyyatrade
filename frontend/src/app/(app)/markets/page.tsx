@@ -4,15 +4,31 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { searchAssets, type SearchResult } from "@/lib/services/market-data";
-import { getQuote } from "@/lib/services/market-data";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { cn, formatCents, formatPercent, formatCompactNumber } from "@/lib/utils";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, WifiOff } from "lucide-react";
 
-type SortField = "ticker" | "name" | "marketCap" | "sector";
+type SortField = "ticker" | "name" | "sector";
 type SortDir = "asc" | "desc";
+
+function SortIcon({
+  field,
+  sortField,
+  sortDir,
+}: {
+  field: SortField;
+  sortField: SortField;
+  sortDir: SortDir;
+}) {
+  if (sortField !== field)
+    return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+  return sortDir === "asc" ? (
+    <ArrowUp className="h-3 w-3 text-primary" />
+  ) : (
+    <ArrowDown className="h-3 w-3 text-primary" />
+  );
+}
 
 const SECTORS = [
   "All Sectors",
@@ -36,10 +52,11 @@ export default function MarketsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const debouncedQuery = useDebounce(searchQuery, 500);
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isError } = useQuery({
     queryKey: ["market-search", debouncedQuery || "all"],
     queryFn: () => searchAssets(debouncedQuery || "a"),
     staleTime: 30_000,
+    retry: 1,
   });
 
   const filteredResults = useMemo(() => {
@@ -70,16 +87,6 @@ export default function MarketsPage() {
       setSortField(field);
       setSortDir("asc");
     }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field)
-      return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
-    return sortDir === "asc" ? (
-      <ArrowUp className="h-3 w-3 text-primary" />
-    ) : (
-      <ArrowDown className="h-3 w-3 text-primary" />
-    );
   };
 
   return (
@@ -134,7 +141,7 @@ export default function MarketsPage() {
                       onClick={() => handleSort("ticker")}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
                     >
-                      Ticker <SortIcon field="ticker" />
+                      Ticker <SortIcon field="ticker" sortField={sortField} sortDir={sortDir} />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-left hidden sm:table-cell">
@@ -143,7 +150,7 @@ export default function MarketsPage() {
                       onClick={() => handleSort("name")}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
                     >
-                      Company <SortIcon field="name" />
+                      Company <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-left hidden md:table-cell">
@@ -152,7 +159,7 @@ export default function MarketsPage() {
                       onClick={() => handleSort("sector")}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
                     >
-                      Sector <SortIcon field="sector" />
+                      Sector <SortIcon field="sector" sortField={sortField} sortDir={sortDir} />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
@@ -164,7 +171,18 @@ export default function MarketsPage() {
                 {filteredResults.map((result) => (
                   <MarketRow key={result.ticker} result={result} />
                 ))}
-                {filteredResults.length === 0 && (
+                {isError && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-12 text-center text-sm text-muted-foreground"
+                    >
+                      <WifiOff className="mx-auto mb-2 h-6 w-6 opacity-50" />
+                      Couldn&apos;t load markets. Check your connection and try again.
+                    </td>
+                  </tr>
+                )}
+                {!isError && filteredResults.length === 0 && (
                   <tr>
                     <td
                       colSpan={4}
@@ -190,15 +208,6 @@ export default function MarketsPage() {
 }
 
 function MarketRow({ result }: { result: SearchResult }) {
-  const { data: quote } = useQuery({
-    queryKey: ["quote", result.ticker],
-    queryFn: () => getQuote(result.ticker),
-    staleTime: 2_500,
-    refetchInterval: 2_500,
-  });
-
-  const positive = (quote?.changePercent ?? 0) >= 0;
-
   return (
     <tr className="border-b border-border transition-colors hover:bg-surface-hover/50 last:border-b-0">
       <td className="px-4 py-2.5">

@@ -14,6 +14,7 @@ export function usePlaceOrder() {
       queryClient.invalidateQueries({
         queryKey: quoteKeys.detail(variables.assetTicker),
       });
+      queryClient.invalidateQueries({ queryKey: ["history"] });
     },
   });
 }

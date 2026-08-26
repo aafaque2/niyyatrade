@@ -21,7 +21,16 @@ export default function LoginPage() {
     mutationFn: loginUser,
     onSuccess: (data) => {
       setAuth(data.user, data.token);
-      router.push("/portfolio");
+      // Return the user to where they were heading if redirected by an
+      // expired session (guard against open redirects).
+      const requested = new URLSearchParams(window.location.search).get(
+        "next",
+      );
+      const target =
+        requested && requested.startsWith("/") && !requested.startsWith("//")
+          ? requested
+          : "/portfolio";
+      router.push(target);
     },
     onError: (err: Error) => {
       setError(err.message || "Login failed");

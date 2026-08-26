@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -16,8 +16,9 @@ function PaperTradingBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem(PAPER_BANNER_KEY);
-    if (!dismissed) setVisible(true);
+    // sessionStorage is only available after hydration on the client.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisible(sessionStorage.getItem(PAPER_BANNER_KEY) !== "1");
   }, []);
 
   const dismiss = useCallback(() => {
@@ -63,6 +64,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     },
   });
 
+  // useMutation returns a new object each render; keeping it in a ref lets the
+  // effect below depend only on real state changes (otherwise it re-runs on
+  // every render and can fire duplicate /auth/me requests).
+  const meMutationRef = useRef(meMutation);
+  useEffect(() => {
+    meMutationRef.current = meMutation;
+  });
+
   useEffect(() => {
     useAuthStore.getState().hydrate();
   }, []);
@@ -75,10 +84,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!user) {
-      meMutation.mutate();
+    if (!user && !meMutationRef.current.isPending) {
+      meMutationRef.current.mutate();
     }
-  }, [hydrated, token, user, meMutation, router, logout]);
+  }, [hydrated, token, user, router]);
 
   if (!hydrated || !token) {
     return (
