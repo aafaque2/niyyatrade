@@ -13,7 +13,9 @@ import { useFrameworks } from "@/lib/hooks/use-frameworks";
 import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
 import { useOrderHistory } from "@/lib/hooks/use-history";
 import { formatCents, getCurrencySymbol } from "@/lib/utils";
+import { convertCents } from "@/lib/config/currencies";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { toast } from "sonner";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 import {
   ArrowUpRight,
@@ -53,6 +55,17 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const position = portfolio?.positions?.find((p) => p.ticker === ticker);
   const heldQty = position?.quantity ?? 0;
   const halalBlocksShort = portfolio?.activeFrameworkSlug === HALAL_SLUG;
+  const userCurrencyFromStore = useAuthStore((s) => s.user?.currency);
+  const userCurrency = userCurrencyFromStore ?? "USD";
+  const buyingPowerCents = portfolio?.buyingPowerCents ?? 0;
+  const priceForMaxBaseCents =
+    effectivePriceCents > 0
+      ? currency === userCurrency
+        ? effectivePriceCents
+        : convertCents(effectivePriceCents, currency, userCurrency)
+      : 0;
+  const maxBuyQty = priceForMaxBaseCents > 0 ? Math.floor(Number(buyingPowerCents) / priceForMaxBaseCents) : 0;
+  const maxSellQty = Math.floor(heldQty);
 
   // Compliance evaluation for active framework (warn on BUY if non-compliant)
   const activeFrameworkSlug = portfolio?.activeFrameworkSlug ?? undefined;
@@ -87,7 +100,23 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   };
 
   const handleSubmit = (side: "BUY" | "SELL") => {
-    if (qty <= 0) return;
+    if (qty <= 0) {
+      toast.error("Invalid quantity", { description: "Quantity must be greater than 0" });
+      return;
+    }
+    if (orderType === "LIMIT" && effectivePriceCents <= 0) {
+      toast.error("Invalid limit price", { description: "Limit price must be greater than 0" });
+      return;
+    }
+    if (side === "BUY" && priceForMaxBaseCents > 0) {
+      const estimatedCostBase = Math.round(qty * priceForMaxBaseCents);
+      if (estimatedCostBase > Number(buyingPowerCents)) {
+        toast.error("Insufficient buying power", {
+          description: `Need ${formatCents(estimatedCostBase, userCurrency)} but you have ${formatCents(Number(buyingPowerCents), userCurrency)}`,
+        });
+        return;
+      }
+    }
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
@@ -298,13 +327,20 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             ))}
             <button
               type="button"
-              onClick={() => setQuantity(String(Math.max(1, Math.floor(heldQty))))}
-              className="ml-auto rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              title="Max held"
+              onClick={() => setQuantity(String(maxBuyQty > 0 ? maxBuyQty : maxSellQty > 0 ? maxSellQty : 1))}
+              disabled={effectivePriceCents <= 0}
+              className="ml-auto rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground disabled:opacity-50"
+              title={maxBuyQty > 0 ? `Max buyable with ${formatCents(Number(buyingPowerCents), userCurrency)}` : `Max held: ${maxSellQty}`}
             >
-              Max
+              Max {maxBuyQty > 0 ? `(${maxBuyQty})` : maxSellQty > 0 ? `(${maxSellQty})` : ""}
             </button>
           </div>
+          {buyingPowerCents > 0 && effectivePriceCents > 0 && (
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Buying power: {formatCents(Number(buyingPowerCents), userCurrency)} • Max buy: {maxBuyQty} shares
+              {maxSellQty > 0 && ` • Held: ${maxSellQty}`}
+            </p>
+          )}
         </div>
 
         {qty > 0 && effectivePriceCents > 0 && (
@@ -382,11 +418,11 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           </div>
         )}
 
-        {error && (
+        {error ? (
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive animate-in fade-in">
-            {(error as Error).message ?? "Order failed"}
+            {error instanceof Error ? error.message : typeof error === "string" ? error : "Order failed"}
           </p>
-        )}
+        ) : null}
 
         {isSuccess &&
           (orderType === "LIMIT" ? (

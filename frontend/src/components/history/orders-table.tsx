@@ -4,8 +4,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
+import { convertCents } from "@/lib/config/currencies";
 import type { OrderHistoryItem } from "@/lib/services/history";
 import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { X, Loader2 } from "lucide-react";
 
 interface OrdersTableProps {
@@ -21,6 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function OrdersTable({ items }: OrdersTableProps) {
   const { mutate: cancel, isPending: cancelPending } = useCancelOrder();
+  const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
   if (items.length === 0) return null;
 
   return (
@@ -64,6 +67,14 @@ export function OrdersTable({ items }: OrdersTableProps) {
                 hour: "2-digit",
                 minute: "2-digit",
               });
+              const assetCurrency = deriveCurrencyFromTicker(order.ticker);
+              // All stored prices are in base currency (user's INR/USD). Convert to asset currency for display.
+              // Pending orders stored before fix were in asset currency, but they will be executed soon; converting them would be off by 100x,
+              // but they are transient. New orders are correctly base.
+              const displayPriceCents =
+                order.priceCents != null ? convertCents(order.priceCents, userCurrency, assetCurrency) : null;
+              const displayTotalCents =
+                displayPriceCents != null ? Math.round(displayPriceCents * order.quantity) : null;
 
               return (
                 <tr
@@ -93,14 +104,10 @@ export function OrdersTable({ items }: OrdersTableProps) {
                     {formatQuantity(order.quantity)}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs hidden md:table-cell">
-                    {order.priceCents != null
-                      ? formatCents(order.priceCents, deriveCurrencyFromTicker(order.ticker))
-                      : "--"}
+                    {displayPriceCents != null ? formatCents(displayPriceCents, assetCurrency) : "--"}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-xs hidden md:table-cell">
-                    {order.priceCents != null
-                      ? formatCents(order.priceCents * order.quantity, deriveCurrencyFromTicker(order.ticker))
-                      : "--"}
+                    {displayTotalCents != null ? formatCents(displayTotalCents, assetCurrency) : "--"}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <span

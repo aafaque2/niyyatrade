@@ -24,3 +24,29 @@ export function getCurrencyConfig(code: string): CurrencyConfig | undefined {
 export function getStartingBalance(code: string): number {
   return getCurrencyConfig(code)?.startingBalanceCents ?? 10_000_000;
 }
+
+// Daily snapshot fallback — must match backend/src/modules/fx/fx.service.ts
+export const FIXED_FX_USD_BASE: Record<string, number> = {
+  USD: 1,
+  INR: 100,
+  GBP: 0.8,
+  EUR: 0.92,
+  AED: 3.67,
+  SAR: 3.75,
+};
+
+export function getFixedRate(from: string, to: string): number {
+  const f = from.toUpperCase();
+  const t = to.toUpperCase();
+  if (f === t) return 1;
+  const fromRate = FIXED_FX_USD_BASE[f];
+  const toRate = FIXED_FX_USD_BASE[t];
+  if (typeof fromRate === 'number' && typeof toRate === 'number' && fromRate > 0) {
+    return toRate / fromRate;
+  }
+  return 1;
+}
+
+export function convertCents(cents: number, from: string, to: string): number {
+  return Math.round(cents * getFixedRate(from, to));
+}
