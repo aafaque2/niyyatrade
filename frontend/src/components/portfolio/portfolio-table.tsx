@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatQuantity, formatPercent } from "@/lib/utils";
-import { convertCents } from "@/lib/config/currencies";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useFxRates, convertCentsWithSnapshot } from "@/lib/hooks/use-fx";
 import type { Position } from "@/lib/services/portfolio";
 import { PositionComplianceBadge } from "./position-compliance-badge";
 
@@ -33,6 +33,7 @@ export function PortfolioTable({
   isLoading,
 }: PortfolioTableProps) {
   const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
+  const { data: fxSnapshot } = useFxRates();
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border bg-surface/50 p-4">
@@ -100,7 +101,7 @@ export function PortfolioTable({
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <ReturnDisplay
-                    cents={convertCents(pos.returnCents, userCurrency, pos.currency ?? "USD")}
+                    cents={convertCentsWithSnapshot(pos.returnCents, userCurrency, pos.currency ?? "USD", fxSnapshot)}
                     percent={pos.returnPercent}
                     currency={pos.currency}
                   />
