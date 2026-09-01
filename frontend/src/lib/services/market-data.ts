@@ -38,6 +38,14 @@ export async function getQuote(ticker: string): Promise<MarketQuote> {
   return data.data;
 }
 
+export async function getQuotes(tickers: string[]): Promise<MarketQuote[]> {
+  if (tickers.length === 0) return [];
+  const results = await Promise.all(
+    tickers.map((t) => api.get<{ data: MarketQuote }>(`/market-data/${t}/quote`))
+  );
+  return results.map((r) => r.data.data);
+}
+
 export async function getFxRate(from: string, to: string): Promise<FxRate> {
   const { data } = await api.get<{ data: FxRate }>("/market-data/fx", {
     params: { from, to },
