@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
+import { convertCents } from "@/lib/config/currencies";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import type { RecentOrder } from "@/lib/services/portfolio";
 
 interface ActivityFeedProps {
@@ -25,6 +27,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
+  const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border bg-surface/50 p-4">
@@ -81,7 +84,12 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-mono text-muted-foreground">
-                {formatCents(order.priceCents * order.quantity, deriveCurrencyFromTicker(order.ticker))}
+                {(() => {
+                  const assetCurrency = deriveCurrencyFromTicker(order.ticker);
+                  const totalBase = order.priceCents * order.quantity;
+                  const totalAsset = convertCents(totalBase, userCurrency, assetCurrency);
+                  return formatCents(totalAsset, assetCurrency);
+                })()}
               </span>
               <span className="text-[10px] text-muted-foreground w-12 text-right">
                 {timeAgo(order.createdAt)}
