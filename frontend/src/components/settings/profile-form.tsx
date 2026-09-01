@@ -13,11 +13,18 @@ export function ProfileForm() {
   const setUser = useAuthStore((s) => s.setUser);
   const [name, setName] = useState(user?.name ?? "");
 
+  const trimmedName = name.trim();
+
   const mutation = useMutation({
-    mutationFn: () => updateProfile(name),
+    mutationFn: () => {
+      if (trimmedName.length === 0) {
+        return Promise.reject(new Error("Name cannot be empty"));
+      }
+      return updateProfile(trimmedName);
+    },
     onSuccess: () => {
       if (user) {
-        setUser({ ...user, name });
+        setUser({ ...user, name: trimmedName });
       }
       toast.success("Profile updated");
     },
@@ -26,7 +33,7 @@ export function ProfileForm() {
     },
   });
 
-  const isDirty = name !== (user?.name ?? "");
+  const isDirty = trimmedName !== (user?.name ?? "").trim();
 
   return (
     <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
@@ -63,7 +70,7 @@ export function ProfileForm() {
 
       <Button
         onClick={() => mutation.mutate()}
-        disabled={mutation.isPending || !isDirty}
+        disabled={mutation.isPending || !isDirty || trimmedName.length === 0}
         size="sm"
         className="bg-primary hover:bg-emerald-muted"
       >
