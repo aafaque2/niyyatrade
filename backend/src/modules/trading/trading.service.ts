@@ -256,8 +256,48 @@ export class TradingService {
       throw new NotFoundException('Portfolio not found');
     }
 
+    // Convert limit price from asset currency to base currency for consistent ledger
+    let targetPriceBaseCents = limitPriceCents;
+    let assetCurrency: string | undefined;
+    try {
+      const quote = await this.marketData.getQuote(dto.assetTicker);
+      assetCurrency = quote.currency;
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { currency: true },
+      });
+      const baseCurrency = user?.currency ?? 'USD';
+      if (
+        assetCurrency &&
+        assetCurrency.toUpperCase() !== baseCurrency.toUpperCase()
+      ) {
+        targetPriceBaseCents = await this.fxService.convertCents(
+          limitPriceCents,
+          assetCurrency,
+          baseCurrency,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(
+        `FX convert for limit price failed, using raw: ${(err as Error).message}`,
+      );
+    }
+
+    // For BUY, ensure enough buying power at limit price (fail fast)
+    if (dto.side === OrderSide.BUY) {
+      const totalAtLimit = quantity
+        .mul(targetPriceBaseCents)
+        .toDecimalPlaces(0);
+      const cash = new Decimal(portfolio.availableCashCents.toString());
+      if (cash.lt(totalAtLimit)) {
+        throw new BadRequestException(
+          'Insufficient buying power for limit order',
+        );
+      }
+    }
+
     this.logger.log(
-      `Placing ${dto.side} LIMIT order for user=${userId} ticker=${dto.assetTicker} qty=${dto.quantity} limit=${limitPriceCents}`,
+      `Placing ${dto.side} LIMIT order for user=${userId} ticker=${dto.assetTicker} qty=${dto.quantity} limit=${limitPriceCents} (base ${targetPriceBaseCents} ${assetCurrency ?? 'USD'})`,
     );
 
     const order = await this.prisma.order.create({
@@ -267,14 +307,14 @@ export class TradingService {
         side: dto.side,
         quantity: quantity.toNumber(),
         status: 'PENDING',
-        targetPriceCents: limitPriceCents,
+        targetPriceCents: targetPriceBaseCents,
       },
     });
 
     return {
       orderId: order.id,
       status: order.status,
-      targetPriceCents: limitPriceCents,
+      targetPriceCents: targetPriceBaseCents,
     };
   }
 
