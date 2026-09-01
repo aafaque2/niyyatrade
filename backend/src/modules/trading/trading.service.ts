@@ -10,6 +10,7 @@ import Decimal from 'decimal.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ComplianceService } from '../compliance/compliance.service';
+import { FxService } from '../fx/fx.service';
 import { OrderSide, type CreateOrderDto } from './dto/create-order.dto';
 import { getStartingBalance } from '../../shared/constants/currency';
 
@@ -21,6 +22,7 @@ export class TradingService {
     private readonly prisma: PrismaService,
     private readonly marketData: MarketDataService,
     private readonly compliance: ComplianceService,
+    private readonly fxService: FxService,
   ) {}
 
   async getPortfolio(userId: string, includeCompliance?: boolean) {
@@ -70,13 +72,8 @@ export class TradingService {
         let marketValueBase = marketValueAsset;
         if (currency.toUpperCase() !== baseCurrency) {
           try {
-            const fxRate = await this.marketData.getFxRate(
-              currency,
-              baseCurrency,
-            );
-            marketValueBase = marketValueAsset
-              .mul(fxRate.rate)
-              .toDecimalPlaces(0);
+            const rate = await this.fxService.getRate(currency, baseCurrency);
+            marketValueBase = marketValueAsset.mul(rate).toDecimalPlaces(0);
           } catch {
             this.logger.warn(
               `FX conversion failed for ${currency}/${baseCurrency}, using raw value`,
@@ -93,6 +90,17 @@ export class TradingService {
         const returnPercent = costBasisAbs.gt(0)
           ? returnCents.div(costBasisAbs).mul(100).toDecimalPlaces(2).toNumber()
           : 0;
+
+        // avgPrice stored in base currency — convert to asset currency for display
+        let avgPriceDisplayCents = Number(pos.averagePriceCents);
+        if (baseCurrency !== currency) {
+          try {
+            const rate = await this.fxService.getRate(baseCurrency, currency);
+            avgPriceDisplayCents = Math.round(avgPriceDisplayCents * rate);
+          } catch {
+            // fallback to raw base value
+          }
+        }
 
         let complianceVerdict: string | undefined;
         if (includeCompliance) {
@@ -113,7 +121,7 @@ export class TradingService {
         return {
           ticker: pos.assetTicker,
           quantity: qty.toNumber(),
-          avgPriceCents: Number(pos.averagePriceCents),
+          avgPriceCents: avgPriceDisplayCents,
           currentPriceCents,
           returnCents: returnCents.toNumber(),
           returnPercent,
@@ -142,11 +150,11 @@ export class TradingService {
           .div(100);
         if ((p.currency ?? 'USD').toUpperCase() !== baseCurrency) {
           try {
-            const fxRate = await this.marketData.getFxRate(
+            const rate = await this.fxService.getRate(
               p.currency ?? 'USD',
               baseCurrency,
             );
-            total = total.add(raw.mul(fxRate.rate).toDecimalPlaces(0));
+            total = total.add(raw.mul(rate).toDecimalPlaces(0));
           } catch {
             total = total.add(raw.toDecimalPlaces(0));
           }
@@ -413,8 +421,8 @@ export class TradingService {
     }
 
     try {
-      const fxRate = await this.marketData.getFxRate(quoteCcy, baseCurrency);
-      return Math.round(priceCents * fxRate.rate);
+      const rate = await this.fxService.getRate(quoteCcy, baseCurrency);
+      return Math.round(priceCents * rate);
     } catch {
       throw new BadRequestException(
         `Unable to convert ${quoteCcy} price to ${baseCurrency} — trade cancelled`,

@@ -14,6 +14,7 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { HistoryModule } from './modules/history/history.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { MailModule } from './modules/mail/mail.module';
+import { FxModule } from './modules/fx/fx.module';
 import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { ResponseEnvelopeInterceptor } from './interceptors/response-envelope.interceptor';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
@@ -31,6 +32,7 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
     ]),
     RedisModule,
     MailModule,
+    FxModule,
     AuthModule,
     PrismaModule,
     IdentityModule,
