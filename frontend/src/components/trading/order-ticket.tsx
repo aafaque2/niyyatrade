@@ -12,7 +12,7 @@ import { useComplianceReport } from "@/lib/hooks/use-compliance-report";
 import { useFrameworks } from "@/lib/hooks/use-frameworks";
 import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
 import { useOrderHistory } from "@/lib/hooks/use-history";
-import { formatCents } from "@/lib/utils";
+import { formatCents, getCurrencySymbol } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 import {
@@ -189,18 +189,31 @@ export function OrderTicket({ ticker }: { ticker: string }) {
         {orderType === "LIMIT" && (
           <div className="animate-in fade-in slide-in-from-top-1 duration-200">
             <label htmlFor="limit-price" className="text-xs font-medium text-muted-foreground">
-              Limit Price
+              Limit Price ({getCurrencySymbol(currency).trim()})
             </label>
             <div className="relative mt-1.5">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {getCurrencySymbol(currency)}
+              </span>
               <Input
                 id="limit-price"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // strip leading zeros: 000100 -> 100, 00.5 -> 0.5, keep "0." while typing
+                  if (v === "") {
+                    setLimitPrice("");
+                    return;
+                  }
+                  // allow digits and at most one dot
+                  if (!/^[\d.]*$/.test(v)) return;
+                  if ((v.match(/\./g) || []).length > 1) return;
+                  const sanitized = v.replace(/^0+(?=\d)/, "");
+                  setLimitPrice(sanitized);
+                }}
                 className="bg-background pl-6 font-mono transition-all focus-visible:ring-emerald/20"
                 required
               />
@@ -214,12 +227,21 @@ export function OrderTicket({ ticker }: { ticker: string }) {
           </label>
           <Input
             id="order-quantity"
-            type="number"
-            min="0"
-            step="0.0001"
+            type="text"
+            inputMode="decimal"
             placeholder="0.00"
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") {
+                setQuantity("");
+                return;
+              }
+              if (!/^[\d.]*$/.test(v)) return;
+              if ((v.match(/\./g) || []).length > 1) return;
+              const sanitized = v.replace(/^0+(?=\d)/, "");
+              setQuantity(sanitized);
+            }}
             className="mt-1.5 bg-background font-mono transition-all focus-visible:ring-emerald/20"
             required
           />
