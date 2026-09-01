@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatPercent } from "@/lib/utils";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useFxRates, convertCentsWithSnapshot } from "@/lib/hooks/use-fx";
 import type { Position } from "@/lib/services/portfolio";
 
 interface TopHoldingsProps {
@@ -11,6 +13,8 @@ interface TopHoldingsProps {
 }
 
 export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
+  const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
+  const { data: fxSnapshot } = useFxRates();
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border bg-surface/50 p-4">
@@ -29,13 +33,18 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
   if (positions.length === 0) return null;
 
   const sorted = [...positions]
-    .sort((a, b) => b.quantity * b.currentPriceCents - a.quantity * a.currentPriceCents)
+    .sort((a, b) => {
+      const aBase = convertCentsWithSnapshot(a.quantity * a.currentPriceCents, a.currency ?? "USD", userCurrency, fxSnapshot);
+      const bBase = convertCentsWithSnapshot(b.quantity * b.currentPriceCents, b.currency ?? "USD", userCurrency, fxSnapshot);
+      return bBase - aBase;
+    })
     .slice(0, 5);
 
-  const totalMarketValue = sorted.reduce(
-    (sum, p) => sum + p.quantity * p.currentPriceCents,
-    0,
-  );
+  const totalMarketValue = sorted.reduce((sum, p) => {
+    const assetValue = p.quantity * p.currentPriceCents;
+    const baseValue = convertCentsWithSnapshot(assetValue, p.currency ?? "USD", userCurrency, fxSnapshot);
+    return sum + baseValue;
+  }, 0);
 
   return (
     <div className="rounded-lg border border-border bg-surface/50 p-4">
@@ -44,8 +53,10 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
       </h2>
       <div className="space-y-1">
         {sorted.map((pos) => {
-          const value = pos.quantity * pos.currentPriceCents;
-          const weight = totalMarketValue > 0 ? (value / totalMarketValue) * 100 : 0;
+          const assetValue = pos.quantity * pos.currentPriceCents;
+          const baseValue = convertCentsWithSnapshot(assetValue, pos.currency ?? "USD", userCurrency, fxSnapshot);
+          const weight = totalMarketValue > 0 ? (baseValue / totalMarketValue) * 100 : 0;
+          const displayValue = assetValue;
           return (
             <div key={pos.ticker}>
               <Link
@@ -59,7 +70,7 @@ export function TopHoldings({ positions, isLoading }: TopHoldingsProps) {
                   </span>
                 </div>
                 <span className="text-xs font-mono text-foreground">
-                  {formatCents(value, pos.currency)}
+                  {formatCents(displayValue, pos.currency)}
                 </span>
               </Link>
             </div>

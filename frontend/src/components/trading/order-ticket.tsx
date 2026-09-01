@@ -13,7 +13,7 @@ import { useFrameworks } from "@/lib/hooks/use-frameworks";
 import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
 import { useOrderHistory } from "@/lib/hooks/use-history";
 import { formatCents, getCurrencySymbol } from "@/lib/utils";
-import { convertCents } from "@/lib/config/currencies";
+import { useFxRates, convertCentsWithSnapshot } from "@/lib/hooks/use-fx";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { toast } from "sonner";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
@@ -57,12 +57,13 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   const halalBlocksShort = portfolio?.activeFrameworkSlug === HALAL_SLUG;
   const userCurrencyFromStore = useAuthStore((s) => s.user?.currency);
   const userCurrency = userCurrencyFromStore ?? "USD";
+  const { data: fxSnapshot } = useFxRates();
   const buyingPowerCents = portfolio?.buyingPowerCents ?? 0;
   const priceForMaxBaseCents =
     effectivePriceCents > 0
       ? currency === userCurrency
         ? effectivePriceCents
-        : convertCents(effectivePriceCents, currency, userCurrency)
+        : convertCentsWithSnapshot(effectivePriceCents, currency, userCurrency, fxSnapshot)
       : 0;
   const maxBuyQty = priceForMaxBaseCents > 0 ? Math.floor(Number(buyingPowerCents) / priceForMaxBaseCents) : 0;
   const maxSellQty = Math.floor(heldQty);

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
-import { convertCents } from "@/lib/config/currencies";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useFxRates, convertCentsWithSnapshot } from "@/lib/hooks/use-fx";
 import type { RecentOrder } from "@/lib/services/portfolio";
 
 interface ActivityFeedProps {
@@ -28,6 +28,7 @@ function timeAgo(dateStr: string): string {
 
 export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
   const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
+  const { data: fxSnapshot } = useFxRates();
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border bg-surface/50 p-4">
@@ -87,7 +88,7 @@ export function ActivityFeed({ orders, isLoading }: ActivityFeedProps) {
                 {(() => {
                   const assetCurrency = deriveCurrencyFromTicker(order.ticker);
                   const totalBase = order.priceCents * order.quantity;
-                  const totalAsset = convertCents(totalBase, userCurrency, assetCurrency);
+                  const totalAsset = convertCentsWithSnapshot(totalBase, userCurrency, assetCurrency, fxSnapshot);
                   return formatCents(totalAsset, assetCurrency);
                 })()}
               </span>

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
-import { convertCents } from "@/lib/config/currencies";
 import type { OrderHistoryItem } from "@/lib/services/history";
 import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { useFxRates, convertCentsWithSnapshot } from "@/lib/hooks/use-fx";
 import { X, Loader2 } from "lucide-react";
 
 interface OrdersTableProps {
@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function OrdersTable({ items }: OrdersTableProps) {
   const { mutate: cancel, isPending: cancelPending } = useCancelOrder();
   const userCurrency = useAuthStore((s) => s.user?.currency) ?? "USD";
+  const { data: fxSnapshot } = useFxRates();
   if (items.length === 0) return null;
 
   return (
@@ -68,11 +69,10 @@ export function OrdersTable({ items }: OrdersTableProps) {
                 minute: "2-digit",
               });
               const assetCurrency = deriveCurrencyFromTicker(order.ticker);
-              // All stored prices are in base currency (user's INR/USD). Convert to asset currency for display.
-              // Pending orders stored before fix were in asset currency, but they will be executed soon; converting them would be off by 100x,
-              // but they are transient. New orders are correctly base.
               const displayPriceCents =
-                order.priceCents != null ? convertCents(order.priceCents, userCurrency, assetCurrency) : null;
+                order.priceCents != null
+                  ? convertCentsWithSnapshot(order.priceCents, userCurrency, assetCurrency, fxSnapshot)
+                  : null;
               const displayTotalCents =
                 displayPriceCents != null ? Math.round(displayPriceCents * order.quantity) : null;
 
