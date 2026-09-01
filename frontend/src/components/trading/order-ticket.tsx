@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   Clock,
   X,
-  Sparkles,
 } from "lucide-react";
 
 const HALAL_SLUG = "halal-aaoifi";
@@ -203,16 +202,36 @@ export function OrderTicket({ ticker }: { ticker: string }) {
                 value={limitPrice}
                 onChange={(e) => {
                   const v = e.target.value;
-                  // strip leading zeros: 000100 -> 100, 00.5 -> 0.5, keep "0." while typing
                   if (v === "") {
                     setLimitPrice("");
                     return;
                   }
-                  // allow digits and at most one dot
                   if (!/^[\d.]*$/.test(v)) return;
                   if ((v.match(/\./g) || []).length > 1) return;
-                  const sanitized = v.replace(/^0+(?=\d)/, "");
+                  // strip leading zeros, keep "0." while typing
+                  let sanitized = v.replace(/^0+(?=\d)/, "");
+                  // limit to 2 decimals while typing
+                  if (sanitized.includes(".")) {
+                    const [intPart, frac] = sanitized.split(".");
+                    if (frac.length > 2) sanitized = `${intPart}.${frac.slice(0, 2)}`;
+                  }
                   setLimitPrice(sanitized);
+                }}
+                onBlur={() => {
+                  if (limitPrice === "" || limitPrice === ".") {
+                    setLimitPrice("");
+                    return;
+                  }
+                  const n = parseFloat(limitPrice);
+                  if (!isNaN(n)) {
+                    // normalize trailing zeros: 10.00 -> 10, 10.50 -> 10.5
+                    let s = n.toString();
+                    // keep at most 2 decimals, strip insignificant zeros
+                    if (s.includes(".")) s = s.replace(/\.?0+$/, "");
+                    // if typing left "0." normalize to "0"
+                    if (s === "") s = "0";
+                    setLimitPrice(s);
+                  }
                 }}
                 className="bg-background pl-6 font-mono transition-all focus-visible:ring-emerald/20"
                 required
@@ -239,8 +258,27 @@ export function OrderTicket({ ticker }: { ticker: string }) {
               }
               if (!/^[\d.]*$/.test(v)) return;
               if ((v.match(/\./g) || []).length > 1) return;
-              const sanitized = v.replace(/^0+(?=\d)/, "");
+              let sanitized = v.replace(/^0+(?=\d)/, "");
+              // limit fractional to 6 decimals (schema Decimal 15,6)
+              if (sanitized.includes(".")) {
+                const [intPart, frac] = sanitized.split(".");
+                if (frac.length > 6) sanitized = `${intPart}.${frac.slice(0, 6)}`;
+              }
               setQuantity(sanitized);
+            }}
+            onBlur={() => {
+              if (quantity === "" || quantity === ".") {
+                setQuantity("");
+                return;
+              }
+              const n = parseFloat(quantity);
+              if (!isNaN(n)) {
+                let s = n.toString();
+                // strip trailing zeros after decimal: 10.000000 -> 10, 10.500000 -> 10.5
+                if (s.includes(".")) s = s.replace(/\.?0+$/, "");
+                if (s === "") s = "0";
+                setQuantity(s);
+              }
             }}
             className="mt-1.5 bg-background font-mono transition-all focus-visible:ring-emerald/20"
             required
@@ -360,7 +398,6 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-md border border-emerald/20 bg-emerald-subtle px-3 py-2 animate-in fade-in slide-in-from-top-1">
-              <Sparkles className="h-3.5 w-3.5 text-emerald" />
               <p className="text-xs font-medium text-emerald">Order executed successfully!</p>
             </div>
           ))}

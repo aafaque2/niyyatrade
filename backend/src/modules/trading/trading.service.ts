@@ -65,28 +65,30 @@ export class TradingService {
         }
 
         const qty = new Decimal(pos.quantity);
-        const marketValue = qty.mul(currentPriceCents).toDecimalPlaces(0);
+        const marketValueAsset = qty.mul(currentPriceCents).toDecimalPlaces(0);
 
-        let convertedValue = marketValue;
+        let marketValueBase = marketValueAsset;
         if (currency.toUpperCase() !== baseCurrency) {
           try {
             const fxRate = await this.marketData.getFxRate(
               currency,
               baseCurrency,
             );
-            convertedValue = marketValue.mul(fxRate.rate).toDecimalPlaces(0);
+            marketValueBase = marketValueAsset
+              .mul(fxRate.rate)
+              .toDecimalPlaces(0);
           } catch {
             this.logger.warn(
               `FX conversion failed for ${currency}/${baseCurrency}, using raw value`,
             );
           }
         }
-        totalValueCents = totalValueCents.add(convertedValue);
+        totalValueCents = totalValueCents.add(marketValueBase);
 
         const costBasis = qty
           .mul(Number(pos.averagePriceCents))
           .toDecimalPlaces(0);
-        const returnCents = marketValue.sub(costBasis);
+        const returnCents = marketValueBase.sub(costBasis);
         const costBasisAbs = costBasis.abs();
         const returnPercent = costBasisAbs.gt(0)
           ? returnCents.div(costBasisAbs).mul(100).toDecimalPlaces(2).toNumber()
@@ -130,11 +132,30 @@ export class TradingService {
         ? Math.round((compliantCount / positionDtos.length) * 100)
         : 100;
 
-    const dailyChangeCents = positionDtos.reduce(
-      (sum, p) =>
-        sum + (p.quantity * p.currentPriceCents * (p.changePercent ?? 0)) / 100,
-      0,
-    );
+    // dailyChange must be in base currency — convert per-position change if needed
+    const dailyChangeCents = await (async () => {
+      let total = new Decimal(0);
+      for (const p of positionDtos) {
+        const raw = new Decimal(p.quantity)
+          .mul(p.currentPriceCents)
+          .mul(p.changePercent ?? 0)
+          .div(100);
+        if ((p.currency ?? 'USD').toUpperCase() !== baseCurrency) {
+          try {
+            const fxRate = await this.marketData.getFxRate(
+              p.currency ?? 'USD',
+              baseCurrency,
+            );
+            total = total.add(raw.mul(fxRate.rate).toDecimalPlaces(0));
+          } catch {
+            total = total.add(raw.toDecimalPlaces(0));
+          }
+        } else {
+          total = total.add(raw.toDecimalPlaces(0));
+        }
+      }
+      return total.toNumber();
+    })();
     const prevTotalValue = totalValueCents.toNumber() - dailyChangeCents;
     const dailyChangePercent =
       prevTotalValue > 0
@@ -401,6 +422,23 @@ export class TradingService {
     }
   }
 
+  private async resolvePriceForPortfolio(
+    portfolioId: string,
+    priceCents: number,
+    quoteCurrency?: string,
+  ): Promise<number> {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { id: portfolioId },
+      select: { userId: true },
+    });
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
+    return this.resolvePriceCentsInBaseCurrency(
+      portfolio.userId,
+      priceCents,
+      quoteCurrency,
+    );
+  }
+
   async executePendingOrder(order: {
     id: string;
     portfolioId: string;
@@ -409,10 +447,27 @@ export class TradingService {
     quantity: number;
     targetPriceCents: number;
   }) {
-    const priceCents = order.targetPriceCents;
-    // Limit prices are placed in the user's base currency (the UI quotes
-    // prices converted to the user's display currency), so no FX conversion
-    // is needed here — targetPriceCents settles directly against cash.
+    // Limit orders are placed in the asset's quote currency (UI shows
+    // Last price in asset currency). Execute at the current market price
+    // (converted to base) — not at the limit price — to avoid overpaying
+    // when a BUY limit is placed above market (or SELL below). The limit
+    // is only a trigger; execution uses the market price at trigger time.
+    let executionPriceCents: number;
+    try {
+      const quote = await this.marketData.getQuote(order.assetTicker);
+      executionPriceCents = await this.resolvePriceForPortfolio(
+        order.portfolioId,
+        quote.priceCents,
+        quote.currency,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Pending order ${order.id} price resolve failed: ${(err as Error).message}`,
+      );
+      throw err;
+    }
+
+    const priceCents = executionPriceCents;
     const quantity = new Decimal(order.quantity);
     const totalCostCents = quantity.mul(priceCents).toDecimalPlaces(0);
 
