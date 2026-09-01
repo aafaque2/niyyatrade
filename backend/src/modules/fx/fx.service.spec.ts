@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { FxService } from './fx.service';
 
 describe('FxService', () => {
@@ -16,7 +17,7 @@ describe('FxService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new FxService(mockPrisma as any, mockRedis as any);
+    service = new FxService(mockPrisma, mockRedis);
     // Force memory to fixed to avoid API calls
     (service as any).memoryRates = null;
     (service as any).memoryDate = null;
@@ -40,23 +41,35 @@ describe('FxService', () => {
     (global as any).fetch = originalFetch;
   });
 
-  it('should compute cross rates via USD base', async () => {
-    const originalFetch = global.fetch;
-    (global as any).fetch = jest.fn().mockRejectedValue(new Error('network'));
+  it('should compute cross rates via USD base', () => {
     // Force fixed rates via direct memory
-    (service as any).memoryRates = { USD: 1, INR: 100, EUR: 0.92, GBP: 0.8, AED: 3.67, SAR: 3.75 };
-    (service as any).memoryDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-    // Mock prisma to not override
-    (mockPrisma.fxDailyRate.findUnique as jest.Mock).mockResolvedValue(null);
-    // Now getRate should use memory
+    (service as any).memoryRates = {
+      USD: 1,
+      INR: 100,
+      EUR: 0.92,
+      GBP: 0.8,
+      AED: 3.67,
+      SAR: 3.75,
+    };
+    (service as any).memoryDate = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Kolkata',
+    });
     expect(service.getRateSync('EUR', 'INR')).toBeCloseTo(100 / 0.92, 4);
     expect(service.getRateSync('GBP', 'AED')).toBeCloseTo(3.67 / 0.8, 4);
-    (global as any).fetch = originalFetch;
   });
 
   it('convertCents should round correctly', async () => {
-    (service as any).memoryRates = { USD: 1, INR: 100, GBP: 0.8, EUR: 0.92, AED: 3.67, SAR: 3.75 };
-    (service as any).memoryDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    (service as any).memoryRates = {
+      USD: 1,
+      INR: 100,
+      GBP: 0.8,
+      EUR: 0.92,
+      AED: 3.67,
+      SAR: 3.75,
+    };
+    (service as any).memoryDate = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Kolkata',
+    });
     expect(await service.convertCents(10000, 'USD', 'INR')).toBe(1000000); // $100 -> ₹10000
     expect(await service.convertCents(1000000, 'INR', 'USD')).toBe(10000);
   });
@@ -66,9 +79,18 @@ describe('FxService', () => {
       get: jest.fn().mockRejectedValue(new Error('redis down')),
       set: jest.fn().mockRejectedValue(new Error('redis down')),
     } as unknown as import('ioredis').default;
-    const svc = new FxService(mockPrisma as any, failingRedis as any);
-    (svc as any).memoryRates = { USD: 1, INR: 100, EUR: 0.92, GBP: 0.8, AED: 3.67, SAR: 3.75 };
-    (svc as any).memoryDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const svc = new FxService(mockPrisma, failingRedis);
+    (svc as any).memoryRates = {
+      USD: 1,
+      INR: 100,
+      EUR: 0.92,
+      GBP: 0.8,
+      AED: 3.67,
+      SAR: 3.75,
+    };
+    (svc as any).memoryDate = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Kolkata',
+    });
     expect(await svc.getRate('USD', 'INR')).toBe(100);
   });
 });
