@@ -20,7 +20,7 @@ export function CurrencySelector() {
   const isDirty = selected !== currentCurrency;
 
   const mutation = useMutation({
-    mutationFn: () => updateProfile(user?.name ?? "", selected),
+    mutationFn: () => updateProfile(user?.name ?? undefined, selected),
     onSuccess: (updatedUser) => {
       if (updatedUser) {
         setUser({

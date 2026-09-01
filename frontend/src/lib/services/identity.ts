@@ -55,8 +55,11 @@ export async function updateFrameworkPrefs(
   await api.put("/users/me/framework-prefs", { frameworkId, overrides });
 }
 
-export async function updateProfile(name: string, currency?: string): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null; currency: string }> {
-  const { data } = await api.put("/users/me/profile", { name, ...(currency !== undefined ? { currency } : {}) });
+export async function updateProfile(name?: string | null, currency?: string): Promise<{ id: string; email: string; name: string | null; activeFrameworkId: string | null; currency: string }> {
+  const payload: Record<string, string> = {};
+  if (typeof name === 'string' && name.trim().length > 0) payload.name = name.trim();
+  if (currency !== undefined) payload.currency = currency;
+  const { data } = await api.put("/users/me/profile", payload);
   return data.data;
 }
 
