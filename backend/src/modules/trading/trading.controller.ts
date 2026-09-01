@@ -2,11 +2,14 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
+  Param,
   Body,
   Query,
   UseGuards,
   Request,
   BadRequestException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -50,6 +53,15 @@ export class TradingController {
       return this.tradingService.placeLimitOrder(req.user.sub, body);
     }
     return this.tradingService.executeMarketOrder(req.user.sub, body);
+  }
+
+  @Delete('orders/:id')
+  @ApiOperation({ summary: 'Cancel a pending limit order' })
+  async cancelOrder(
+    @Request() req: { user: { sub: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tradingService.cancelOrder(req.user.sub, id);
   }
 
   @Post('reset')

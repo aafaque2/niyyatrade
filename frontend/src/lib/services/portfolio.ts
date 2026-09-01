@@ -66,3 +66,7 @@ export async function placeOrder(
   );
   return data.data;
 }
+
+export async function cancelOrder(orderId: string): Promise<void> {
+  await api.delete(`/portfolio/orders/${orderId}`);
+}
