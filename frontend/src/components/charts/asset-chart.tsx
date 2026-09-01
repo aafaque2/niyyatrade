@@ -115,6 +115,7 @@ function ChartInner({
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const allDataRef = useRef<Map<number, Candle>>(new Map());
   const loadingMoreRef = useRef(false);
+  const reachedStartRef = useRef(false);
   const scrollHandlerRef = useRef<((range: LogicalRange | null) => void) | null>(null);
   const mountedRef = useRef(true);
   const keyRef = useRef<string>("");
@@ -135,16 +136,27 @@ function ChartInner({
 
   const loadMoreHistory = useCallback(
     async (beforeTimestamp: number) => {
-      if (loadingMoreRef.current) return;
+      if (loadingMoreRef.current || reachedStartRef.current) return;
       loadingMoreRef.current = true;
       try {
         const chart = chartRef.current;
         const series = seriesRef.current;
         if (!chart || !series) return;
 
-        const visibleRange = chart.timeScale().getVisibleLogicalRange();
-        const dataCountBefore = allDataRef.current.size;
-        const wasAtRightEdge = visibleRange != null && visibleRange.to >= dataCountBefore - 3;
+        // Capture the leftmost visible time so the viewport stays anchored
+        // on the same candle after older candles are prepended. Without this,
+        // restoring the raw logical range (which had from < 5) snaps the view
+        // to the start on every fetch; trackpad momentum then cascades until
+        // the earliest bar (IPO) is loaded.
+        const prevRange = chart.timeScale().getVisibleLogicalRange();
+        const sortedBefore = Array.from(allDataRef.current.values()).sort(
+          (a, b) => a[0] - b[0],
+        );
+        const leftIdx = prevRange
+          ? Math.max(0, Math.min(sortedBefore.length - 1, Math.floor(prevRange.from)))
+          : Math.max(0, sortedBefore.length - 1);
+        const leftTime = sortedBefore[leftIdx]?.[0] as number | undefined;
+        const width = prevRange ? prevRange.to - prevRange.from : (MAX_VISIBLE_CANDLES[interval] ?? 150);
 
         const lookback = LOOKBACK_SECONDS[resolution] ?? 30 * 86400;
         const from = beforeTimestamp - lookback;
@@ -153,7 +165,12 @@ function ChartInner({
           to: beforeTimestamp - 1,
           interval,
         });
-        if (!mountedRef.current || !moreCandles.length) return;
+        if (!mountedRef.current) return;
+
+        if (moreCandles.length === 0) {
+          reachedStartRef.current = true;
+          return;
+        }
 
         let hasNew = false;
         for (const c of moreCandles) {
@@ -169,15 +186,24 @@ function ChartInner({
           );
           series.setData(sorted.map(toChartData));
 
-          const count = sorted.length;
-          if (wasAtRightEdge) {
-            chart.timeScale().setVisibleLogicalRange({
-              from: Math.max(0, count - dataCountBefore),
-              to: count,
-            });
-          } else if (visibleRange) {
-            chart.timeScale().setVisibleLogicalRange(visibleRange);
+          // Keep the same candle at the left edge after prepend — prevents
+          // the "scroll a little left → auto-scrolls to IPO" cascade.
+          if (leftTime != null) {
+            const newIdx = sorted.findIndex((c) => c[0] === leftTime);
+            if (newIdx >= 0) {
+              const targetFrom = newIdx;
+              const targetTo = newIdx + width;
+              chart.timeScale().setVisibleLogicalRange({
+                from: Math.max(0, targetFrom),
+                to: targetTo,
+              });
+            }
           }
+        } else {
+          // Backend returned only duplicates for this window — treat as
+          // having reached the start if the returned window was large enough
+          // that further fetches would just repeat.
+          reachedStartRef.current = true;
         }
       } catch {
         // silently fail — we'll retry on next scroll
@@ -258,6 +284,7 @@ function ChartInner({
     keyRef.current = newKey;
 
     if (isFirstLoad || keyChanged) {
+      reachedStartRef.current = false;
       allDataRef.current.clear();
       const sorted = [...initialCandles].sort((a, b) => a[0] - b[0]);
       for (const c of sorted) {
@@ -280,7 +307,7 @@ function ChartInner({
       });
 
       const handler = (range: LogicalRange | null) => {
-        if (!range || loadingMoreRef.current) return;
+        if (!range || loadingMoreRef.current || reachedStartRef.current) return;
         if (rangeSetupRef.current) {
           rangeSetupRef.current = false;
           return;
