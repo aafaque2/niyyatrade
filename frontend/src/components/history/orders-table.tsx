@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatCents, formatQuantity, deriveCurrencyFromTicker } from "@/lib/utils";
 import type { OrderHistoryItem } from "@/lib/services/history";
+import { useCancelOrder } from "@/lib/hooks/use-cancel-order";
+import { X, Loader2 } from "lucide-react";
 
 interface OrdersTableProps {
   items: OrderHistoryItem[];
@@ -17,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function OrdersTable({ items }: OrdersTableProps) {
+  const { mutate: cancel, isPending: cancelPending } = useCancelOrder();
   if (items.length === 0) return null;
 
   return (
@@ -45,6 +49,9 @@ export function OrdersTable({ items }: OrdersTableProps) {
               </th>
               <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">
                 Status
+              </th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                Action
               </th>
             </tr>
           </thead>
@@ -103,6 +110,22 @@ export function OrdersTable({ items }: OrdersTableProps) {
                     >
                       {order.status.charAt(0) + order.status.slice(1).toLowerCase()}
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {order.status === "PENDING" ? (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="h-6 px-2 text-[11px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        disabled={cancelPending}
+                        onClick={() => cancel(order.id)}
+                      >
+                        {cancelPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                        Cancel
+                      </Button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/50">—</span>
+                    )}
                   </td>
                 </tr>
               );

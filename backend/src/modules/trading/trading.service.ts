@@ -763,6 +763,38 @@ export class TradingService {
     };
   }
 
+  async cancelOrder(userId: string, orderId: string) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, portfolioId: true, status: true },
+    });
+    if (!order || order.portfolioId !== portfolio.id) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Only pending limit orders can be cancelled (current: ${order.status})`,
+      );
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'CANCELLED' },
+      select: { id: true, status: true },
+    });
+
+    this.logger.log(`Cancelled order ${orderId} for user=${userId}`);
+    return updated;
+  }
+
   async resetPortfolio(userId: string) {
     const [portfolio, user] = await Promise.all([
       this.prisma.portfolio.findUnique({
