@@ -44,7 +44,7 @@ export function Sidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-3.5 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
+        className="fixed left-4 top-3 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close sidebar" : "Open sidebar"}
       >
@@ -69,7 +69,7 @@ export function Sidebar() {
         <div className="flex h-14 items-center border-b border-border px-5">
           <Link
             href="/portfolio"
-            className="flex items-center gap-2"
+            className="flex flex-end items-center gap-2"
             onClick={() => setOpen(false)}
           >
             <img
