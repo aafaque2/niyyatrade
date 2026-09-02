@@ -1,58 +1,53 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { searchAssets, type SearchResult, getQuotes, type MarketQuote } from "@/lib/services/market-data";
+import { useQuery } from "@tanstack/react-query";
+import { searchAssets, getQuotes, type MarketQuote, type SearchResult } from "@/lib/services/market-data";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, WifiOff, Globe, MapPin, TrendingUp, TrendingDown, BarChart2, Layout } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn, formatCents, deriveCurrencyFromTicker } from "@/lib/utils";
+import {
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  WifiOff,
+  TrendingUp,
+  TrendingDown,
+  Building2,
+  Activity,
+  Globe,
+  Sparkles,
+  ChevronRight,
+  Clock3,
+} from "lucide-react";
 
-type SortField = "ticker" | "name" | "sector" | "price" | "change" | "marketcap";
+type SortField = "ticker" | "name" | "price" | "change" | "sector";
 type SortDir = "asc" | "desc";
 
-function SortIcon({
-  field,
-  sortField,
-  sortDir,
-}: {
-  field: SortField;
-  sortField: SortField;
-  sortDir: SortDir;
-}) {
-  if (sortField !== field)
-    return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
-  return sortDir === "asc" ? (
-    <ArrowUp className="h-3 w-3 text-primary" />
-  ) : (
-    <ArrowDown className="h-3 w-3 text-primary" />
-  );
-}
-
-// ── Popular Indices ──────────────────────────────────────────────
-const POPULAR_INDICES = [
-  { label: "NIFTY 50", ticker: "^NSEI" },
-  { label: "SENSEX", ticker: "^BSESN" },
-  { label: "S&P 500", ticker: "^GSPC" },
-  { label: "NASDAQ", ticker: "^IXIC" },
-  { label: "FTSE 100", ticker: "^FTSE" },
-  { label: "DAX 30", ticker: "^GDAXI" },
+const POPULAR_INDICES: readonly { label: string; ticker: string; sub: string }[] = [
+  { label: "NIFTY 50", ticker: "^NSEI", sub: "NSE" },
+  { label: "SENSEX", ticker: "^BSESN", sub: "BSE" },
+  { label: "S&P 500", ticker: "^GSPC", sub: "NYSE" },
+  { label: "NASDAQ", ticker: "^IXIC", sub: "NASDAQ" },
+  { label: "FTSE 100", ticker: "^FTSE", sub: "LSE" },
+  { label: "DAX 40", ticker: "^GDAXI", sub: "XETRA" },
 ] as const;
 
-// ── Filter pills ────────────────────────────────────────────────
-const EXCHANGE_PILLS = [
-  { label: "All Exchanges", value: "all" },
-  { label: "NSE (India)", value: "NSE" },
-  { label: "BSE (India)", value: "BSE" },
-  { label: "NYSE (USA)", value: "NYSE" },
-  { label: "NASDAQ (USA)", value: "NASDAQ" },
-  { label: "LSE (UK)", value: "LSE" },
-  { label: "XETRA (Germany)", value: "XETRA" },
-  { label: "ADX (UAE)", value: "ADX" },
-] as const;
+const EXCHANGE_PILLS: readonly { label: string; value: string }[] = [
+  { label: "All", value: "all" },
+  { label: "NSE", value: "NSE" },
+  { label: "BSE", value: "BSE" },
+  { label: "NASDAQ", value: "NASDAQ" },
+  { label: "NYSE", value: "NYSE" },
+  { label: "LSE", value: "LSE" },
+  { label: "XETRA", value: "XETRA" },
+];
 
-const SECTORS = [
+const SECTORS: readonly string[] = [
   "All Sectors",
   "Technology",
   "Healthcare",
@@ -65,15 +60,43 @@ const SECTORS = [
   "Basic Materials",
   "Communication Services",
   "Consumer Defensive",
-] as const;
+];
 
-// ── Page component ───────────────────────────────────────────────
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />;
+  return dir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
+}
+
+function initials(ticker: string) {
+  const clean = ticker.replace(/^\^/, "").replace(/\..*$/, "");
+  return clean.slice(0, 2).toUpperCase();
+}
+
+function ChangePill({ value }: { value: number }) {
+  const positive = value >= 0;
+  const Icon = positive ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium leading-none",
+        positive ? "bg-emerald-subtle text-emerald-light" : "bg-danger/10 text-danger",
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {positive ? "+" : ""}
+      {value.toFixed(2)}%
+    </span>
+  );
+}
+
 export default function MarketsPage() {
-  // ── Search & filters ──────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExchange, setSelectedExchange] = useState("all");
   const [selectedSector, setSelectedSector] = useState("All Sectors");
-  const debouncedQuery = useDebounce(searchQuery, 500);
+  const [sortField, setSortField] = useState<SortField>("ticker");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [moversTab, setMoversTab] = useState<"gainers" | "losers">("gainers");
+  const debouncedQuery = useDebounce(searchQuery, 400);
 
   const { data: searchResults, isLoading: isSearchLoading, isError: isSearchError } = useQuery({
     queryKey: ["market-search", debouncedQuery || "all"],
@@ -82,459 +105,597 @@ export default function MarketsPage() {
     retry: 1,
   });
 
-  // ── Enrich with live quotes ────────────────────────────────────
   const resultTickers = useMemo(() => {
     if (!searchResults) return [];
-    return [...new Set(searchResults.map((r) => r.ticker))];
+    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 48);
   }, [searchResults]);
 
-  const { data: marketQuotes, isLoading: isQuotesLoading, isError: isQuotesError } = useQuery<Record<string, MarketQuote>>({
+  const { data: quotesMap, isLoading: isQuotesLoading } = useQuery<Record<string, MarketQuote>>({
     queryKey: ["quotes", ...resultTickers],
     queryFn: async () => {
-      const rawQuotes = await getQuotes(resultTickers);
-      return rawQuotes.reduce((acc, q) => { acc[q.ticker] = q; return acc; }, {} as Record<string, MarketQuote>);
+      if (resultTickers.length === 0) return {};
+      const raw = await getQuotes(resultTickers);
+      return raw.reduce((acc, q) => {
+        acc[q.ticker] = q;
+        return acc;
+      }, {} as Record<string, MarketQuote>);
     },
     staleTime: 20_000,
     retry: 2,
     refetchOnWindowFocus: false,
+    enabled: resultTickers.length > 0,
   });
 
-  // ── Sort state ────────────────────────────────────────────────
-  const [sortField, setSortField] = useState<SortField>("ticker");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const indicesTickers = useMemo(() => POPULAR_INDICES.map((i) => i.ticker), []);
+  const { data: indicesMap } = useQuery<Record<string, MarketQuote>>({
+    queryKey: ["indices-quotes", ...indicesTickers],
+    queryFn: async () => {
+      const raw = await getQuotes(indicesTickers);
+      return raw.reduce((acc, q) => {
+        acc[q.ticker] = q;
+        return acc;
+      }, {} as Record<string, MarketQuote>);
+    },
+    staleTime: 15_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
       setSortField(field);
       setSortDir("asc");
     }
   };
 
-  // ── Apply filters & sort ───────────────────────────────────────
   const filtered = useMemo(() => {
     if (!searchResults) return [];
     let items = [...searchResults];
 
-    // Exchange filter (ticker suffix or exchange field)
     if (selectedExchange !== "all") {
-      items = items.filter((r) => r.exchange?.toUpperCase() === selectedExchange.toUpperCase());
+      const v = selectedExchange.toUpperCase();
+      items = items.filter((r) => (r.exchange ?? "").toUpperCase() === v);
     }
-
-    // Sector filter
     if (selectedSector !== "All Sectors") {
-      items = items.filter(
-        (r) => (r.sector ?? "").toLowerCase() === selectedSector.toLowerCase(),
-      );
+      const s = selectedSector.toLowerCase();
+      items = items.filter((r) => (r.sector ?? "").toLowerCase() === s);
     }
-
-    // Search filter (ticker or name)
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase();
-      items = items.filter(
-        (r) => r.ticker.toLowerCase().includes(q) || (r.name ?? "").toLowerCase().includes(q),
-      );
+      items = items.filter((r) => r.ticker.toLowerCase().includes(q) || (r.name ?? "").toLowerCase().includes(q));
     }
 
-    // Sort
     items.sort((a, b) => {
       let cmp = 0;
       if (sortField === "ticker") cmp = a.ticker.localeCompare(b.ticker);
       else if (sortField === "name") cmp = (a.name ?? "").localeCompare(b.name ?? "");
       else if (sortField === "sector") cmp = (a.sector ?? "").localeCompare(b.sector ?? "");
       else if (sortField === "price") {
-        const qa = marketQuotes?.[a.ticker]?.priceCents ?? 0;
-        const qb = marketQuotes?.[b.ticker]?.priceCents ?? 0;
-        cmp = qa === qb ? 0 : qa > qb ? 1 : -1;
+        const qa = quotesMap?.[a.ticker]?.priceCents ?? 0;
+        const qb = quotesMap?.[b.ticker]?.priceCents ?? 0;
+        cmp = qa - qb;
       } else if (sortField === "change") {
-        const qa = marketQuotes?.[a.ticker]?.changePercent ?? 0;
-        const qb = marketQuotes?.[b.ticker]?.changePercent ?? 0;
-        cmp = qa === qb ? 0 : qa > qb ? 1 : -1;
-      } else if (sortField === "marketcap") {
-        // rough estimate: priceCents * 10_000 / 100 as placeholder
-        const qa = marketQuotes?.[a.ticker]?.priceCents ?? 0;
-        const qb = marketQuotes?.[b.ticker]?.priceCents ?? 0;
-        cmp = qa === qb ? 0 : qa > qb ? 1 : -1;
+        const qa = quotesMap?.[a.ticker]?.changePercent ?? 0;
+        const qb = quotesMap?.[b.ticker]?.changePercent ?? 0;
+        cmp = qa - qb;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
 
     return items;
-  }, [searchResults, selectedExchange, selectedSector, debouncedQuery, sortField, sortDir, marketQuotes]);
+  }, [searchResults, selectedExchange, selectedSector, debouncedQuery, sortField, sortDir, quotesMap]);
 
-  // ── Indices quotes (separate fetch, not part of main table) ────
-  const indicesTickers = POPULAR_INDICES.map((i) => i.ticker);
-  const { data: indicesQuotes, isLoading: isIndicesLoading } = useQuery<Record<string, MarketQuote | undefined>>({
-    queryKey: ["quotes", ...indicesTickers],
-    queryFn: async () => {
-      const raw = await getQuotes(indicesTickers);
-      return raw.reduce((acc, q) => { acc[q.ticker] = q; return acc; }, {} as Record<string, MarketQuote | undefined>);
-    },
-    staleTime: 15_000,
-    retry: 2,
-  });
+  const { gainers, losers } = useMemo(() => {
+    if (!quotesMap) return { gainers: [] as { ticker: string; q: MarketQuote }[], losers: [] as { ticker: string; q: MarketQuote }[] };
+    const entries = Object.entries(quotesMap) as [string, MarketQuote][];
+    const g = entries
+      .filter(([, q]) => (q.changePercent ?? 0) > 0)
+      .sort((a, b) => (b[1].changePercent ?? 0) - (a[1].changePercent ?? 0))
+      .slice(0, 5)
+      .map(([ticker, q]) => ({ ticker, q }));
+    const l = entries
+      .filter(([, q]) => (q.changePercent ?? 0) < 0)
+      .sort((a, b) => (a[1].changePercent ?? 0) - (b[1].changePercent ?? 0))
+      .slice(0, 5)
+      .map(([ticker, q]) => ({ ticker, q }));
+    return { gainers: g, losers: l };
+  }, [quotesMap]);
 
-  // ── Right-rail data ────────────────────────────────────────────
-  const gainers = useMemo(() => {
-    if (!marketQuotes) return [];
-    return Object.entries(marketQuotes)
-      .filter(([, q]) => q.changePercent && q.changePercent > 0)
-      .map(([ticker, q]) => ({ ticker, changePercent: q.changePercent }))
-      .sort((a, b) => b.changePercent - a.changePercent)
-      .slice(0, 5);
-  }, [marketQuotes]);
-
-  const losers = useMemo(() => {
-    if (!marketQuotes) return [];
-    return Object.entries(marketQuotes)
-      .filter(([, q]) => q.changePercent && q.changePercent < 0)
-      .map(([ticker, q]) => ({ ticker, changePercent: q.changePercent }))
-      .sort((a, b) => a.changePercent - b.changePercent)
-      .slice(0, 5);
-  }, [marketQuotes]);
-
-  // Sector heatmap: group by sector from searchResults, compute avg change
   const sectorHeatmap = useMemo(() => {
-    if (!searchResults || !marketQuotes) return [] as { sector: string; avgChange: number }[];
+    if (!searchResults || !quotesMap) return [] as { sector: string; avg: number; count: number }[];
     const map = new Map<string, { total: number; count: number }>();
-    searchResults.forEach((r) => {
-      const q = marketQuotes[r.ticker];
-      if (!q) return;
-      const se = r.sector ?? "Unknown";
-      const entry = map.get(se) ?? { total: 0, count: 0 };
-      entry.total += q.changePercent ?? 0;
-      entry.count += 1;
-      map.set(se, entry);
-    });
+    for (const r of searchResults) {
+      const q = quotesMap[r.ticker];
+      if (!q || q.changePercent == null) continue;
+      const sector = r.sector ?? "Unknown";
+      const cur = map.get(sector) ?? { total: 0, count: 0 };
+      cur.total += q.changePercent;
+      cur.count += 1;
+      map.set(sector, cur);
+    }
     return Array.from(map.entries())
-      .filter((e) => e[1].count > 0)
-      .map((e) => ({
-        sector: e[1].total !== undefined ? e[1].total / e[1].count : 0,
-        avgChange: e[1].total / e[1].count,
-      }))
-      .sort((a, b) => b.avgChange - a.avgChange);
-  }, [searchResults, marketQuotes]);
+      .map(([sector, v]) => ({ sector, avg: v.total / v.count, count: v.count }))
+      .filter((x) => x.count >= 1)
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 8);
+  }, [searchResults, quotesMap]);
 
-  // ── Table rendering ────────────────────────────────────────────
-  const noResults =
-    !isSearchLoading &&
-    !isSearchError &&
-    filtered.length === 0 &&
-    !!debouncedQuery.trim();
+  const isLoading = isSearchLoading || isQuotesLoading;
+  const noResults = !isSearchLoading && !isSearchError && filtered.length === 0;
 
   return (
-    <div className="space-y-5">
-      <div className="border-b border-border bg-surface/50 sticky top-0 z-10 backdrop-blur-sm bg-white/80">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 sm:py-3 px-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Markets</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Browse and search available equities.
+            <h1 className="text-2xl font-semibold tracking-tight">Markets</h1>
+            <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald" />
+                Live
+              </span>
+              <span className="text-border">•</span>
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="h-3.5 w-3.5" />
+                Market data refreshes every 20s
+              </span>
             </p>
           </div>
+          <Link
+            href="/watchlist"
+            className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-hover"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            Watchlist
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          </Link>
+        </div>
 
-          {/* Indices strip */}
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_INDICES.map((idx) => {
-              const idxQuote = indicesQuotes?.[idx.ticker];
-              const price = idxQuote?.priceCents ? Number(idxQuote.priceCents) / 100 : null;
-              const change = idxQuote?.changePercent ?? 0;
-              const changeSigned = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
-              return (
-                <div
-                  key={idx.ticker}
-                  className="rounded-xl border border-border bg-surface/50 p-2 min-w-[120px] flex flex-col items-center gap-1"
-                >
-                  <span className="text-xs font-mono text-primary">{idx.label}</span>
-                  <span className="text-xs font-semibold">
-                    {price !== null ? `${price.toFixed(2)}` : "--"}
-                  </span>
-                  <span
-                    className={change >= 0 ? "text-xxs font-medium text-positive" : "text-xxs font-medium text-negative"}
-                  >
-                    {changeSigned}
-                  </span>
+        {/* Indices strip */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {POPULAR_INDICES.map((idx) => {
+            const q = indicesMap?.[idx.ticker];
+            const price = q?.priceCents;
+            const currency = q?.currency ?? (idx.ticker.startsWith("^NSE") || idx.ticker.startsWith("^BSE") ? "INR" : "USD");
+            const change = q?.changePercent ?? 0;
+            const positive = change >= 0;
+            return (
+              <div
+                key={idx.ticker}
+                className="group relative overflow-hidden rounded-xl border border-border bg-gradient-to-b from-surface to-surface/60 p-4 transition-colors hover:border-border/80 hover:from-surface-hover hover:to-surface/60"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-60" />
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">{idx.label}</p>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{idx.sub}</span>
                 </div>
-              );
-            })}
-          </div>
+                <p className="mt-3 font-mono text-[18px] font-semibold leading-none tracking-tight text-foreground">
+                  {price != null ? formatCents(price, currency) : <span className="text-muted-foreground">—</span>}
+                </p>
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium leading-none",
+                      positive ? "bg-emerald-subtle text-emerald-light" : "bg-danger/10 text-danger",
+                    )}
+                  >
+                    {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {positive ? "+" : ""}
+                    {change.toFixed(2)}%
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">{q ? "Today" : "Delayed"}</span>
+                </div>
+                {/* subtle sparkline */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] opacity-30">
+                  <svg viewBox="0 0 100 28" className="h-full w-full" preserveAspectRatio="none">
+                    <path
+                      d={positive ? "M0 18 L20 14 L40 16 L60 10 L80 12 L100 8" : "M0 8 L20 12 L40 10 L60 16 L80 14 L100 18"}
+                      fill="none"
+                      stroke={positive ? "#22c55e" : "#ef4444"}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.9}
+                    />
+                  </svg>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Filters area */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center px-4 py-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or ticker..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 pl-9 text-sm bg-surface border-border"
-          />
-        </div>
+      {/* Filters */}
+      <div className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
+        <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-[360px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search ticker or company — e.g. RELIANCE, TCS, AAPL"
+                className="h-10 rounded-xl border-border bg-surface pl-10 pr-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/20"
+              />
+            </div>
 
-        <select
-          value={selectedExchange}
-          onChange={(e) => setSelectedExchange(e.target.value)}
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-xs text-foreground outline-none focus:border-primary"
-        >
-          {EXCHANGE_PILLS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={selectedSector}
-          onChange={(e) => setSelectedSector(e.target.value)}
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-xs text-foreground outline-none focus:border-primary"
-        >
-          {SECTORS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Table */}
-      {isSearchLoading || isQuotesLoading || isIndicesLoading ? (
-        <div className="rounded-lg border border-border">
-          <div className="p-4 space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-6 w-48" />
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface/50">
-                  <th className="px-4 py-2.5 text-left">
-                    <button
-                      type="button"
-                      onClick={() => handleSort("ticker")}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    >
-                      Ticker <SortIcon field="ticker" sortField={sortField} sortDir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-2.5 text-left">
-                    <button
-                      type="button"
-                      onClick={() => handleSort("name")}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    >
-                      Company <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-2.5 text-left">
-                    <button
-                      type="button"
-                      onClick={() => handleSort("sector")}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    >
-                      Sector <SortIcon field="sector" sortField={sortField} sortDir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                    Price
-                  </th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                    Change
-                  </th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                    Market Cap
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((result) => {
-                  const quote = marketQuotes?.[result.ticker];
-                  const priceCents = quote?.priceCents ?? result.currency ? null : 0;
-                  const price = priceCents != null ? Number(priceCents) / 100 : null;
-                  const changePercent = quote?.changePercent ?? 0;
-                  const changeSigned = changePercent >= 0 ? `+${changePercent.toFixed(2)}%` : `${changePercent.toFixed(2)}%`;
-                  const changeBadgeClass = changePercent >= 0 ? "positive" : "negative";
-
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-green pb-1 lg:pb-0">
+              <span className="hidden items-center gap-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">
+                <Globe className="h-3.5 w-3.5" />
+                Exchange
+              </span>
+              <div className="flex items-center gap-1.5">
+                {EXCHANGE_PILLS.map((p) => {
+                  const active = selectedExchange === p.value;
                   return (
-                    <tr
-                      key={result.ticker}
-                      className="border-b border-border transition-colors hover:bg-surface-hover/50 last:border-b-0"
+                    <button
+                      key={p.value}
+                      onClick={() => setSelectedExchange(p.value)}
+                      className={cn(
+                        "h-8 shrink-0 rounded-full border px-3.5 text-xs font-medium transition-colors",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "border-border bg-surface text-muted-foreground hover:border-border/80 hover:bg-surface-hover hover:text-foreground",
+                      )}
                     >
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`/assets/${result.ticker}`}
-                          className="text-xs font-semibold font-mono text-primary hover:underline"
-                        >
-                          {result.ticker}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-foreground max-w-[200px] truncate">
-                        {result.name}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {result.sector || "--"}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        {price != null ? (
-                          <>
-                            <span className="font-mono text-primary">
-                              {formatCents(priceCents ?? 0, result.currency ?? "USD")}
-                            </span>
-                            <span className="text-xs opacity-60"> {price.toFixed(2)}</span>
-                          </>
-                        ) : (
-                          "<span className=\"text-muted-foreground\">--</span>"
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs">
-                        <span className={`font-medium ${changeBadgeClass}`}>
-                          {changeSigned}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs">
-                        <span className={`font-medium ${changeBadgeClass}`}>
-                          {changeSigned}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                        {/* Rough market-cap estimate: price * 10^7 / 100 for display */}
-                        {price != null ? (
-                          <span>{(price * 100).toLocaleString()}K</span>
-                        ) : (
-                          "<span className=\"text-muted-foreground\">--</span>"
-                        )}
-                      </td>
-                    </tr>
+                      {p.label}
+                    </button>
                   );
                 })}
-
-                {isSearchError && (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                      <WifiOff className="mx-auto mb-2 h-6 w-6 opacity-50" />
-                      Couldn&apos;t load markets. Check your connection and try again.
-                    </td>
-                  </tr>
-                )}
-                {!isQuotesError && noResults && (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                      No assets found. Try a different search term.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Summary */}
-      {!isSearchLoading && !isQuotesLoading && !isIndicesLoading && filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Showing {filtered.length} asset{filtered.length !== 1 ? "s" : ""} markets
-        </p>
-      )}
-
-      {/* Right rail — Top Movers & Sector Heatmap  */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Top Movers */}
-        <div className="rounded-lg border border-border bg-surface/50 p-3">
-          <h2 className="mb-3 text-xs font-medium text-muted-foreground">Top Movers</h2>
-          <div className="space-y-2">
-            <div>
-              <span className="text-xs font-medium text-positive">Gainers</span>
-              <GainingList items={gainers} marketQuotes={marketQuotes ?? {}} />
-            </div>
-            <div>
-              <span className="text-xs font-medium text-negative">Losers</span>
-              <LosingList items={losers} marketQuotes={marketQuotes ?? {}} />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Sector Heatmap */}
-        <div className="rounded-lg border border-border bg-surface/50 p-3 h-full">
-          <h2 className="mb-3 text-xs font-medium text-muted-foreground">Sector Heatmap</h2>
-          {sectorHeatmap.length > 0 ? (
-            <div className="space-y-1">
-              {sectorHeatmap.map((s, i) => {
-                const hue = Math.round((1 - (s.avgChange + 10) / 20) * 120); // simple mapping -10% to +10% → 0 to 120
-                const color = `hsl(${hue}, 70%, 60%)`;
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              Sector
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {SECTORS.map((s) => {
+                const active = selectedSector === s;
                 return (
-                  <div
-                    key={s.sector}
-                    className="flex items-center justify-between text-xs"
-                    style={{ color }}
+                  <button
+                    key={s}
+                    onClick={() => setSelectedSector(s)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium leading-none transition-colors",
+                      active
+                        ? "border-primary bg-emerald-subtle text-emerald-light"
+                        : "border-border bg-transparent text-muted-foreground hover:bg-surface hover:text-foreground",
+                    )}
                   >
-                    <span>{s.sector}</span>
-                    <span
-                      className={`font-medium ${s.avgChange >= 0 ? "positive" : "negative"}`}
-                    >
-                      {s.avgChange.toFixed(1)}%
-                    </span>
-                  </div>
+                    {s}
+                  </button>
                 );
               })}
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">No data</p>
+            {(selectedExchange !== "all" || selectedSector !== "All Sectors" || searchQuery) && (
+              <button
+                onClick={() => {
+                  setSelectedExchange("all");
+                  setSelectedSector("All Sectors");
+                  setSearchQuery("");
+                }}
+                className="ml-auto text-xs font-medium text-primary hover:text-emerald-light"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main grid */}
+      <div className="grid gap-4 xl:grid-cols-12">
+        {/* Table */}
+        <div className="xl:col-span-8">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border bg-surface/40 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Activity className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h2 className="text-sm font-semibold">Equities</h2>
+                <Badge variant="secondary" className="rounded-full bg-secondary px-2 py-0 text-[11px] font-medium text-muted-foreground">
+                  {filtered.length} assets
+                </Badge>
+              </div>
+              <span className="hidden text-xs text-muted-foreground sm:inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
+                Live prices
+              </span>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-0">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 border-b border-border/50 px-4 py-4 last:border-0">
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : isSearchError ? (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger/10">
+                  <WifiOff className="h-6 w-6 text-danger" />
+                </div>
+                <h3 className="mt-4 text-sm font-semibold">Unable to load markets</h3>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">Check your connection and try again. Market data is temporarily unavailable.</p>
+              </div>
+            ) : noResults ? (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+                  <Search className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-sm font-semibold">No matches for &quot;{debouncedQuery}&quot;</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Try a different ticker, company name, or adjust filters.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-surface/50">
+                      <th className="px-4 py-3 text-left">
+                        <button
+                          onClick={() => handleSort("ticker")}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          Asset
+                          <SortIcon active={sortField === "ticker"} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleSort("price")}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          Price
+                          <SortIcon active={sortField === "price"} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleSort("change")}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          24h
+                          <SortIcon active={sortField === "change"} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="hidden px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:table-cell">
+                        Sector
+                      </th>
+                      <th className="px-4 py-3 text-right">
+                        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Trade</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filtered.slice(0, 50).map((r) => {
+                      const q = quotesMap?.[r.ticker];
+                      const currency = q?.currency ?? r.currency ?? deriveCurrencyFromTicker(r.ticker);
+                      const priceCents = q?.priceCents;
+                      const change = q?.changePercent ?? 0;
+                      const hasQuote = priceCents != null;
+                      return (
+                        <tr key={r.ticker} className="group transition-colors hover:bg-surface-hover/40">
+                          <td className="px-4 py-3.5">
+                            <Link href={`/assets/${r.ticker}`} className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-[11px] font-semibold tracking-wide text-foreground">
+                                {initials(r.ticker)}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[13px] font-semibold tracking-tight text-foreground group-hover:text-primary">
+                                    {r.ticker}
+                                  </span>
+                                  <span className="hidden rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground sm:inline-flex">
+                                    {r.exchange ?? "—"}
+                                  </span>
+                                </div>
+                                <p className="max-w-[220px] truncate text-xs leading-tight text-muted-foreground">{r.name ?? "—"}</p>
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            {hasQuote ? (
+                              <span className="font-mono text-[13px] font-medium text-foreground">
+                                {formatCents(priceCents, currency)}
+                              </span>
+                            ) : (
+                              <span className="font-mono text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            {hasQuote ? <ChangePill value={change} /> : <span className="text-xs text-muted-foreground">—</span>}
+                          </td>
+                          <td className="hidden px-4 py-3.5 sm:table-cell">
+                            <Badge
+                              variant="secondary"
+                              className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                            >
+                              {r.sector ?? "—"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <Link
+                              href={`/assets/${r.ticker}`}
+                              className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-emerald-subtle hover:text-emerald-light"
+                            >
+                              Trade
+                              <ChevronRight className="h-3 w-3" />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {!isLoading && filtered.length > 50 && (
+              <div className="border-t border-border bg-surface/30 px-4 py-3 text-center text-xs text-muted-foreground">
+                Showing 50 of {filtered.length} assets — refine search to see more
+              </div>
+            )}
+          </div>
+
+          {!isLoading && filtered.length > 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Showing {Math.min(filtered.length, 50)} of {filtered.length} assets
+              {debouncedQuery ? ` for “${debouncedQuery}”` : ""} {selectedExchange !== "all" ? `• ${selectedExchange}` : ""}{" "}
+              {selectedSector !== "All Sectors" ? `• ${selectedSector}` : ""}
+            </p>
           )}
+        </div>
+
+        {/* Right rail */}
+        <div className="space-y-4 xl:col-span-4">
+          {/* Top movers */}
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border bg-surface/40 px-4 py-3">
+              <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Top Movers
+              </h2>
+              <div className="flex rounded-full border border-border bg-surface p-0.5">
+                <button
+                  onClick={() => setMoversTab("gainers")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                    moversTab === "gainers" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Gainers
+                </button>
+                <button
+                  onClick={() => setMoversTab("losers")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                    moversTab === "losers" ? "bg-danger text-white" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Losers
+                </button>
+              </div>
+            </div>
+
+            <div className="divide-y divide-border/60">
+              {(moversTab === "gainers" ? gainers : losers).length === 0 ? (
+                <p className="px-4 py-8 text-center text-xs text-muted-foreground">No {moversTab} in current universe</p>
+              ) : (
+                (moversTab === "gainers" ? gainers : losers).map(({ ticker, q }, idx) => {
+                  const currency = q.currency ?? deriveCurrencyFromTicker(ticker);
+                  return (
+                    <Link
+                      key={ticker}
+                      href={`/assets/${ticker}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover/40"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-medium text-muted-foreground">
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-xs font-semibold text-foreground">{ticker}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {searchResults?.find((r) => r.ticker === ticker)?.name ?? ticker}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-xs font-medium text-foreground">{formatCents(q.priceCents, currency)}</p>
+                        <p className={cn("text-[11px] font-medium", (q.changePercent ?? 0) >= 0 ? "text-emerald-light" : "text-danger")}>
+                          {(q.changePercent ?? 0) >= 0 ? "+" : ""}
+                          {(q.changePercent ?? 0).toFixed(2)}%
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Sector heatmap */}
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex items-center gap-2 border-b border-border bg-surface/40 px-4 py-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                <Building2 className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <h2 className="text-sm font-semibold">Sector Performance</h2>
+              <span className="ml-auto text-[11px] text-muted-foreground">Today</span>
+            </div>
+
+            {sectorHeatmap.length === 0 ? (
+              <p className="px-4 py-8 text-center text-xs text-muted-foreground">No sector data for current filters</p>
+            ) : (
+              <div className="p-3">
+                <div className="grid gap-2">
+                  {sectorHeatmap.map((s) => {
+                    const positive = s.avg >= 0;
+                    const intensity = Math.min(Math.abs(s.avg) / 4, 1); // 0..1 for 0-4%
+                    return (
+                      <div key={s.sector} className="group flex items-center gap-3 rounded-lg border border-border/60 bg-surface/40 px-3 py-2.5 transition-colors hover:bg-surface">
+                        <div
+                          className={cn(
+                            "h-8 w-1 shrink-0 rounded-full",
+                            positive ? "bg-emerald" : "bg-danger",
+                          )}
+                          style={{ opacity: 0.35 + intensity * 0.65 }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-foreground">{s.sector}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {s.count} {s.count === 1 ? "asset" : "assets"}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium",
+                            positive ? "bg-emerald-subtle text-emerald-light" : "bg-danger/10 text-danger",
+                          )}
+                        >
+                          {positive ? "+" : ""}
+                          {s.avg.toFixed(2)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-danger" />
+                    Lagging
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    Leading
+                    <span className="h-2 w-2 rounded-full bg-emerald" />
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-dashed border-border bg-surface/30 p-4">
+            <p className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Globe className="h-3.5 w-3.5" />
+              Coverage
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              US, India, UK &amp; EU equities via consolidated feed. Search &ldquo;a&rdquo; to browse the full universe. Quotes are delayed and for paper trading only.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
-}
-
-/* ---- Helper subcomponents ---- */
-
-/* Gaining/Losing list */
-function GainingList({ items, marketQuotes }: { items: { ticker: string; changePercent: number }[]; marketQuotes: Record<string, MarketQuote | undefined> }) {
-  return (
-    <ul className="text-xs">
-      {items.map((it) => {
-        const q = marketQuotes[it.ticker];
-        const price = q?.priceCents ? Number(q.priceCents) / 100 : null;
-        return (
-          <li key={it.ticker} className="flex items-center gap-1.5">
-            <span className="font-mono text-primary">{it.ticker}</span>
-            <span className="text-primary">{price != null ? price.toFixed(2) : "--"}</span>
-            <span className="text-positive">{it.changePercent.toFixed(1)}%</span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function LosingList({ items, marketQuotes }: { items: { ticker: string; changePercent: number }[]; marketQuotes: Record<string, MarketQuote | undefined> }) {
-  return (
-    <ul className="text-xs">
-      {items.map((it) => {
-        const q = marketQuotes[it.ticker];
-        const price = q?.priceCents ? Number(q.priceCents) / 100 : null;
-        return (
-          <li key={it.ticker} className="flex items-center gap-1.5">
-            <span className="font-mono text-primary">{it.ticker}</span>
-            <span className="text-primary">{price != null ? price.toFixed(2) : "--"}</span>
-            <span className="text-negative">{it.changePercent.toFixed(1)}%</span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-/* formatCents helper (inline to avoid extra imports) */
-function formatCents(cents: number, currency?: string) {
-  const formatted = Math.abs(cents).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return currency && currency !== "USD" ? `${formatted} ${currency}` : `$${formatted}`;
 }
