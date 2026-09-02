@@ -5,6 +5,7 @@ export interface AssetSearchResponse {
   data: SearchResult[];
   nextCursor: string | null;
   hasMore: boolean;
+  total: number;
 }
 
 export async function searchAssetsDB(params: {
@@ -13,7 +14,7 @@ export async function searchAssetsDB(params: {
   exchange?: string;
   limit?: number;
   cursor?: string;
-}): Promise<SearchResult[]> {
+}): Promise<AssetSearchResponse> {
   const { data } = await api.get<AssetSearchResponse>("/assets/search", {
     params: {
       q: params.q,
@@ -23,7 +24,11 @@ export async function searchAssetsDB(params: {
       cursor: params.cursor,
     },
   });
-  // API wraps in { data: { data, nextCursor } } via ResponseEnvelopeInterceptor — unwrap once
   const payload = (data as unknown as { data: AssetSearchResponse }).data ?? (data as unknown as AssetSearchResponse);
-  return payload.data ?? [];
+  return {
+    data: payload.data ?? [],
+    nextCursor: payload.nextCursor ?? null,
+    hasMore: payload.hasMore ?? false,
+    total: payload.total ?? payload.data?.length ?? 0,
+  };
 }

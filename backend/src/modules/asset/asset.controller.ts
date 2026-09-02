@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AssetService } from './asset.service';
 
@@ -25,5 +25,14 @@ export class AssetController {
       limit: limit ? parseInt(limit, 10) : undefined,
       cursor,
     });
+  }
+
+  @Post('enrich')
+  @ApiOperation({
+    summary: 'Enrich Unknown sectors via fundamentals (throttled)',
+  })
+  async enrich(@Query('limit') limit?: string) {
+    const l = limit ? parseInt(limit, 10) : 25;
+    return this.assetService.enrichUnknown(Math.min(Math.max(l, 1), 100));
   }
 }

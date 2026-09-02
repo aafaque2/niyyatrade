@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as fs from 'fs';
@@ -34,10 +34,40 @@ export class AssetSyncService implements OnModuleInit {
   private resolveSeedPath(): string | null {
     const candidates = [
       path.join(__dirname, 'data', 'asset-universe.json'),
-      path.join(__dirname, '..', '..', 'modules', 'asset', 'data', 'asset-universe.json'),
-      path.join(process.cwd(), 'src', 'modules', 'asset', 'data', 'asset-universe.json'),
-      path.join(process.cwd(), 'backend', 'src', 'modules', 'asset', 'data', 'asset-universe.json'),
-      path.join(process.cwd(), 'dist', 'modules', 'asset', 'data', 'asset-universe.json'),
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        'modules',
+        'asset',
+        'data',
+        'asset-universe.json',
+      ),
+      path.join(
+        process.cwd(),
+        'src',
+        'modules',
+        'asset',
+        'data',
+        'asset-universe.json',
+      ),
+      path.join(
+        process.cwd(),
+        'backend',
+        'src',
+        'modules',
+        'asset',
+        'data',
+        'asset-universe.json',
+      ),
+      path.join(
+        process.cwd(),
+        'dist',
+        'modules',
+        'asset',
+        'data',
+        'asset-universe.json',
+      ),
     ];
     for (const p of candidates) if (fs.existsSync(p)) return p;
     return null;
