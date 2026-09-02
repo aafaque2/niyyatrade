@@ -44,7 +44,7 @@ export function Sidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-3.5 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
+        className="fixed left-4 top-3 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-surface text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close sidebar" : "Open sidebar"}
       >
@@ -66,7 +66,7 @@ export function Sidebar() {
         )}
         data-open={open}
       >
-        <div className="flex h-14 items-center border-b border-border px-5">
+        <div className="flex h-14 items-center justify-end border-b border-border px-5 lg:justify-start">
           <Link
             href="/portfolio"
             className="flex items-center gap-2"
