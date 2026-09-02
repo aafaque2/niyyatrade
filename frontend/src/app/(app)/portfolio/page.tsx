@@ -10,6 +10,7 @@ import { ActivityFeed } from "@/components/portfolio/activity-feed";
 import { TopHoldings } from "@/components/portfolio/top-holdings";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import Link from "next/link";
 
@@ -61,13 +62,19 @@ export default function PortfolioPage() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3 space-y-4">
-          {data?.positions && data.positions.length > 0 ? (
+          {isLoading ? (
+            <PortfolioTable
+              positions={[]}
+              frameworkSlugs={selectedFrameworks}
+              isLoading
+            />
+          ) : data?.positions && data.positions.length > 0 ? (
             <PortfolioTable
               positions={data.positions}
               frameworkSlugs={selectedFrameworks}
               isLoading={isLoading}
             />
-          ) : !isLoading ? (
+          ) : (
             <EmptyState
               icon={Search}
               title="Your portfolio is empty"
@@ -81,7 +88,7 @@ export default function PortfolioPage() {
                 </Link>
               }
             />
-          ) : null}
+          )}
 
           <ActivityFeed
             orders={data?.recentOrders ?? []}
@@ -90,7 +97,12 @@ export default function PortfolioPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          {data && data.positions.length > 0 && (
+          {isLoading ? (
+            <>
+              <Skeleton className="h-44 w-full rounded-xl" />
+              <Skeleton className="h-48 w-full rounded-xl" />
+            </>
+          ) : data && data.positions.length > 0 ? (
             <>
               <PortfolioComplianceGauge
                 tickers={positionTickers}
@@ -101,7 +113,7 @@ export default function PortfolioPage() {
                 isLoading={isLoading}
               />
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

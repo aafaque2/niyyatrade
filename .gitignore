@@ -8,3 +8,8 @@ dist/
 
 # Local audit working file
 AUDIT.md
+
+# v1 launch private tracker (local only, contains implementation notes + secrets)
+.v1-tracker.md
+.v1-launch-tracker.md
+V1_TRACKER_PRIVATE.md

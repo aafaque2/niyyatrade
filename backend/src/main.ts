@@ -38,6 +38,29 @@ function validateEnv() {
     console.error('JWT_SECRET must be at least 16 characters long');
     process.exit(1);
   }
+
+  // Optional but valuable in production
+  if (process.env.FRONTEND_URL) {
+    try {
+      // Must be absolute URL
+      new URL(process.env.FRONTEND_URL);
+    } catch {
+      console.error('FRONTEND_URL must be a valid absolute URL');
+      process.exit(1);
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      'FRONTEND_URL not set — CORS will fallback to localhost:3000 (not suitable for production)',
+    );
+  }
+
+  if (process.env.PORT) {
+    const n = Number(process.env.PORT);
+    if (!Number.isInteger(n) || n < 1 || n > 65535) {
+      console.error('PORT must be an integer between 1 and 65535');
+      process.exit(1);
+    }
+  }
 }
 
 async function bootstrap() {
@@ -56,11 +79,19 @@ async function bootstrap() {
     logger: pinoAdapter,
   });
 
+  // Trust proxy (Render/Vercel) so req.ip / ThrottlerGuard see real client IP
+  const httpAdapter = app.getHttpAdapter();
+  // Express adapter exposes underlying instance
+  if (httpAdapter.getType() === 'express') {
+    httpAdapter.getInstance().set('trust proxy', 1);
+  }
+
   app.use(
     helmet({
       contentSecurityPolicy:
         process.env.NODE_ENV === 'production' ? undefined : false,
       crossOriginEmbedderPolicy: false,
+      // Explicit HSTS via helmet defaults (180d) — also set via frontend middleware
     }),
   );
 
@@ -75,6 +106,7 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+    exposedHeaders: ['X-Request-ID'],
     maxAge: 86400,
   });
 

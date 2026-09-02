@@ -8,13 +8,14 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9._-]{1,64}$/;
 
 @Injectable()
 export class RequestIdMiddleware implements NestMiddleware {
-  use(req: Request, _res: Response, next: NextFunction) {
+  use(req: Request, res: Response, next: NextFunction) {
     const existing = req.headers['x-request-id'];
     const safe =
       typeof existing === 'string' && SAFE_REQUEST_ID.test(existing)
         ? existing
         : randomUUID();
     req.headers['x-request-id'] = safe;
+    res.setHeader('x-request-id', safe);
     next();
   }
 }

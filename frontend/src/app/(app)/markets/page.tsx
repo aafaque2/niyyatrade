@@ -24,6 +24,7 @@ import {
   Bookmark,
   ChevronRight,
   Clock3,
+  Loader2,
 } from "lucide-react";
 
 type SortField = "ticker" | "name" | "price" | "change" | "sector";
@@ -107,6 +108,7 @@ export default function MarketsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [moversTab, setMoversTab] = useState<"gainers" | "losers">("gainers");
   const debouncedQuery = useDebounce(searchQuery, 400);
+  const isDebouncing = searchQuery !== debouncedQuery;
 
   const {
     data: assetPages,
@@ -360,8 +362,12 @@ export default function MarketsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search ticker or company — e.g. RELIANCE, TCS, AAPL"
-                className="h-10 rounded-xl border-border bg-surface pl-10 pr-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/20"
+                className="h-10 rounded-xl border-border bg-surface pl-10 pr-10 text-sm placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/20"
+                aria-busy={isDebouncing}
               />
+              {isDebouncing && (
+                <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-green pb-1 lg:pb-0">

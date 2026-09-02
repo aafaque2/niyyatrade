@@ -2,44 +2,38 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { getQuote } from "@/lib/services/market-data";
+import { getQuotes, type MarketQuote } from "@/lib/services/market-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatPercent } from "@/lib/utils";
 import { useRemoveFromWatchlist } from "@/lib/hooks/use-watchlist";
 import { X } from "lucide-react";
 import type { WatchlistItem } from "@/lib/services/watchlist";
+import { useMemo } from "react";
 
 interface WatchlistTableProps {
   items: WatchlistItem[];
 }
 
-function PriceCell({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["quote", ticker],
-    queryFn: () => getQuote(ticker),
-    staleTime: 2_500,
-    refetchInterval: 2_500,
-  });
-
+function PriceCell({ quote, isLoading }: { quote?: MarketQuote; isLoading: boolean }) {
   if (isLoading) {
     return <Skeleton className="h-4 w-20" />;
   }
 
-  if (!data) {
+  if (!quote) {
     return <span className="text-xs text-muted-foreground">--</span>;
   }
 
-  const positive = data.changePercent >= 0;
+  const positive = quote.changePercent >= 0;
 
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-xs">{formatCents(data.priceCents, data.currency)}</span>
+      <span className="font-mono text-xs">{formatCents(quote.priceCents, quote.currency)}</span>
       <span
         className={`font-mono text-[10px] ${
           positive ? "text-emerald-light" : "text-danger"
         }`}
       >
-        {formatPercent(data.changePercent / 100)}
+        {formatPercent(quote.changePercent / 100)}
       </span>
     </div>
   );
@@ -47,6 +41,22 @@ function PriceCell({ ticker }: { ticker: string }) {
 
 export function WatchlistTable({ items }: WatchlistTableProps) {
   const removeMutation = useRemoveFromWatchlist();
+  const tickers = useMemo(() => items.map((i) => i.ticker), [items]);
+  const { data: quotesMap, isLoading: quotesLoading } = useQuery<Record<string, MarketQuote>>({
+    queryKey: ["quotes", ...tickers],
+    queryFn: async () => {
+      if (tickers.length === 0) return {};
+      const raw = await getQuotes(tickers);
+      return raw.reduce((acc, q) => {
+        acc[q.ticker] = q;
+        return acc;
+      }, {} as Record<string, MarketQuote>);
+    },
+    enabled: tickers.length > 0,
+    staleTime: 2_500,
+    refetchInterval: 2_500,
+    refetchIntervalInBackground: false,
+  });
 
   if (items.length === 0) return null;
 
@@ -91,7 +101,7 @@ export function WatchlistTable({ items }: WatchlistTableProps) {
                   {item.name}
                 </td>
                 <td className="px-4 py-2.5">
-                  <PriceCell ticker={item.ticker} />
+                  <PriceCell quote={quotesMap?.[item.ticker]} isLoading={quotesLoading} />
                 </td>
                 <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
                   {item.sector}

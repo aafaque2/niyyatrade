@@ -8,6 +8,7 @@ import { searchKeys } from "@/lib/query-keys";
 import { Input } from "@/components/ui/input";
 import { ExchangeBadge } from "@/components/market/exchange-badge";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { Loader2 } from "lucide-react";
 
 export function CommandPalette({
   open,
@@ -23,10 +24,7 @@ export function CommandPalette({
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close"
+        aria-hidden="true"
       />
       <div className="fixed left-1/2 top-[15%] w-full max-w-lg -translate-x-1/2 rounded-lg border border-border bg-background shadow-2xl">
         <CommandPaletteInner onClose={onClose} />
@@ -42,7 +40,8 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const debouncedQuery = useDebounce(query, 500);
 
-  const { data: results } = useQuery({
+  const isDebouncing = query !== debouncedQuery;
+  const { data: results, isFetching } = useQuery({
     queryKey: searchKeys.query(debouncedQuery),
     queryFn: () => searchAssets(debouncedQuery),
     enabled: debouncedQuery.length > 0,
@@ -81,7 +80,7 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div className="p-3">
+      <div className="relative p-3">
         <Input
           ref={inputRef}
           placeholder="Search assets by name or ticker..."
@@ -92,14 +91,25 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
             setSelectedIndex(0);
           }}
           onKeyDown={handleKeyDown}
-          className="h-10 text-sm bg-surface border-border"
+          className="h-10 pr-10 text-sm bg-surface border-border"
+          aria-busy={isFetching || isDebouncing}
         />
+        {(isFetching || isDebouncing) && query.length > 0 && (
+          <Loader2 className="pointer-events-none absolute right-6 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
       </div>
+      {isFetching && debouncedQuery && (
+        <div className="flex items-center justify-center gap-2 border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Searching…
+        </div>
+      )}
       {resultsList.length > 0 && (
-        <div className="max-h-72 overflow-y-auto border-t border-border p-1">
+        <div className="max-h-72 overflow-y-auto border-t border-border p-1" role="listbox" aria-label="Search results">
           {resultsList.map((result, index) => (
             <button
               key={result.ticker}
+              role="option"
+              aria-selected={index === selectedIndex}
               onClick={() => navigateTo(result.ticker)}
               onMouseEnter={() => setSelectedIndex(index)}
               className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
@@ -126,8 +136,8 @@ function CommandPaletteInner({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       )}
-      {debouncedQuery && resultsList.length === 0 && (
-        <p className="px-4 pb-3 text-xs text-muted-foreground">
+      {!isFetching && !isDebouncing && debouncedQuery && resultsList.length === 0 && (
+        <p className="px-4 pb-3 text-xs text-muted-foreground" role="status" aria-live="polite">
           No assets found for &quot;{debouncedQuery}&quot;
         </p>
       )}
