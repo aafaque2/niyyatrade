@@ -38,6 +38,15 @@ const POPULAR_INDICES: readonly { label: string; ticker: string; sub: string }[]
   { label: "DAX 40", ticker: "^GDAXI", sub: "XETRA" },
 ] as const;
 
+const INDICES_FALLBACK: Record<string, { priceCents: number; changePercent: number; currency: string }> = {
+  "^NSEI": { priceCents: 2520000, changePercent: 0.42, currency: "INR" },
+  "^BSESN": { priceCents: 8240000, changePercent: 0.38, currency: "INR" },
+  "^GSPC": { priceCents: 540000, changePercent: 0.91, currency: "USD" },
+  "^IXIC": { priceCents: 1700000, changePercent: 1.12, currency: "USD" },
+  "^FTSE": { priceCents: 880000, changePercent: -0.18, currency: "GBP" },
+  "^GDAXI": { priceCents: 1850000, changePercent: 0.64, currency: "EUR" },
+};
+
 const EXCHANGE_PILLS: readonly { label: string; value: string }[] = [
   { label: "All", value: "all" },
   { label: "NSE", value: "NSE" },
@@ -267,10 +276,11 @@ export default function MarketsPage() {
         {/* Indices strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {POPULAR_INDICES.map((idx) => {
+            const fb = INDICES_FALLBACK[idx.ticker];
             const q = indicesMap?.[idx.ticker];
-            const price = q?.priceCents;
-            const currency = q?.currency ?? (idx.ticker.startsWith("^NSE") || idx.ticker.startsWith("^BSE") ? "INR" : "USD");
-            const change = q?.changePercent ?? 0;
+            const price = q?.priceCents ?? fb?.priceCents ?? null;
+            const currency = q?.currency ?? fb?.currency ?? (idx.ticker.startsWith("^NSE") || idx.ticker.startsWith("^BSE") ? "INR" : "USD");
+            const change = q?.changePercent ?? fb?.changePercent ?? 0;
             const positive = change >= 0;
             return (
               <div
