@@ -61,9 +61,9 @@ export function TopNav() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background/80 backdrop-blur-md px-6 lg:left-[232px]">
-        <div className="flex w-full items-center justify-between">
-          <div className="relative w-80">
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-background/80 backdrop-blur-md pl-14 pr-6 lg:left-[232px] lg:pl-6">
+        <div className="flex w-full items-center justify-between gap-3">
+          <div className="relative w-full max-w-80 flex-1 lg:flex-none">
             <kbd className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
