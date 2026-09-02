@@ -183,6 +183,31 @@ export class MarketDataService {
     }
   }
 
+  async getQuotesBatch(tickers: string[]): Promise<MarketQuote[]> {
+    const normalized = [...new Set(tickers.map((t) => t.toUpperCase()))].slice(
+      0,
+      50,
+    );
+    if (normalized.length === 0) return [];
+    const cacheKey = this.cacheKey('quotes-batch', normalized.sort().join(','));
+    const cached = await this.cacheGet<MarketQuote[]>(cacheKey);
+    if (cached) return cached;
+
+    const results = await Promise.allSettled(
+      normalized.map((t) => this.getQuote(t)),
+    );
+    const quotes: MarketQuote[] = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled') quotes.push(r.value);
+      else
+        this.logger.warn(
+          `batch quote failed: ${(r.reason as Error)?.message ?? r.reason}`,
+        );
+    }
+    if (quotes.length > 0) await this.cacheSet(cacheKey, 15, quotes);
+    return quotes;
+  }
+
   async getFxRate(
     from: string,
     to: string,
