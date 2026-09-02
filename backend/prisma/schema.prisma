@@ -132,7 +132,9 @@ model Asset {
   ticker    String   @id @db.VarChar(20)
   name      String   @db.VarChar(255)
   sector    String   @db.VarChar(100)
-  industry  String?
+  industry  String?  @db.VarChar(100)
+  exchange  String   @default("UNKNOWN") @db.VarChar(20)
+  currency  String   @default("USD") @db.VarChar(10)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,6 +146,8 @@ model Asset {
   complianceAudits ComplianceAudit[]
 
   @@index([sector])
+  @@index([exchange])
+  @@index([sector, exchange])
 }
 
 model Framework {

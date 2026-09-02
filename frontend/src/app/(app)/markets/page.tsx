@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { searchAssets, getQuotes, type MarketQuote, type SearchResult } from "@/lib/services/market-data";
+import { searchAssetsDB } from "@/lib/services/asset";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,15 +100,25 @@ export default function MarketsPage() {
   const debouncedQuery = useDebounce(searchQuery, 400);
 
   const { data: searchResults, isLoading: isSearchLoading, isError: isSearchError } = useQuery({
-    queryKey: ["market-search", debouncedQuery || "all"],
-    queryFn: () => searchAssets(debouncedQuery || "a"),
+    queryKey: ["asset-search", debouncedQuery, selectedExchange, selectedSector],
+    queryFn: async () => {
+      try {
+        const db = await searchAssetsDB({ q: debouncedQuery, sector: selectedSector, exchange: selectedExchange, limit: 30 });
+        if (db.length > 0) return db;
+        if (debouncedQuery) return db;
+        // DB empty (not seeded) → fallback to provider
+        return await searchAssets(debouncedQuery || "a");
+      } catch {
+        return await searchAssets(debouncedQuery || "a");
+      }
+    },
     staleTime: 30_000,
     retry: 1,
   });
 
   const resultTickers = useMemo(() => {
     if (!searchResults) return [];
-    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 48);
+    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 30);
   }, [searchResults]);
 
   const { data: quotesMap, isLoading: isQuotesLoading } = useQuery<Record<string, MarketQuote>>({

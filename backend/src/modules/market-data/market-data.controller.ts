@@ -21,6 +21,22 @@ export class MarketDataController {
     return this.marketDataService.search(query.q);
   }
 
+  @Get('quotes')
+  @ApiOperation({
+    summary:
+      'Get batch quotes for multiple tickers (comma-separated, max 50, partial results)',
+  })
+  async getQuotesBatch(@Query('tickers') tickers?: string) {
+    if (!tickers) return [];
+    const list = tickers
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    if (list.length === 0) return [];
+    return this.marketDataService.getQuotesBatch(list);
+  }
+
   @Get('fx')
   @ApiOperation({ summary: 'Get FX exchange rate between two currencies' })
   async getFxRate(@Query() query: FxQueryDto) {
