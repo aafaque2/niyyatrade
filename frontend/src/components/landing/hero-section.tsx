@@ -73,7 +73,7 @@ export function HeroSection() {
               </Button>
             </Link>
             <Link href="/markets">
-              <Button variant="ghost" size="lg" className="h-11 px-7 text-sm font-medium text-muted-foreground hover:text-foreground">
+              <Button variant="outline" size="lg" className="h-11 px-7 text-sm font-medium border-dashed border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/60 hover:text-primary">
                 Browse as guest
               </Button>
             </Link>

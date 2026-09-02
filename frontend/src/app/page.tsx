@@ -92,7 +92,7 @@ export default function LandingPage() {
               </a>
               <a
                 href="/markets"
-                className="inline-flex h-11 items-center rounded-lg border border-dashed border-border px-7 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                className="inline-flex h-11 items-center rounded-lg border border-dashed border-primary/30 bg-primary/5 px-7 text-sm font-medium text-primary transition-colors hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
               >
                 Browse as guest
               </a>
