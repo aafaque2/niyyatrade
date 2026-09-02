@@ -70,6 +70,9 @@ export default function FrameworksPage() {
   const { data: prefs } = useFrameworkPrefs();
   const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
   const toggleFramework = useComplianceFrameworkStore((s) => s.toggleFramework);
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
+  const isGuest = hydrated && !token;
   const queryClient = useQueryClient();
   const [viewingSlug, setViewingSlug] = useState<string | null>(null);
   const initializedRef = useRef(false);
@@ -122,6 +125,7 @@ export default function FrameworksPage() {
   const syncedRef = useRef(false);
   useEffect(() => {
     if (syncedRef.current || !frameworks || syncHalalMutation.isPending) return;
+    if (isGuest) return;
     const halalEnabled = selectedFrameworks.includes("halal-aaoifi");
     const user = useAuthStore.getState().user;
     const halalFramework = frameworks.find((f) => f.slug === "halal-aaoifi");
@@ -135,7 +139,7 @@ export default function FrameworksPage() {
       syncHalalMutation.mutate(false);
       syncedRef.current = true;
     }
-  }, [frameworks, selectedFrameworks, syncHalalMutation]);
+  }, [frameworks, selectedFrameworks, syncHalalMutation, isGuest]);
 
   if (isError) {
     return (
@@ -169,6 +173,22 @@ export default function FrameworksPage() {
           <p className="mt-1.5 text-sm text-muted-foreground max-w-lg">
             Choose frameworks to screen your portfolio. Each applies its own rules to evaluate your holdings.
           </p>
+          {isGuest && (
+            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 flex items-center justify-between gap-3">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Guest preview — frameworks filter compliance views locally.{" "}
+                <Link href="/register" className="underline font-medium">
+                  Sign up to persist & enforce.
+                </Link>
+              </p>
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex h-7 items-center rounded-md border border-amber-500/20 bg-background px-3 text-xs font-medium"
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,6 +254,10 @@ export default function FrameworksPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleFramework(f.slug);
+                            if (isGuest) {
+                              toast.info("Guest preview — sign in to save framework preferences");
+                              return;
+                            }
                             if (f.slug === "halal-aaoifi") {
                               syncHalalMutation.mutate(!isEnabled);
                             }

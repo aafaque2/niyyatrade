@@ -60,25 +60,37 @@ export function HeroSection() {
           </div>
         </form>
 
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <Link href="/register">
-            <Button size="lg" className="h-11 px-7 text-sm font-medium bg-primary hover:bg-emerald-muted">
-              Start investing
-            </Button>
-          </Link>
-          <Link href="/frameworks">
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-11 px-7 text-sm font-medium"
-            >
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link href="/register">
+              <Button size="lg" className="h-11 px-7 text-sm font-medium bg-primary hover:bg-emerald-muted">
+                Start investing — Free
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" size="lg" className="h-11 px-7 text-sm font-medium">
+                Sign in
+              </Button>
+            </Link>
+            <Link href="/markets">
+              <Button variant="ghost" size="lg" className="h-11 px-7 text-sm font-medium text-muted-foreground hover:text-foreground">
+                Browse as guest
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>$100,000 virtual capital</span>
+            <span className="h-1 w-1 rounded-full bg-border" />
+            <Link href="/frameworks" className="hover:text-primary hover:underline">
               Explore frameworks
-            </Button>
-          </Link>
+            </Link>
+            <span className="h-1 w-1 rounded-full bg-border" />
+            <span>No credit card required</span>
+          </div>
         </div>
 
-        <p className="mt-4 text-xs text-muted-foreground">
-          $100,000 virtual capital. Frameworks explained in plain language.
+        <p className="mt-3 text-xs text-muted-foreground/70">
+          Guest mode: search any ticker, view compliance, then sign in to trade.
         </p>
       </div>
     </section>

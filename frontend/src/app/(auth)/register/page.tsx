@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
@@ -13,11 +13,23 @@ import { Input } from "@/components/ui/input";
 export default function RegisterPage() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    useAuthStore.getState().hydrate();
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && token) {
+      router.replace("/portfolio");
+    }
+  }, [hydrated, token, router]);
 
   const mutation = useMutation({
     mutationFn: registerUser,
@@ -160,6 +172,17 @@ export default function RegisterPage() {
             Sign in
           </Link>
         </p>
+
+        <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-center">
+          <p className="text-xs font-medium text-foreground">Just exploring?</p>
+          <p className="mt-1 text-xs text-muted-foreground">Browse markets & compliance without an account.</p>
+          <Link
+            href="/markets"
+            className="mt-2 inline-flex h-8 items-center rounded-lg border border-border bg-background px-4 text-xs font-medium text-foreground hover:bg-surface-hover"
+          >
+            Continue as guest
+          </Link>
+        </div>
       </div>
     </div>
   );

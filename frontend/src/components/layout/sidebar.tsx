@@ -13,8 +13,10 @@ import {
   Menu,
   X,
   Search,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 const navItems = [
   { label: "Portfolio", href: "/portfolio", icon: Briefcase },
@@ -28,9 +30,14 @@ const bottomItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const PROTECTED_HREFS = new Set(["/portfolio", "/watchlist", "/history", "/settings"]);
+
 export function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
+  const isGuest = hydrated && !token;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -103,6 +110,8 @@ export function Sidebar() {
             const isActive =
               pathname === item.href ||
               (item.href === "/portfolio" && pathname === "/");
+            const isProtected = PROTECTED_HREFS.has(item.href);
+            const locked = isGuest && isProtected;
 
             return (
               <Link
@@ -125,10 +134,35 @@ export function Sidebar() {
                       : "text-muted-foreground group-hover:text-foreground",
                   )}
                 />
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {locked && <Lock className="h-3 w-3 text-muted-foreground/50" />}
               </Link>
             );
           })}
+          {isGuest && (
+            <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Guest mode</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Sign in to access your portfolio, watchlists & trading.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 inline-flex h-7 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium hover:bg-surface-hover"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 inline-flex h-7 items-center justify-center rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground hover:bg-emerald-muted"
+                >
+                  Sign up
+                </Link>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="mt-auto border-t border-border px-3 py-3 space-y-0.5">
