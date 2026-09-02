@@ -18,11 +18,15 @@ const FRAMEWORK_LABELS: Record<string, string> = {
 export function TopNav() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
   const logout = useAuthStore((s) => s.logout);
   const { data: frameworks } = useFrameworks();
   const selectedFrameworks = useComplianceFrameworkStore((s) => s.selectedFrameworks);
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const isGuest = hydrated && !token;
 
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
@@ -112,54 +116,73 @@ export function TopNav() {
               <Bell className="h-4 w-4" />
             </button>
 
-            {/* User Menu */}
-            <div className="relative" data-user-menu>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-                  {user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U"}
-                </div>
-                <span className="hidden text-xs font-medium md:inline">
-                  {user?.name ?? user?.email?.split("@")[0] ?? "User"}
-                </span>
-                <ChevronDown className="h-3 w-3" />
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg animate-fade-in">
-                  <div className="px-2.5 py-2 border-b border-border mb-1">
-                    <p className="text-xs font-medium text-foreground truncate">{user?.name ?? "User"}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+            {/* User Menu / Guest CTA */}
+            {isGuest ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="hidden sm:inline-flex h-8 items-center rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-surface-hover hover:text-foreground"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/register")}
+                  className="inline-flex h-8 items-center rounded-lg bg-primary px-3.5 text-xs font-medium text-primary-foreground hover:bg-emerald-muted"
+                >
+                  Create account
+                </button>
+              </div>
+            ) : (
+              <div className="relative" data-user-menu>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
+                    {user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U"}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      router.push("/settings");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                    Settings
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      router.push("/login");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
+                  <span className="hidden text-xs font-medium md:inline">
+                    {user?.name ?? user?.email?.split("@")[0] ?? "User"}
+                  </span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg animate-fade-in">
+                    <div className="px-2.5 py-2 border-b border-border mb-1">
+                      <p className="text-xs font-medium text-foreground truncate">{user?.name ?? "User"}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        router.push("/settings");
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                    >
+                      <Settings className="h-3.5 w-3.5" />
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout();
+                        router.push("/login");
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>

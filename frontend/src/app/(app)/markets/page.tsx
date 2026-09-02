@@ -434,7 +434,7 @@ export default function MarketsPage() {
       {/* Main grid */}
       <div className="grid gap-4 xl:grid-cols-12">
         {/* Table */}
-        <div className="xl:col-span-8">
+        <div className="min-w-0 xl:col-span-8">
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border bg-surface/40 px-4 py-3">
               <div className="flex items-center gap-2">
@@ -483,42 +483,49 @@ export default function MarketsPage() {
                 <p className="mt-1 text-sm text-muted-foreground">Try a different ticker, company name, or adjust filters.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+                <table className="w-full min-w-[640px] lg:min-w-0 lg:table-fixed">
+                  <colgroup>
+                    <col className="w-[42%] lg:w-[38%]" />
+                    <col className="w-[18%] lg:w-[16%]" />
+                    <col className="w-[16%] lg:w-[16%]" />
+                    <col className="w-[14%] lg:w-[18%]" />
+                    <col className="w-[10%] lg:w-[12%]" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-border bg-surface/50">
-                      <th className="px-4 py-3 text-left">
+                      <th className="px-3 py-3 text-left lg:px-4">
                         <button
                           onClick={() => handleSort("ticker")}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
                         >
                           Asset
                           <SortIcon active={sortField === "ticker"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-right">
+                      <th className="px-3 py-3 text-right lg:px-4">
                         <button
                           onClick={() => handleSort("price")}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
                         >
                           Price
                           <SortIcon active={sortField === "price"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-right">
+                      <th className="px-3 py-3 text-right lg:px-4">
                         <button
                           onClick={() => handleSort("change")}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
                         >
                           24h
                           <SortIcon active={sortField === "change"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="hidden px-4 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:table-cell">
+                      <th className="hidden px-3 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:table-cell lg:px-4">
                         Sector
                       </th>
-                      <th className="px-4 py-3 text-right">
-                        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Trade</span>
+                      <th className="px-3 py-3 text-right lg:px-4">
+                        <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Trade</span>
                       </th>
                     </tr>
                   </thead>
@@ -531,25 +538,25 @@ export default function MarketsPage() {
                       const hasQuote = priceCents != null;
                       return (
                         <tr key={r.ticker} className="group transition-colors hover:bg-surface-hover/40">
-                          <td className="px-4 py-3.5">
-                            <Link href={`/assets/${r.ticker}`} className="flex items-center gap-3">
+                          <td className="px-3 py-3.5 lg:px-4">
+                            <Link href={`/assets/${r.ticker}`} className="flex min-w-0 items-center gap-3">
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-[11px] font-semibold tracking-wide text-foreground">
                                 {initials(r.ticker)}
                               </div>
-                              <div className="min-w-0">
-                                <p className="max-w-[220px] truncate text-[13px] font-medium leading-tight text-foreground group-hover:text-primary">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-medium leading-tight text-foreground group-hover:text-primary">
                                   {r.name ?? r.ticker}
                                 </p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                  <span className="font-mono">{r.ticker}</span>
-                                  <span className="h-1 w-1 rounded-full bg-border" />
-                                  <span>{r.exchange ?? "—"}</span>
-                                  <span className="hidden sm:inline">• {r.currency ?? deriveCurrencyFromTicker(r.ticker)}</span>
+                                <div className="flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+                                  <span className="shrink-0 font-mono">{r.ticker}</span>
+                                  <span className="h-1 w-1 shrink-0 rounded-full bg-border" />
+                                  <span className="truncate">{r.exchange ?? "—"}</span>
+                                  <span className="hidden truncate sm:inline">• {r.currency ?? deriveCurrencyFromTicker(r.ticker)}</span>
                                 </div>
                               </div>
                             </Link>
                           </td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="whitespace-nowrap px-3 py-3.5 text-right lg:px-4">
                             {hasQuote ? (
                               <span className="font-mono text-[13px] font-medium text-foreground">
                                 {formatCents(priceCents, currency)}
@@ -558,21 +565,22 @@ export default function MarketsPage() {
                               <span className="font-mono text-xs text-muted-foreground">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="whitespace-nowrap px-3 py-3.5 text-right lg:px-4">
                             {hasQuote ? <ChangePill value={change} /> : <span className="text-xs text-muted-foreground">—</span>}
                           </td>
-                          <td className="hidden px-4 py-3.5 sm:table-cell">
+                          <td className="hidden whitespace-nowrap px-3 py-3.5 sm:table-cell lg:px-4">
                             <Badge
                               variant="secondary"
-                              className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                              className="max-w-[140px] truncate rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                              title={r.sector ?? undefined}
                             >
                               {r.sector ?? "—"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="whitespace-nowrap px-3 py-3.5 text-right lg:px-4">
                             <Link
                               href={`/assets/${r.ticker}`}
-                              className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-emerald-subtle hover:text-emerald-light"
+                              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-border bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-emerald-subtle hover:text-emerald-light"
                             >
                               Trade
                               <ChevronRight className="h-3 w-3" />

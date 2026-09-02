@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
@@ -9,6 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { getMe } from "@/lib/services/auth";
 import { X } from "lucide-react";
+
+const PUBLIC_PREFIXES = ["/markets", "/frameworks", "/assets"];
+
+function isPublicPath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
 
 const PAPER_BANNER_KEY = "niyyatrade_paper_banner_dismissed";
 
@@ -45,13 +53,35 @@ function PaperTradingBanner() {
   );
 }
 
+function GuestBanner() {
+  return (
+    <div className="sticky top-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center">
+      <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        Guest mode — browsing is free.{" "}
+        <Link href="/register" className="underline hover:text-amber-700">
+          Create a free account
+        </Link>{" "}
+        or{" "}
+        <Link href="/login" className="underline hover:text-amber-700">
+          sign in
+        </Link>{" "}
+        to trade with $100,000 virtual capital.
+      </p>
+    </div>
+  );
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const hydrated = useAuthStore((s) => s._hydrated);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
+
+  const isPublic = isPublicPath(pathname);
+  const isGuest = hydrated && !token;
 
   const meMutation = useMutation({
     mutationFn: getMe,
@@ -59,8 +89,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setUser(me);
     },
     onError: () => {
+      // Only force logout/redirect if this was a protected page.
+      // For public pages we stay in guest mode.
+      const currentPublic = isPublicPath(pathname);
       logout();
-      router.push("/login");
+      if (!currentPublic) {
+        router.push("/login");
+      }
     },
   });
 
@@ -80,16 +115,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
 
     if (!token) {
-      router.push("/login");
+      if (isPublicPath(pathname)) {
+        return;
+      }
+      const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
+      router.push(`/login${next}`);
       return;
     }
 
     if (!user && !meMutationRef.current.isPending) {
       meMutationRef.current.mutate();
     }
-  }, [hydrated, token, user, router]);
+  }, [hydrated, token, user, router, pathname]);
 
-  if (!hydrated || !token) {
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="w-72 space-y-3">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!token && !isPublic) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="w-72 space-y-3">
@@ -104,6 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <PaperTradingBanner />
+      {isGuest && isPublic && <GuestBanner />}
       <Sidebar />
       <TopNav />
       <main id="main-content" className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
