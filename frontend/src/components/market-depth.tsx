@@ -24,7 +24,7 @@ export function MarketDepth({ ticker, currency }: MarketDepthProps) {
       <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
         <p className="text-sm text-muted-foreground">No depth data available</p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Market depth is only available for Indian markets (NSE/BSE)
+          Order book will appear when market data is available
         </p>
       </div>
     );

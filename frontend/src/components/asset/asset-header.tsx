@@ -3,6 +3,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatChange } from "@/lib/utils";
 import { MarketStatusBadge } from "@/components/market/market-status-badge";
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/lib/hooks/use-watchlist";
+import { Heart } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AssetHeaderProps {
   ticker: string;
@@ -23,6 +26,12 @@ export function AssetHeader({
   marketStatus,
   isLoading,
 }: AssetHeaderProps) {
+  const { data: watchlist } = useWatchlist();
+  const addMutation = useAddToWatchlist();
+  const removeMutation = useRemoveFromWatchlist();
+  const isWishlisted = watchlist?.some((w) => w.ticker.toUpperCase() === ticker.toUpperCase());
+  const isPending = addMutation.isPending || removeMutation.isPending;
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -35,9 +44,14 @@ export function AssetHeader({
 
   const change = changePercent !== undefined ? formatChange(changePercent) : null;
 
+  const handleWishlist = () => {
+    if (isWishlisted) removeMutation.mutate(ticker);
+    else addMutation.mutate(ticker);
+  };
+
   return (
     <div>
-      <div className="flex items-baseline gap-3">
+      <div className="flex items-center gap-3">
         <h1 className="text-xl font-semibold tracking-tight">
           {ticker.toUpperCase()}
         </h1>
@@ -45,6 +59,20 @@ export function AssetHeader({
           <span className="text-sm text-muted-foreground">{companyName}</span>
         )}
         <MarketStatusBadge status={marketStatus} />
+        <button
+          onClick={handleWishlist}
+          disabled={isPending}
+          className={cn(
+            "ml-auto inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
+            isWishlisted
+              ? "border-primary bg-emerald-subtle text-emerald-light"
+              : "border-border bg-surface text-muted-foreground hover:border-primary hover:text-primary",
+          )}
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart className={cn("h-3.5 w-3.5", isWishlisted && "fill-current")} />
+          {isWishlisted ? "Wishlisted" : "Add to wishlist"}
+        </button>
       </div>
       <div className="mt-1 flex items-baseline gap-3">
         {priceCents !== undefined && (

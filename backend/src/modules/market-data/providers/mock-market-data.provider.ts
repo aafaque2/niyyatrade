@@ -177,7 +177,33 @@ export class MockMarketDataProvider implements IMarketDataProvider {
     );
   }
 
-  getDepth(_ticker: string): Promise<MarketDepth | null> {
-    return Promise.resolve(null);
+  async getDepth(ticker: string): Promise<MarketDepth | null> {
+    const quote = await this.getQuote(ticker);
+    const price = quote.priceCents / 100;
+    const spread = price * 0.002;
+    const buy: MarketDepth['buy'] = [];
+    const sell: MarketDepth['sell'] = [];
+    for (let i = 0; i < 5; i++) {
+      const bidPrice = price - spread / 2 - i * price * 0.001;
+      const askPrice = price + spread / 2 + i * price * 0.001;
+      buy.push({
+        price: Math.round(bidPrice * 100) / 100,
+        quantity: Math.floor(5000 + Math.random() * 20000),
+        orders: Math.floor(5 + Math.random() * 45),
+      });
+      sell.push({
+        price: Math.round(askPrice * 100) / 100,
+        quantity: Math.floor(5000 + Math.random() * 20000),
+        orders: Math.floor(5 + Math.random() * 45),
+      });
+    }
+    return {
+      ticker: ticker.toUpperCase(),
+      buy,
+      sell,
+      totalBuyQuantity: buy.reduce((s, l) => s + l.quantity, 0),
+      totalSellQuantity: sell.reduce((s, l) => s + l.quantity, 0),
+      timestamp: new Date().toISOString(),
+    };
   }
 }
