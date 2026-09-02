@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { searchAssets, getQuotes, type MarketQuote, type SearchResult } from "@/lib/services/market-data";
 import { searchAssetsDB } from "@/lib/services/asset";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -108,21 +108,42 @@ export default function MarketsPage() {
   const [moversTab, setMoversTab] = useState<"gainers" | "losers">("gainers");
   const debouncedQuery = useDebounce(searchQuery, 400);
 
-  const { data: searchResults, isLoading: isSearchLoading, isError: isSearchError } = useQuery({
+  const {
+    data: assetPages,
+    isLoading: isSearchLoading,
+    isError: isSearchError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["asset-search", debouncedQuery, selectedExchange, selectedSector],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }: { pageParam?: string }) => {
       try {
-        const db = await searchAssetsDB({ q: debouncedQuery, sector: selectedSector, exchange: selectedExchange, limit: 50 });
-        if (db.length > 0) return db;
-        if (debouncedQuery) return db;
-        return await searchAssets(debouncedQuery || "a");
+        const res = await searchAssetsDB({
+          q: debouncedQuery,
+          sector: selectedSector,
+          exchange: selectedExchange,
+          limit: 50,
+          cursor: pageParam,
+        });
+        if (res.data.length > 0) return res;
+        if (debouncedQuery) return res;
+        const fallback = await searchAssets(debouncedQuery || "a");
+        return { data: fallback, nextCursor: null, hasMore: false, total: fallback.length };
       } catch {
-        return await searchAssets(debouncedQuery || "a");
+        const fallback = await searchAssets(debouncedQuery || "a");
+        return { data: fallback, nextCursor: null, hasMore: false, total: fallback.length };
       }
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 30_000,
     retry: 1,
   });
+
+  const searchResults = useMemo(() => assetPages?.pages.flatMap((p) => p.data) ?? [], [assetPages]);
+  const searchTotal = assetPages?.pages[0]?.total ?? searchResults.length;
+  const hasMoreAssets = assetPages?.pages[assetPages.pages.length - 1]?.hasMore ?? false;
 
   const resultTickers = useMemo(() => {
     if (!searchResults) return [];
@@ -237,7 +258,7 @@ export default function MarketsPage() {
     }
     return Array.from(map.entries())
       .map(([sector, v]) => ({ sector, avg: v.total / v.count, count: v.count }))
-      .filter((x) => x.count >= 1)
+      .filter((x) => x.count >= 1 && x.sector !== "Unknown")
       .sort((a, b) => b.avg - a.avg)
       .slice(0, 8);
   }, [searchResults, quotesMap]);
@@ -422,7 +443,7 @@ export default function MarketsPage() {
                 </div>
                 <h2 className="text-sm font-semibold">Equities</h2>
                 <Badge variant="secondary" className="rounded-full bg-secondary px-2 py-0 text-[11px] font-medium text-muted-foreground">
-                  {filtered.length} assets
+                  {searchTotal} assets
                 </Badge>
               </div>
               <span className="hidden text-xs text-muted-foreground sm:inline-flex items-center gap-1">
@@ -502,7 +523,7 @@ export default function MarketsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {filtered.slice(0, 50).map((r) => {
+                    {filtered.map((r) => {
                       const q = quotesMap?.[r.ticker];
                       const currency = q?.currency ?? r.currency ?? deriveCurrencyFromTicker(r.ticker);
                       const priceCents = q?.priceCents;
@@ -565,18 +586,25 @@ export default function MarketsPage() {
               </div>
             )}
 
-            {!isLoading && filtered.length > 50 && (
-              <div className="border-t border-border bg-surface/30 px-4 py-3 text-center text-xs text-muted-foreground">
-                Showing 50 of {filtered.length} assets — refine search to see more
+            {hasMoreAssets && (
+              <div className="border-t border-border bg-surface/30 px-4 py-3 text-center">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="inline-flex h-8 items-center rounded-full border border-border bg-surface px-4 text-xs font-medium text-foreground hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? "Loading…" : `Load more — ${searchTotal - filtered.length} remaining`}
+                </button>
               </div>
             )}
           </div>
 
           {!isLoading && filtered.length > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Showing {Math.min(filtered.length, 50)} of {filtered.length} assets
+              Showing {filtered.length} of {searchTotal} assets
               {debouncedQuery ? ` for “${debouncedQuery}”` : ""} {selectedExchange !== "all" ? `• ${selectedExchange}` : ""}{" "}
               {selectedSector !== "All Sectors" ? `• ${selectedSector}` : ""}
+              {hasMoreAssets ? " • scroll or load more" : ""}
             </p>
           )}
         </div>
