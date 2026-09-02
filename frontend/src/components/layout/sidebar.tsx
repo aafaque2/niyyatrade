@@ -69,7 +69,7 @@ export function Sidebar() {
         <div className="flex h-14 items-center justify-end border-b border-border px-5 lg:justify-start">
           <Link
             href="/portfolio"
-            className="flex items-center gap-2"
+            className="flex flex-end items-center gap-2"
             onClick={() => setOpen(false)}
           >
             <img
