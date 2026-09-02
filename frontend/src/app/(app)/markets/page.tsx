@@ -21,7 +21,7 @@ import {
   Building2,
   Activity,
   Globe,
-  Sparkles,
+  Bookmark,
   ChevronRight,
   Clock3,
 } from "lucide-react";
@@ -289,7 +289,7 @@ export default function MarketsPage() {
             href="/watchlist"
             className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-hover"
           >
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Bookmark className="h-4 w-4 text-primary" />
             Watchlist
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
           </Link>
