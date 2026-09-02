@@ -112,10 +112,9 @@ export default function MarketsPage() {
     queryKey: ["asset-search", debouncedQuery, selectedExchange, selectedSector],
     queryFn: async () => {
       try {
-        const db = await searchAssetsDB({ q: debouncedQuery, sector: selectedSector, exchange: selectedExchange, limit: 30 });
+        const db = await searchAssetsDB({ q: debouncedQuery, sector: selectedSector, exchange: selectedExchange, limit: 50 });
         if (db.length > 0) return db;
         if (debouncedQuery) return db;
-        // DB empty (not seeded) → fallback to provider
         return await searchAssets(debouncedQuery || "a");
       } catch {
         return await searchAssets(debouncedQuery || "a");
@@ -127,7 +126,7 @@ export default function MarketsPage() {
 
   const resultTickers = useMemo(() => {
     if (!searchResults) return [];
-    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 30);
+    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 50);
   }, [searchResults]);
 
   const { data: quotesMap, isLoading: isQuotesLoading } = useQuery<Record<string, MarketQuote>>({
@@ -140,7 +139,8 @@ export default function MarketsPage() {
         return acc;
       }, {} as Record<string, MarketQuote>);
     },
-    staleTime: 20_000,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
     retry: 2,
     refetchOnWindowFocus: false,
     enabled: resultTickers.length > 0,
@@ -156,7 +156,8 @@ export default function MarketsPage() {
         return acc;
       }, {} as Record<string, MarketQuote>);
     },
-    staleTime: 15_000,
+    staleTime: 12_000,
+    refetchInterval: 20_000,
     retry: 1,
     refetchOnWindowFocus: false,
   });
@@ -515,15 +516,15 @@ export default function MarketsPage() {
                                 {initials(r.ticker)}
                               </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-[13px] font-semibold tracking-tight text-foreground group-hover:text-primary">
-                                    {r.ticker}
-                                  </span>
-                                  <span className="hidden rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground sm:inline-flex">
-                                    {r.exchange ?? "—"}
-                                  </span>
+                                <p className="max-w-[220px] truncate text-[13px] font-medium leading-tight text-foreground group-hover:text-primary">
+                                  {r.name ?? r.ticker}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                  <span className="font-mono">{r.ticker}</span>
+                                  <span className="h-1 w-1 rounded-full bg-border" />
+                                  <span>{r.exchange ?? "—"}</span>
+                                  <span className="hidden sm:inline">• {r.currency ?? deriveCurrencyFromTicker(r.ticker)}</span>
                                 </div>
-                                <p className="max-w-[220px] truncate text-xs leading-tight text-muted-foreground">{r.name ?? "—"}</p>
                               </div>
                             </Link>
                           </td>
