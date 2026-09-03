@@ -1,6 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { FINANCIAL_GLOSSARY } from "@/lib/constants/glossary";
 import { formatCents, formatDollarsCompact } from "@/lib/utils";
@@ -38,7 +39,7 @@ function StatRow({
 }
 
 export function KeyStats({ ticker }: KeyStatsProps) {
-  const { data, isLoading } = useFundamentals(ticker);
+  const { data, isLoading, isError, refetch } = useFundamentals(ticker);
 
   if (isLoading) {
     return (
@@ -47,7 +48,7 @@ export function KeyStats({ ticker }: KeyStatsProps) {
           Key Statistics
         </h2>
         <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 9 }).map((_, i) => (
             <Skeleton key={i} className="h-4 w-full" />
           ))}
         </div>
@@ -55,7 +56,15 @@ export function KeyStats({ ticker }: KeyStatsProps) {
     );
   }
 
-  if (!data) return null;
+  if (isError || !data) {
+    return (
+      <ErrorState
+        title="Fundamentals unavailable"
+        message={`Could not load key statistics for ${ticker.toUpperCase()}.`}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   const currency = data.currency ?? "USD";
 

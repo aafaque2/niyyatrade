@@ -3,6 +3,8 @@
 import { useDepth } from "@/lib/hooks/use-depth";
 import { useQuote } from "@/lib/hooks/use-quote";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import { useMarketStatus } from "@/app/(app)/assets/[ticker]/client";
 import { cn } from "@/lib/utils";
 import type { DepthLevel } from "@/lib/services/market-data";
 
@@ -12,19 +14,35 @@ interface MarketDepthProps {
 }
 
 export function MarketDepth({ ticker, currency }: MarketDepthProps) {
-  const { data: depth, isLoading } = useDepth(ticker);
+  const { data: depth, isLoading, isError, refetch } = useDepth(ticker);
   const { data: quote } = useQuote(ticker);
+  const marketStatus = useMarketStatus();
+  const isClosed = marketStatus === "CLOSED";
 
   if (isLoading) {
     return <Skeleton className="h-[320px] w-full rounded-lg" />;
   }
 
-  if (!depth || depth.buy.length === 0) {
+  if (isError) {
+    return (
+      <ErrorState
+        title="Order book unavailable"
+        message={`Could not load market depth for ${ticker.toUpperCase()}.`}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
+  if (!depth || (depth.buy.length === 0 && depth.sell.length === 0)) {
     return (
       <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center">
-        <p className="text-sm text-muted-foreground">No depth data available</p>
+        <p className="text-sm text-muted-foreground">
+          {isClosed ? "Market closed — order book paused" : "No depth data available"}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Order book will appear when market data is available
+          {isClosed
+            ? "Live order book resumes when the market reopens"
+            : "Order book will appear when market data is available"}
         </p>
       </div>
     );

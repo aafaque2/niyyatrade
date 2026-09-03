@@ -9,18 +9,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Receipt, Shield, ChevronLeft, ChevronRight } from "lucide-react";
+import { Receipt, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState("orders");
-  const [page, setPage] = useState(1);
-  const { data, isLoading, isError, refetch } = useOrderHistory(page);
+  const [pageOrders, setPageOrders] = useState(1);
+  const [pageCompliance, setPageCompliance] = useState(1);
+  const { data, isLoading, isFetching, isError, refetch } = useOrderHistory(pageOrders);
   const {
     data: complianceData,
     isLoading: complianceLoading,
+    isFetching: complianceFetching,
     isError: complianceError,
     refetch: refetchCompliance,
-  } = useComplianceHistory(page);
+  } = useComplianceHistory(pageCompliance);
 
   return (
     <div className="space-y-5">
@@ -31,7 +33,7 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => { setTab(v ?? "orders"); setPage(1); }}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v ?? "orders"); }}>
         <TabsList>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -64,27 +66,32 @@ export default function HistoryPage() {
 
           {data && data.items.length > 0 && (
             <>
-              <OrdersTable items={data.items} />
+              <div className={isFetching && !isLoading ? "opacity-60 transition-opacity" : ""} aria-live="polite" aria-busy={isFetching}>
+                <OrdersTable items={data.items} />
+              </div>
 
               {data.pages > 1 && (
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
                     Page {data.page} of {data.pages} ({data.total} total)
+                    {isFetching && !isLoading ? " • Updating…" : ""}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
+                      aria-label="Previous orders page"
+                      disabled={pageOrders <= 1 || isFetching}
+                      onClick={() => setPageOrders((p) => p - 1)}
                     >
                       <ChevronLeft className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page >= (data.pages ?? 1)}
-                      onClick={() => setPage((p) => p + 1)}
+                      aria-label="Next orders page"
+                      disabled={pageOrders >= (data.pages ?? 1) || isFetching}
+                      onClick={() => setPageOrders((p) => p + 1)}
                     >
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
@@ -112,29 +119,34 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {complianceData && (
+          {complianceData && complianceData.items.length > 0 && (
             <>
-              <ComplianceTable items={complianceData.items} />
+              <div className={complianceFetching && !complianceLoading ? "opacity-60 transition-opacity" : ""} aria-live="polite" aria-busy={complianceFetching}>
+                <ComplianceTable items={complianceData.items} />
+              </div>
 
               {complianceData.pages > 1 && (
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
                     Page {complianceData.page} of {complianceData.pages} ({complianceData.total} total)
+                    {complianceFetching && !complianceLoading ? " • Updating…" : ""}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
+                      aria-label="Previous compliance page"
+                      disabled={pageCompliance <= 1 || complianceFetching}
+                      onClick={() => setPageCompliance((p) => p - 1)}
                     >
                       <ChevronLeft className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page >= (complianceData.pages ?? 1)}
-                      onClick={() => setPage((p) => p + 1)}
+                      aria-label="Next compliance page"
+                      disabled={pageCompliance >= (complianceData.pages ?? 1) || complianceFetching}
+                      onClick={() => setPageCompliance((p) => p + 1)}
                     >
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
@@ -144,12 +156,9 @@ export default function HistoryPage() {
             </>
           )}
 
-          {complianceData && complianceData.items.length === 0 && (
-            <EmptyState
-              icon={Shield}
-              title="No compliance history yet"
-              description="Compliance evaluations will appear here as you view assets."
-            />
+          {/* Empty owned by ComplianceTable itself (it renders EmptyState for 0 items) — no duplicate here. Only show when loaded and empty. */}
+          {complianceData && complianceData.items.length === 0 && !complianceLoading && !complianceError && (
+            <ComplianceTable items={[]} />
           )}
         </TabsContent>
       </Tabs>
