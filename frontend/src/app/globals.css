@@ -184,6 +184,7 @@ input[type="number"] {
 
 .scrollbar-green::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .scrollbar-green::-webkit-scrollbar-track {

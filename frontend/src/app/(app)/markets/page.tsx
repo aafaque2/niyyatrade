@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { searchAssets, getQuotes, type MarketQuote, type SearchResult } from "@/lib/services/market-data";
@@ -83,6 +83,8 @@ function initials(ticker: string) {
   return clean.slice(0, 2).toUpperCase();
 }
 
+const PAGE_SIZE = 20;
+
 function ChangePill({ value }: { value: number }) {
   const positive = value >= 0;
   const Icon = positive ? TrendingUp : TrendingDown;
@@ -109,6 +111,12 @@ export default function MarketsPage() {
   const [moversTab, setMoversTab] = useState<"gainers" | "losers">("gainers");
   const debouncedQuery = useDebounce(searchQuery, 400);
   const isDebouncing = searchQuery !== debouncedQuery;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset to first page whenever filters/search change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [debouncedQuery, selectedExchange, selectedSector]);
 
   const {
     data: assetPages,
@@ -125,7 +133,7 @@ export default function MarketsPage() {
           q: debouncedQuery,
           sector: selectedSector,
           exchange: selectedExchange,
-          limit: 50,
+          limit: PAGE_SIZE,
           cursor: pageParam,
         });
         if (res.data.length > 0) return res;
@@ -149,15 +157,20 @@ export default function MarketsPage() {
 
   const resultTickers = useMemo(() => {
     if (!searchResults) return [];
-    return [...new Set(searchResults.map((r) => r.ticker))].slice(0, 50);
+    return [...new Set(searchResults.map((r) => r.ticker))];
   }, [searchResults]);
 
   const { data: quotesMap, isLoading: isQuotesLoading } = useQuery<Record<string, MarketQuote>>({
     queryKey: ["quotes", ...resultTickers],
     queryFn: async () => {
       if (resultTickers.length === 0) return {};
-      const raw = await getQuotes(resultTickers);
-      return raw.reduce((acc, q) => {
+      // getQuotes caps at 50 per request — chunk so Load more beyond 50 still gets quotes
+      const chunks: string[][] = [];
+      for (let i = 0; i < resultTickers.length; i += 50) {
+        chunks.push(resultTickers.slice(i, i + 50));
+      }
+      const batches = await Promise.all(chunks.map((c) => getQuotes(c)));
+      return batches.flat().reduce((acc, q) => {
         acc[q.ticker] = q;
         return acc;
       }, {} as Record<string, MarketQuote>);
@@ -170,7 +183,7 @@ export default function MarketsPage() {
   });
 
   const indicesTickers = useMemo(() => POPULAR_INDICES.map((i) => i.ticker), []);
-  const { data: indicesMap } = useQuery<Record<string, MarketQuote>>({
+  const { data: indicesMap, isLoading: isIndicesLoading } = useQuery<Record<string, MarketQuote>>({
     queryKey: ["indices-quotes", ...indicesTickers],
     queryFn: async () => {
       const raw = await getQuotes(indicesTickers);
@@ -268,6 +281,26 @@ export default function MarketsPage() {
   const isLoading = isSearchLoading || isQuotesLoading;
   const noResults = !isSearchLoading && !isSearchError && filtered.length === 0;
 
+  // Client-side window: show 20 initially, +20 per Load more. Server pages are
+  // also 20, so this stays in sync whether data came from 1 page or many.
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const canShowMoreLocal = visible.length < filtered.length;
+  const showLoadMore = canShowMoreLocal || hasMoreAssets;
+  const remaining = Math.max(searchTotal - visible.length, 0);
+
+  const handleLoadMore = () => {
+    if (canShowMoreLocal) {
+      setVisibleCount((c) => c + PAGE_SIZE);
+      // If we're near the end of fetched data, prefetch the next server page too
+      if (filtered.length - visible.length <= PAGE_SIZE && hasMoreAssets && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    } else if (hasMoreAssets) {
+      setVisibleCount((c) => c + PAGE_SIZE);
+      fetchNextPage();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -300,8 +333,36 @@ export default function MarketsPage() {
         {/* Indices strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {POPULAR_INDICES.map((idx) => {
-            const fb = INDICES_FALLBACK[idx.ticker];
+            // Initial load → skeleton, no fallback flash. Fallback only used as last resort after fetch settles and still no live quote.
+            if (isIndicesLoading) {
+              return (
+                <div
+                  key={idx.ticker}
+                  className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-b from-surface to-surface/60 p-4"
+                  aria-busy="true"
+                  aria-label={`${idx.label} loading`}
+                >
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-60" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-16 rounded" />
+                    <Skeleton className="h-4 w-10 rounded-full" />
+                  </div>
+                  <Skeleton className="mt-3 h-[18px] w-24 rounded" />
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-10 rounded" />
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] opacity-10">
+                    <Skeleton className="h-full w-full rounded-none" />
+                  </div>
+                </div>
+              );
+            }
+
             const q = indicesMap?.[idx.ticker];
+            // Only use fallback AFTER loading has finished and live quote is still missing (provider error). Avoids first-minute fallback flash.
+            const fb = q ? null : INDICES_FALLBACK[idx.ticker];
+            const hasLive = !!q;
             const price = q?.priceCents ?? fb?.priceCents ?? null;
             const currency = q?.currency ?? fb?.currency ?? (idx.ticker.startsWith("^NSE") || idx.ticker.startsWith("^BSE") ? "INR" : "USD");
             const change = q?.changePercent ?? fb?.changePercent ?? 0;
@@ -330,7 +391,7 @@ export default function MarketsPage() {
                     {positive ? "+" : ""}
                     {change.toFixed(2)}%
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{q ? "Today" : "Delayed"}</span>
+                  <span className="text-[11px] text-muted-foreground">{hasLive ? "Live" : "Delayed"}</span>
                 </div>
                 {/* subtle sparkline */}
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] opacity-30">
@@ -460,7 +521,7 @@ export default function MarketsPage() {
 
             {isLoading ? (
               <div className="space-y-0">
-                {Array.from({ length: 7 }).map((_, i) => (
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3 border-b border-border/50 px-4 py-4 last:border-0">
                     <Skeleton className="h-9 w-9 rounded-lg" />
                     <div className="flex-1 space-y-2">
@@ -489,7 +550,7 @@ export default function MarketsPage() {
                 <p className="mt-1 text-sm text-muted-foreground">Try a different ticker, company name, or adjust filters.</p>
               </div>
             ) : (
-              <div className="w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+              <div className="scrollbar-green w-full overflow-x-auto overscroll-x-contain pb-1">
                 <table className="w-full min-w-[640px] lg:min-w-0 lg:table-fixed">
                   <colgroup>
                     <col className="w-[42%] lg:w-[38%]" />
@@ -536,7 +597,7 @@ export default function MarketsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {filtered.map((r) => {
+                    {visible.map((r) => {
                       const q = quotesMap?.[r.ticker];
                       const currency = q?.currency ?? r.currency ?? deriveCurrencyFromTicker(r.ticker);
                       const priceCents = q?.priceCents;
@@ -600,25 +661,31 @@ export default function MarketsPage() {
               </div>
             )}
 
-            {hasMoreAssets && (
+            {showLoadMore && (
               <div className="border-t border-border bg-surface/30 px-4 py-3 text-center">
                 <button
-                  onClick={() => fetchNextPage()}
+                  onClick={handleLoadMore}
                   disabled={isFetchingNextPage}
-                  className="inline-flex h-8 items-center rounded-full border border-border bg-surface px-4 text-xs font-medium text-foreground hover:bg-surface-hover disabled:opacity-50"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-xs font-medium text-foreground hover:bg-surface-hover disabled:opacity-50"
                 >
-                  {isFetchingNextPage ? "Loading…" : `Load more — ${searchTotal - filtered.length} remaining`}
+                  {isFetchingNextPage ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+                    </>
+                  ) : (
+                    `Load more — ${remaining} remaining`
+                  )}
                 </button>
               </div>
             )}
           </div>
 
           {!isLoading && filtered.length > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Showing {filtered.length} of {searchTotal} assets
+            <p className="mt-3 text-xs text-muted-foreground" role="status" aria-live="polite">
+              Showing {visible.length} of {searchTotal} assets
               {debouncedQuery ? ` for “${debouncedQuery}”` : ""} {selectedExchange !== "all" ? `• ${selectedExchange}` : ""}{" "}
               {selectedSector !== "All Sectors" ? `• ${selectedSector}` : ""}
-              {hasMoreAssets ? " • scroll or load more" : ""}
+              {showLoadMore ? " • load more for next 20" : ""}
             </p>
           )}
         </div>
