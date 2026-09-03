@@ -20,15 +20,68 @@ export class AssetSyncService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      const count = await this.prisma.asset.count();
-      if (count < 100) {
-        this.logger.log(`Asset table has ${count} rows, seeding universe...`);
-        const res = await this.syncFromSeed();
-        this.logger.log(`Auto-seed completed: ${res.upserted}`);
+      // Backfill any seed tickers missing from the DB (e.g. universe expanded
+      // after the initial seed). Upserts are idempotent; existing rows and
+      // user-discovered assets are untouched.
+      const res = await this.syncMissingFromSeed();
+      if (res.upserted > 0) {
+        this.logger.log(`Auto-seed backfilled: ${res.upserted} missing assets`);
       }
     } catch (e) {
       this.logger.warn(`Auto-seed check failed: ${(e as Error).message}`);
     }
+  }
+
+  async syncMissingFromSeed(): Promise<{ upserted: number }> {
+    const seedPath = this.resolveSeedPath();
+    if (!seedPath) {
+      this.logger.warn(`Seed file not found in candidates`);
+      return { upserted: 0 };
+    }
+    const raw = fs.readFileSync(seedPath, 'utf-8');
+    const assets: SeedAsset[] = JSON.parse(raw);
+    const existing = await this.prisma.asset.findMany({
+      where: { ticker: { in: assets.map((a) => a.ticker) } },
+      select: { ticker: true },
+    });
+    const known = new Set(existing.map((e) => e.ticker));
+    const missing = assets.filter((a) => !known.has(a.ticker));
+    if (missing.length === 0) return { upserted: 0 };
+    this.logger.log(
+      `Asset table missing ${missing.length} seed tickers, backfilling...`,
+    );
+    let count = 0;
+    const batchSize = 100;
+    for (let i = 0; i < missing.length; i += batchSize) {
+      const batch = missing.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map((a) =>
+          this.prisma.asset.upsert({
+            where: { ticker: a.ticker },
+            update: {
+              name: a.name,
+              sector: a.sector,
+              industry: a.industry ?? null,
+              exchange: a.exchange,
+              currency: a.currency,
+              isActive: true,
+            },
+            create: {
+              ticker: a.ticker,
+              name: a.name,
+              sector: a.sector,
+              industry: a.industry ?? null,
+              exchange: a.exchange,
+              currency: a.currency,
+              isActive: true,
+            },
+          }),
+        ),
+      );
+      count += batch.length;
+    }
+    this.logger.log(`Asset backfill: upserted ${count} from seed ${seedPath}`);
+    return { upserted: count };
   }
 
   private resolveSeedPath(): string | null {

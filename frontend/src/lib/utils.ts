@@ -51,10 +51,18 @@ export function deriveCurrencyFromTicker(ticker: string): string {
   return "USD"
 }
 
+// Intl throws RangeError on non-ISO codes (e.g. Yahoo's "GBp") which would
+// crash the whole table — unknown codes fall back to USD formatting.
+function safeCurrency(currency: string): string {
+  const up = currency.toUpperCase()
+  if (up === "GBP") return "GBP" // pence — backend normalizes to GBP pounds
+  return CURRENCY_SYMBOLS[up] ? up : "USD"
+}
+
 function makeCurrencyFormatter(currency: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: safeCurrency(currency),
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -63,7 +71,7 @@ function makeCurrencyFormatter(currency: string) {
 function makeCompactCurrencyFormatter(currency: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: safeCurrency(currency),
     notation: "compact",
     minimumFractionDigits: 0,
     maximumFractionDigits: 1,

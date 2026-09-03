@@ -173,13 +173,20 @@ export class YahooFinance2MarketDataProvider implements IMarketDataProvider {
       throw new Error(`No quote data for ${ticker}`);
     }
 
+    // LSE quotes arrive in GBp (pence): 1 penny == 1 "cent" of a pound, so
+    // priceCents is the raw price and the label normalizes to GBP. Without
+    // this, LSE prices display 100x and the GBp code crashes Intl formatters.
+    const rawCurrency = quote.currency ?? 'USD';
+    const isPence = rawCurrency.toUpperCase() === 'GBP';
     return MarketQuoteSchema.parse({
       ticker: quote.symbol?.toUpperCase() ?? ticker.toUpperCase(),
-      priceCents: Math.round(quote.regularMarketPrice * 100),
+      priceCents: isPence
+        ? Math.round(quote.regularMarketPrice)
+        : Math.round(quote.regularMarketPrice * 100),
       changePercent:
         Math.round((quote.regularMarketChangePercent ?? 0) * 100) / 100,
       timestamp: new Date().toISOString(),
-      currency: quote.currency ?? 'USD',
+      currency: isPence ? 'GBP' : rawCurrency,
       marketStatus: this.mapMarketState(quote.marketState),
     });
   }
