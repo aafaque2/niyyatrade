@@ -7,13 +7,16 @@ interface AuthInterceptModalProps {
   open: boolean;
   onClose: () => void;
   ticker: string;
+  action?: "trade" | "watchlist";
 }
 
 export function AuthInterceptModal({
   open,
   onClose,
   ticker,
+  action = "trade",
 }: AuthInterceptModalProps) {
+  const isWatchlist = action === "watchlist";
   return (
     <Modal open={open} onClose={onClose}>
       <div className="text-center">
@@ -32,10 +35,21 @@ export function AuthInterceptModal({
             />
           </svg>
         </div>
-        <h2 className="mb-1 text-lg font-semibold">Sign in to trade</h2>
+        <h2 className="mb-1 text-lg font-semibold">
+          {isWatchlist ? "Sign up to use watchlists" : "Sign in to trade"}
+        </h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          You need an account to buy or sell {ticker.toUpperCase()}. Sign in or
-          create one to continue.
+          {isWatchlist ? (
+            <>
+              Sign up for a free account to save {ticker.toUpperCase()} to your
+              watchlist and track it across sessions.
+            </>
+          ) : (
+            <>
+              You need an account to buy or sell {ticker.toUpperCase()}. Sign in or
+              create one to continue.
+            </>
+          )}
         </p>
         <div className="flex flex-col gap-2">
           <Link

@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatChange } from "@/lib/utils";
 import { MarketStatusBadge } from "@/components/market/market-status-badge";
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from "@/lib/hooks/use-watchlist";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
 import { Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +32,10 @@ export function AssetHeader({
   const { data: watchlist } = useWatchlist();
   const addMutation = useAddToWatchlist();
   const removeMutation = useRemoveFromWatchlist();
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
+  const isGuest = hydrated && !token;
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const isWatchlisted = watchlist?.some((w) => w.ticker.toUpperCase() === ticker.toUpperCase());
   const isPending = addMutation.isPending || removeMutation.isPending;
 
@@ -45,6 +52,11 @@ export function AssetHeader({
   const change = changePercent !== undefined ? formatChange(changePercent) : null;
 
   const handleWatchlist = () => {
+    // Guests get the signup prompt instead of a raw 401 "unauthorised" toast.
+    if (isGuest) {
+      setShowAuthModal(true);
+      return;
+    }
     if (isWatchlisted) removeMutation.mutate(ticker);
     else addMutation.mutate(ticker);
   };
@@ -73,6 +85,12 @@ export function AssetHeader({
           <Bookmark className={cn("h-3.5 w-3.5", isWatchlisted && "fill-current")} />
           {isWatchlisted ? "Watchlisted" : "Add to watchlist"}
         </button>
+        <AuthInterceptModal
+          open={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          ticker={ticker}
+          action="watchlist"
+        />
       </div>
       <div className="mt-1 flex items-baseline gap-3">
         {priceCents !== undefined && (

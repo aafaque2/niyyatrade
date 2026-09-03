@@ -8,12 +8,17 @@ import {
   removeFromWatchlist,
   type WatchlistItem,
 } from "@/lib/services/watchlist";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export function useWatchlist() {
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hydrated);
   return useQuery({
     queryKey: ["watchlist"],
     queryFn: fetchWatchlist,
     staleTime: 30_000,
+    enabled: hydrated ? !!token : false,
+    retry: 1,
   });
 }
 

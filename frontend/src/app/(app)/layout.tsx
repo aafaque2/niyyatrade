@@ -154,8 +154,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <PaperTradingBanner />
-      {isGuest && isPublic && <GuestBanner />}
+      {/* Guests get the signup banner instead of the paper-trading notice —
+          the latter only makes sense once you can actually place trades. */}
+      {isGuest && isPublic ? <GuestBanner /> : !isGuest ? <PaperTradingBanner /> : null}
       <Sidebar />
       <TopNav />
       <main id="main-content" className="lg:ml-[232px] mt-14 min-h-[calc(100vh-3.5rem)] p-6">
