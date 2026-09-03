@@ -6,6 +6,7 @@ import {
   fetchWatchlist,
   addToWatchlist,
   removeFromWatchlist,
+  type WatchlistItem,
 } from "@/lib/services/watchlist";
 
 export function useWatchlist() {
@@ -21,12 +22,36 @@ export function useAddToWatchlist() {
 
   return useMutation({
     mutationFn: (ticker: string) => addToWatchlist(ticker),
+    onMutate: async (ticker: string) => {
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] });
+      const previous = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
+      const upper = ticker.toUpperCase();
+      if (previous && !previous.some((i) => i.ticker.toUpperCase() === upper)) {
+        queryClient.setQueryData<WatchlistItem[]>(["watchlist"], [
+          ...previous,
+          {
+            id: `optimistic-${upper}-${Date.now()}`,
+            ticker: upper,
+            name: upper,
+            sector: "",
+            addedAt: new Date().toISOString(),
+          },
+        ]);
+      }
+      return { previous };
+    },
     onSuccess: (item) => {
       toast.success(`${item.ticker} added to watchlist`);
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _ticker, context) => {
+      const ctx = context as { previous?: WatchlistItem[] } | undefined;
+      if (ctx?.previous) {
+        queryClient.setQueryData(["watchlist"], ctx.previous);
+      }
       toast.error(err.message ?? "Failed to add to watchlist");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
 }
@@ -36,12 +61,30 @@ export function useRemoveFromWatchlist() {
 
   return useMutation({
     mutationFn: (ticker: string) => removeFromWatchlist(ticker),
+    onMutate: async (ticker: string) => {
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] });
+      const previous = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
+      const upper = ticker.toUpperCase();
+      if (previous) {
+        queryClient.setQueryData<WatchlistItem[]>(
+          ["watchlist"],
+          previous.filter((i) => i.ticker.toUpperCase() !== upper),
+        );
+      }
+      return { previous };
+    },
     onSuccess: (_data, ticker) => {
       toast.success(`${ticker} removed from watchlist`);
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _ticker, context) => {
+      const ctx = context as { previous?: WatchlistItem[] } | undefined;
+      if (ctx?.previous) {
+        queryClient.setQueryData(["watchlist"], ctx.previous);
+      }
       toast.error(err.message ?? "Failed to remove from watchlist");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
 }
