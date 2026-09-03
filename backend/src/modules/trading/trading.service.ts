@@ -382,6 +382,16 @@ export class TradingService {
       );
     }
 
+    // Market-hours gate: live MARKET fills only when we know the market is
+    // open. CLOSED sessions (overnight/weekends) would otherwise fill at stale
+    // close prices. LIMIT orders can still be placed anytime — the watcher
+    // holds them until the market reopens.
+    if (quote.marketStatus === 'CLOSED') {
+      throw new BadRequestException(
+        `Market is closed for ${dto.assetTicker} — place a limit order and it will execute when trading resumes`,
+      );
+    }
+
     // Settle everything in the user's base currency — portfolio cash is
     // held in a single currency, so foreign-priced assets must be converted
     // before debiting/crediting. Fail closed if FX data is unavailable.
@@ -566,6 +576,21 @@ export class TradingService {
         return result;
       });
     } catch (err) {
+      // Permanent validation failures -> FAILED. Transient upstream blips
+      // (timeouts, 5xx, FX hiccups) leave the order PENDING for the next tick.
+      const permanent =
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException ||
+        (typeof (err as { status?: unknown })?.status === 'number' &&
+          (err as { status: number }).status >= 400 &&
+          (err as { status: number }).status < 500);
+      if (!permanent) {
+        this.logger.warn(
+          `Pending order ${order.id} hit transient error, keeping PENDING: ${(err as Error).message}`,
+        );
+        throw err;
+      }
       this.logger.warn(
         `Pending order ${order.id} execution failed: ${(err as Error).message}`,
       );

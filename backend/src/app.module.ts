@@ -4,6 +4,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from './shared/throttler/redis-throttler.storage';
+import type Redis from 'ioredis';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -26,14 +28,33 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
   imports: [
     ConfigModule.forRoot({ isGlobal: true, cache: true }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        // ttl is in milliseconds (throttler v5+)
-        ttl: 60_000,
-        limit: 100,
-      },
-    ]),
     RedisModule,
+    ThrottlerModule.forRootAsync({
+      useFactory: (redis: Redis) => ({
+        throttlers: [
+          {
+            // ttl is in milliseconds (throttler v5+)
+            ttl: 60_000,
+            limit: 100,
+          },
+        ],
+        storage: new RedisThrottlerStorage(redis),
+        // Health probes must never trip rate limits
+        skipIf: (ctx) => {
+          try {
+            const req = ctx.switchToHttp().getRequest<{
+              url?: string;
+              path?: string;
+            }>();
+            const url = req?.url ?? req?.path ?? '';
+            return url.includes('/health');
+          } catch {
+            return false;
+          }
+        },
+      }),
+      inject: ['REDIS_CLIENT'],
+    }),
     MailModule,
     FxModule,
     AuthModule,
