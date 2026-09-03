@@ -6,6 +6,13 @@ import { Toaster } from "sonner";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://niyyatrade.com";
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0B0F0E",
+  colorScheme: "dark",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -14,6 +21,16 @@ export const metadata: Metadata = {
   },
   description:
     "A framework-driven paper trading platform. Evaluate investments through ESG, Shariah, and custom compliance frameworks with transparent, explainable verdicts.",
+  alternates: {
+    canonical: SITE_URL,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     siteName: "NiyyaTrade",

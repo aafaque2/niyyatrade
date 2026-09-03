@@ -64,6 +64,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
+    // HttpException 5xx (e.g. provider 502s mapped to InternalServerError)
+    // never reached Sentry — capture them too, without leaking details.
+    if (exception instanceof HttpException && status >= 500) {
+      try {
+        Sentry.captureException(exception);
+      } catch {
+        // Sentry not initialized
+      }
+    }
+
     const requestId = (request.headers['x-request-id'] as string) || 'unknown';
 
     if (status >= 500) {

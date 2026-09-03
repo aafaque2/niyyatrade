@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function NotFound() {
   return (
@@ -14,10 +23,10 @@ export default function NotFound() {
         </p>
         <div className="flex items-center justify-center gap-3 pt-2">
           <Link
-            href="/portfolio"
+            href="/markets"
             className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-xs font-medium text-primary-foreground transition-colors hover:bg-emerald-muted"
           >
-            Go to Dashboard
+            Browse Markets
           </Link>
           <Link
             href="/"

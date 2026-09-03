@@ -4,15 +4,13 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
+      allow: ["/", "/markets", "/frameworks", "/assets/"],
       disallow: [
         "/api/",
         "/portfolio",
         "/watchlist",
         "/history",
         "/settings",
-        "/frameworks",
-        "/assets/",
       ],
     },
     sitemap: `${process.env.NEXT_PUBLIC_SITE_URL || "https://niyyatrade.com"}/sitemap.xml`,

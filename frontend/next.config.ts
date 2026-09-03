@@ -26,4 +26,6 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   disableLogger: true,
   automaticVercelMonitors: true,
+  // Tunnel client events through same-origin to survive ad-blockers
+  tunnelRoute: "/monitoring",
 });
