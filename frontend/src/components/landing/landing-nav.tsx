@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 export function LandingNav() {
   const [hydrated, setHydrated] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
@@ -16,11 +17,24 @@ export function LandingNav() {
     setHydrated(true);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Don't flash wrong state before hydration
   const isAuthenticated = hydrated && !!token;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
+    <header
+      className={
+        scrolled
+          ? "sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md transition-colors"
+          : "sticky top-0 z-40 w-full border-b border-transparent bg-transparent transition-colors"
+      }
+    >
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="NiyyaTrade" width={32} height={32} className="h-8 w-auto" />
