@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -24,9 +25,13 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--primary)_0%,_transparent_50%)] opacity-[0.07]" />
 
       <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-16 text-center sm:pb-32 sm:pt-28">
-        <img
+        <Image
           src="/logo.png"
           alt="NiyyaTrade"
+          width={128}
+          height={128}
+          priority
+          fetchPriority="high"
           className="mx-auto h-24 sm:h-32 w-auto"
         />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useEffect, useState } from "react";
 
@@ -20,7 +21,7 @@ export function LandingNav() {
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="NiyyaTrade" className="h-8 w-auto" />
+          <Image src="/logo.png" alt="NiyyaTrade" width={32} height={32} className="h-8 w-auto" />
           <span className="hidden text-sm font-semibold tracking-tight sm:inline">NiyyaTrade</span>
         </Link>
 

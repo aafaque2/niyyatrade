@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "lightweight-charts"],
+  },
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
 };
 
 export default withSentryConfig(nextConfig, {

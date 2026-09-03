@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { resetPassword } from "@/lib/services/auth";
@@ -61,9 +62,11 @@ export default function ResetPasswordPage() {
             href="/"
             className="inline-flex items-center justify-center text-foreground"
           >
-            <img
+            <Image
               src="/logo.png"
               alt="NiyyaTrade"
+              width={64}
+              height={64}
               className="h-16 w-auto"
             />
           </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -79,9 +80,11 @@ export function Sidebar() {
             className="flex flex-end items-center gap-2"
             onClick={() => setOpen(false)}
           >
-            <img
+            <Image
               src="/logo.png"
               alt="NiyyaTrade"
+              width={40}
+              height={40}
               className="h-10 w-auto"
             />
           </Link>
