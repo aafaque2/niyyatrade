@@ -20,7 +20,9 @@ export function LandingNav() {
   const isAuthenticated = hydrated && !!token;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-transparent bg-transparent">
+    // Absolute overlay: sits on top of the hero's radial glow instead of on
+    // the flat page background (scrolls away with the hero — landing only).
+    <header className="absolute top-0 right-0 left-0 z-40 w-full border-b border-transparent bg-transparent">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="NiyyaTrade" width={32} height={32} className="h-8 w-auto" />
