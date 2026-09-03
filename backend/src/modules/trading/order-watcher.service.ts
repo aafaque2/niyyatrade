@@ -64,6 +64,7 @@ export class OrderWatcherService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      const now = new Date();
       const pending = await this.prisma.order.findMany({
         where: { status: 'PENDING' },
         orderBy: { createdAt: 'asc' },
@@ -75,12 +76,23 @@ export class OrderWatcherService implements OnModuleInit, OnModuleDestroy {
           side: true,
           quantity: true,
           targetPriceCents: true,
+          expiresAt: true,
         },
       });
 
       if (pending.length === 0) return;
 
       for (const order of pending) {
+        // Expired limit orders are cancelled (not failed) so history stays clean.
+        if (order.expiresAt && order.expiresAt <= now) {
+          this.logger.log(`Pending order ${order.id} expired, cancelling`);
+          await this.prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'CANCELLED' },
+          });
+          continue;
+        }
+
         if (!order.targetPriceCents) {
           this.logger.warn(
             `Pending order ${order.id} has no target price, marking FAILED`,

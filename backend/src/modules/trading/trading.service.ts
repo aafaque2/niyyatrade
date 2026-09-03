@@ -308,6 +308,9 @@ export class TradingService {
         quantity: quantity.toNumber(),
         status: 'PENDING',
         targetPriceCents: targetPriceBaseCents,
+        // Limit orders live 7 days, then the watcher cancels them so stale
+        // PENDING rows cannot accumulate forever.
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
 
