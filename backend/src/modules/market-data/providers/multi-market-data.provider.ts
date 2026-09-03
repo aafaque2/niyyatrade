@@ -22,64 +22,61 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     return /\.(NS|BO|NSE|BSE)$/i.test(ticker);
   }
 
+  /**
+   * Full 3-provider chain: primary, then the region-preferred fallback,
+   * then the remaining one. Previously only ONE fallback was attempted
+   * (Indian never tried FMP, US never tried Upstox).
+   */
+  private chain(ticker: string): Array<{ name: string; p: IMarketDataProvider }> {
+    const indian = this.isIndianTicker(ticker);
+    return [
+      { name: 'primary', p: this.primary },
+      ...(indian
+        ? [
+            { name: 'upstox', p: this.upstox },
+            { name: 'fmp', p: this.fmp },
+          ]
+        : [
+            { name: 'fmp', p: this.fmp },
+            { name: 'upstox', p: this.upstox },
+          ]),
+    ];
+  }
+
   async getQuote(ticker: string): Promise<MarketQuote> {
-    try {
-      return await this.primary.getQuote(ticker);
-    } catch (err) {
-      this.logger.warn(
-        `Primary quote failed for ${ticker}: ${(err as Error).message}`,
-      );
-    }
-
-    if (this.isIndianTicker(ticker)) {
+    let lastErr: unknown = null;
+    for (const { name, p } of this.chain(ticker)) {
       try {
-        return await this.upstox.getQuote(ticker);
-      } catch (err2) {
+        return await p.getQuote(ticker);
+      } catch (err) {
+        lastErr = err;
         this.logger.warn(
-          `Upstox quote also failed for ${ticker}: ${(err2 as Error).message}`,
-        );
-      }
-    } else {
-      try {
-        return await this.fmp.getQuote(ticker);
-      } catch (err2) {
-        this.logger.warn(
-          `FMP quote also failed for ${ticker}: ${(err2 as Error).message}`,
+          `${name} quote failed for ${ticker}: ${(err as Error).message}`,
         );
       }
     }
 
-    throw new Error(`All providers failed for quote ${ticker}`);
+    throw new Error(
+      `All providers failed for quote ${ticker}: ${(lastErr as Error)?.message ?? 'unknown'}`,
+    );
   }
 
   async getFundamentals(ticker: string): Promise<FinancialFundamentals> {
-    try {
-      return await this.primary.getFundamentals(ticker);
-    } catch (err) {
-      this.logger.warn(
-        `Primary fundamentals failed for ${ticker}: ${(err as Error).message}`,
-      );
-    }
-
-    if (this.isIndianTicker(ticker)) {
+    let lastErr: unknown = null;
+    for (const { name, p } of this.chain(ticker)) {
       try {
-        return await this.upstox.getFundamentals(ticker);
-      } catch (err2) {
+        return await p.getFundamentals(ticker);
+      } catch (err) {
+        lastErr = err;
         this.logger.warn(
-          `Upstox fundamentals also failed for ${ticker}: ${(err2 as Error).message}`,
-        );
-      }
-    } else {
-      try {
-        return await this.fmp.getFundamentals(ticker);
-      } catch (err2) {
-        this.logger.warn(
-          `FMP fundamentals also failed for ${ticker}: ${(err2 as Error).message}`,
+          `${name} fundamentals failed for ${ticker}: ${(err as Error).message}`,
         );
       }
     }
 
-    throw new Error(`All providers failed for fundamentals ${ticker}`);
+    throw new Error(
+      `All providers failed for fundamentals ${ticker}: ${(lastErr as Error)?.message ?? 'unknown'}`,
+    );
   }
 
   async getCandles(
@@ -89,51 +86,21 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
     to?: number,
     interval?: string,
   ): Promise<ChartCandle[]> {
-    try {
-      return await this.primary.getCandles(
-        ticker,
-        resolution,
-        from,
-        to,
-        interval,
-      );
-    } catch (err) {
-      this.logger.warn(
-        `Primary candles failed for ${ticker}: ${(err as Error).message}`,
-      );
-    }
-
-    if (this.isIndianTicker(ticker)) {
+    let lastErr: unknown = null;
+    for (const { name, p } of this.chain(ticker)) {
       try {
-        return await this.upstox.getCandles(
-          ticker,
-          resolution,
-          from,
-          to,
-          interval,
-        );
-      } catch (err2) {
+        return await p.getCandles(ticker, resolution, from, to, interval);
+      } catch (err) {
+        lastErr = err;
         this.logger.warn(
-          `Upstox candles also failed for ${ticker}: ${(err2 as Error).message}`,
-        );
-      }
-    } else {
-      try {
-        return await this.fmp.getCandles(
-          ticker,
-          resolution,
-          from,
-          to,
-          interval,
-        );
-      } catch (err2) {
-        this.logger.warn(
-          `FMP candles also failed for ${ticker}: ${(err2 as Error).message}`,
+          `${name} candles failed for ${ticker}: ${(err as Error).message}`,
         );
       }
     }
 
-    throw new Error(`All providers failed for candles ${ticker}`);
+    throw new Error(
+      `All providers failed for candles ${ticker}: ${(lastErr as Error)?.message ?? 'unknown'}`,
+    );
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -184,20 +151,15 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
   }
 
   async getDepth(ticker: string): Promise<MarketDepth | null> {
-    try {
-      return await this.primary.getDepth(ticker);
-    } catch (err) {
-      this.logger.warn(
-        `Primary depth failed for ${ticker}: ${(err as Error).message}`,
-      );
-    }
-
-    if (this.isIndianTicker(ticker)) {
+    for (const { name, p } of this.chain(ticker)) {
       try {
-        return await this.upstox.getDepth(ticker);
-      } catch (err2) {
+        const depth = await p.getDepth(ticker);
+        if (depth && (depth.buy.length > 0 || depth.sell.length > 0)) {
+          return depth;
+        }
+      } catch (err) {
         this.logger.warn(
-          `Upstox depth also failed for ${ticker}: ${(err2 as Error).message}`,
+          `${name} depth failed for ${ticker}: ${(err as Error).message}`,
         );
       }
     }
