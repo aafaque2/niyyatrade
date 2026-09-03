@@ -56,6 +56,7 @@ export default function PortfolioPage() {
         totalValueCents={data?.totalValueCents}
         buyingPowerCents={data?.buyingPowerCents}
         dailyChangePercent={data?.dailyChangePercent}
+        overallComplianceScore={data?.overallComplianceScore}
         baseCurrency={userCurrency}
         isLoading={summaryLoading}
       />

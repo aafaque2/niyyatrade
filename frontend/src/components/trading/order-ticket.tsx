@@ -430,7 +430,7 @@ export function OrderTicket({ ticker }: { ticker: string }) {
             <div className="flex items-center gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 animate-in fade-in slide-in-from-top-1">
               <Clock className="h-3.5 w-3.5 text-warning" />
               <p className="text-xs text-warning">
-                Limit order placed — will execute at <span className="font-mono font-medium">{formatCents(effectivePriceCents, currency)}</span>
+                Limit order placed — triggers at <span className="font-mono font-medium">{formatCents(effectivePriceCents, currency)}</span>, fills at market price
               </p>
             </div>
           ) : (

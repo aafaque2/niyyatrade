@@ -196,6 +196,7 @@ export class MarketDataService {
         totalBuyQuantity: buy.reduce((s, l) => s + l.quantity, 0),
         totalSellQuantity: sell.reduce((s, l) => s + l.quantity, 0),
         timestamp: new Date().toISOString(),
+        isSynthetic: true,
       };
       await this.cacheSet(key, 3, synthetic);
       return synthetic;
@@ -217,16 +218,22 @@ export class MarketDataService {
     const cached = await this.cacheGet<MarketQuote[]>(cacheKey);
     if (cached) return cached;
 
-    const results = await Promise.allSettled(
-      normalized.map((t) => this.getQuote(t)),
-    );
+    // Bulkhead: at most 8 concurrent quote fetches so one big batch
+    // cannot saturate the event loop / upstream provider.
+    const CONCURRENCY = 8;
     const quotes: MarketQuote[] = [];
-    for (const r of results) {
-      if (r.status === 'fulfilled') quotes.push(r.value);
-      else
-        this.logger.warn(
-          `batch quote failed: ${(r.reason as Error)?.message ?? r.reason}`,
-        );
+    for (let i = 0; i < normalized.length; i += CONCURRENCY) {
+      const chunk = normalized.slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(
+        chunk.map((t) => this.getQuote(t)),
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled') quotes.push(r.value);
+        else
+          this.logger.warn(
+            `batch quote failed: ${(r.reason as Error)?.message ?? r.reason}`,
+          );
+      }
     }
     if (quotes.length > 0) await this.cacheSet(cacheKey, 15, quotes);
     return quotes;

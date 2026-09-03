@@ -8,6 +8,7 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { useComplianceFrameworkStore } from "@/lib/stores/compliance-framework-store";
 import { useFrameworks } from "@/lib/hooks/use-frameworks";
 import { Bell, LogOut, Settings, User, ChevronDown, LayoutGrid } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const FRAMEWORK_LABELS: Record<string, string> = {
@@ -74,6 +75,10 @@ export function TopNav() {
             <Input
               placeholder="Search assets..."
               aria-label="Search assets"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls="command-palette-listbox"
+              aria-autocomplete="list"
               className="h-8 pl-11 text-sm bg-surface border-border"
               readOnly
               onFocus={() => setOpen(true)}
@@ -110,8 +115,11 @@ export function TopNav() {
             {/* Notifications */}
             <button
               type="button"
+              onClick={() =>
+                toast.info("Price alerts coming soon — watchlists will notify you on big moves.")
+              }
               className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
-              aria-label="Notifications"
+              aria-label="Notifications (coming soon)"
             >
               <Bell className="h-4 w-4" />
             </button>
@@ -136,11 +144,13 @@ export function TopNav() {
               </div>
             ) : (
               <div className="relative" data-user-menu>
-                <button
-                  type="button"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
-                >
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+              >
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
                     {user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U"}
                   </div>
@@ -167,13 +177,19 @@ export function TopNav() {
                       <Settings className="h-3.5 w-3.5" />
                       Settings
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        logout();
-                        router.push("/login");
-                        setUserMenuOpen(false);
-                      }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Revoke server-side (clears httpOnly cookie + bumps
+                      // tokenVersion) — local session clears regardless.
+                      import("@/lib/services/auth").then(
+                        ({ logoutSession }) => logoutSession().catch(() => {}),
+                        () => {},
+                      );
+                      logout();
+                      router.push("/login");
+                      setUserMenuOpen(false);
+                    }}
                       className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     >
                       <LogOut className="h-3.5 w-3.5" />

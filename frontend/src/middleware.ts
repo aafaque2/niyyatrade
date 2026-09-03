@@ -1,7 +1,42 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const AUTH_COOKIE = "nt_auth";
+const PROTECTED_PREFIXES = ["/portfolio", "/watchlist", "/history", "/settings"];
+const AUTH_PAGES = ["/login", "/register"];
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
+
+function isAuthPage(pathname: string): boolean {
+  return AUTH_PAGES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
+
 export function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const hasSession = request.cookies.has(AUTH_COOKIE);
+
+  // Server-side auth guard (presence check — validity is still verified by
+  // /auth/me in the app layout). Note: sessions created before the httpOnly
+  // cookie existed (localStorage-only) will sign in again once.
+  if (!hasSession && isProtected(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
+  if (hasSession && isAuthPage(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/portfolio";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   const response = NextResponse.next();
   const isProd = process.env.NODE_ENV === "production";
 

@@ -118,6 +118,7 @@ export interface MarketDepth {
   totalBuyQuantity: number;
   totalSellQuantity: number;
   timestamp: string;
+  isSynthetic?: boolean;
 }
 
 export async function getDepth(ticker: string): Promise<MarketDepth | null> {

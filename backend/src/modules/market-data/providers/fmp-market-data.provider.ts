@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type Redis from 'ioredis';
 import type { IMarketDataProvider } from './market-data-provider.interface';
 import type {
   MarketQuote,
@@ -20,7 +21,10 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
   private readonly apiKeys: string[];
   private keyIndex = 0;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() @Inject('REDIS_CLIENT') private readonly redis?: Redis,
+  ) {
     const raw = this.configService.get<string>('FMP_API_KEY', '');
     this.apiKeys = raw
       .split(',')
@@ -28,26 +32,57 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
       .filter(Boolean);
   }
 
-  private get apiKey(): string {
-    return this.apiKeys[this.keyIndex % this.apiKeys.length];
+  /**
+   * Slot resolution is shared via Redis so every replica round-robins
+   * through the key pool (previously each pod stuck to slot 0 and a 402
+   * on one pod never helped the others). Falls back to sticky in-memory
+   * slot when Redis is unavailable.
+   */
+  private async resolveSlot(): Promise<number> {
+    if (this.apiKeys.length <= 1) return 0;
+    if (this.redis) {
+      try {
+        const n = await this.redis.incr('fmp:key-slot');
+        return Number(n) % this.apiKeys.length;
+      } catch {
+        // fall through to memory
+      }
+    }
+    return this.keyIndex;
   }
 
-  private rotateKey(): string {
+  private async rotateSlot(): Promise<number> {
+    if (this.apiKeys.length <= 1) return 0;
+    if (this.redis) {
+      try {
+        const n = await this.redis.incr('fmp:key-slot');
+        const slot = Number(n) % this.apiKeys.length;
+        this.logger.warn(
+          `FMP key rotation → slot ${slot} (${this.apiKeys.length} keys available)`,
+        );
+        return slot;
+      } catch {
+        // fall through to memory
+      }
+    }
     const prev = this.keyIndex;
     this.keyIndex = (this.keyIndex + 1) % this.apiKeys.length;
     this.logger.warn(
       `FMP key rotation: slot ${prev} → ${this.keyIndex} (${this.apiKeys.length} keys available)`,
     );
-    return this.apiKey;
+    return this.keyIndex;
   }
 
   private static readonly FETCH_TIMEOUT_MS = 10_000;
 
   private async fetch<T>(path: string, attempt = 0): Promise<T> {
+    const slot =
+      attempt === 0 ? await this.resolveSlot() : await this.rotateSlot();
+    const key = this.apiKeys[slot % this.apiKeys.length];
     const separator = path.includes('?') ? '&' : '?';
-    const url = `${this.baseUrl}${path}${separator}apikey=${this.apiKey}`;
+    const url = `${this.baseUrl}${path}${separator}apikey=${key}`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'HalalTrade/1.0' },
+      headers: { 'User-Agent': 'NiyyaTrade/1.0' },
       signal: AbortSignal.timeout(FmpMarketDataProvider.FETCH_TIMEOUT_MS),
     });
 
@@ -61,7 +96,6 @@ export class FmpMarketDataProvider implements IMarketDataProvider {
         (res.status === 402 || res.status === 403) &&
         attempt < this.apiKeys.length - 1
       ) {
-        this.rotateKey();
         return this.fetch(path, attempt + 1);
       }
 

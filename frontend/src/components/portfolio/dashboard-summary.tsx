@@ -190,6 +190,7 @@ interface PortfolioSummaryProps {
   totalValueCents?: number;
   buyingPowerCents?: number;
   dailyChangePercent?: number;
+  overallComplianceScore?: number;
   baseCurrency?: string;
   isLoading?: boolean;
 }
@@ -200,6 +201,7 @@ export function PortfolioSummary({
   totalValueCents,
   buyingPowerCents,
   dailyChangePercent,
+  overallComplianceScore,
   baseCurrency,
   isLoading,
 }: PortfolioSummaryProps) {
@@ -214,7 +216,14 @@ export function PortfolioSummary({
 
   const total = tickers.length;
   const compliantCount = Object.values(verdictMap).filter((v) => v === "COMPLIANT").length;
-  const score = total > 0 ? Math.round((compliantCount / total) * 100) : 100;
+  const computed = total > 0 ? Math.round((compliantCount / total) * 100) : 100;
+  // Avoid the 0% flash: while per-ticker verdicts are still landing, prefer
+  // the server-computed score (fetched with includeCompliance=true).
+  const verdictsComplete = Object.keys(verdictMap).length >= total;
+  const score =
+    !verdictsComplete && overallComplianceScore != null
+      ? Math.round(overallComplianceScore)
+      : computed;
 
   return (
     <>

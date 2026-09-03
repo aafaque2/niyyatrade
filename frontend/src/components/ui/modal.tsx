@@ -64,10 +64,7 @@ export function Modal({ open, onClose, children }: ModalProps) {
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close"
+        aria-hidden="true"
       />
       <div
         ref={contentRef}

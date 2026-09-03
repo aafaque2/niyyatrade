@@ -107,6 +107,8 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="h-10 bg-surface border-border"
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
             />
           </div>
 
@@ -123,11 +125,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               className="h-10 bg-surface border-border"
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
             />
           </div>
 
           {error && (
-            <p className="text-xs text-destructive">{error}</p>
+            <p id="login-error" role="alert" className="text-xs text-destructive">{error}</p>
           )}
 
           <Button

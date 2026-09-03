@@ -72,8 +72,18 @@ export function MarketDepth({ ticker, currency }: MarketDepthProps) {
 
   return (
     <div className="rounded-lg border border-border bg-surface/50 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Market Depth</h3>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          Market Depth
+          {depth.isSynthetic && (
+            <span
+              className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning"
+              title="Modeled from the last traded price — not real venue liquidity"
+            >
+              Indicative
+            </span>
+          )}
+        </h3>
         {spread > 0 && (
           <span className="text-xs text-muted-foreground">
             Spread: {formatPrice(spread)} ({spreadPct.toFixed(2)}%)

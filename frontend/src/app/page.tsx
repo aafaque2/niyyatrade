@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Shield, BookText, TrendingUp, BarChart3, Layers, Eye } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeatureCard } from "@/components/landing/feature-card";
@@ -44,9 +45,32 @@ const features = [
   },
 ];
 
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "NiyyaTrade",
+      url: "https://niyyatrade.com",
+      logo: "https://niyyatrade.com/logo.png",
+      description:
+        "Framework-driven paper trading platform with transparent ESG, Shariah (AAOIFI), and BDS compliance screening.",
+    },
+    {
+      "@type": "WebSite",
+      name: "NiyyaTrade",
+      url: "https://niyyatrade.com",
+    },
+  ],
+};
+
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <LandingRedirect />
       <LandingNav />
       <HeroSection />
@@ -78,24 +102,24 @@ export default function LandingPage() {
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <a
+              <Link
                 href="/register"
                 className="inline-flex h-11 items-center rounded-lg bg-primary px-7 text-sm font-medium text-primary-foreground transition-colors hover:bg-emerald-muted"
               >
                 Create free account
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/login"
                 className="inline-flex h-11 items-center rounded-lg border border-border px-7 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover"
               >
                 Sign in
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/markets"
                 className="inline-flex h-11 items-center rounded-lg border border-dashed border-primary/30 bg-primary/5 px-7 text-sm font-medium text-primary transition-colors hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
               >
                 Browse as guest
-              </a>
+              </Link>
             </div>
             <p className="text-xs text-muted-foreground">No account needed to explore — sign in only to trade.</p>
           </div>

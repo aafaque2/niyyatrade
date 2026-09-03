@@ -119,6 +119,8 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="h-10 bg-surface border-border"
+              aria-invalid={!!error}
+              aria-describedby={error ? "register-error" : undefined}
             />
           </div>
 
@@ -136,6 +138,8 @@ export default function RegisterPage() {
               placeholder="Min 8 characters"
               minLength={8}
               className="h-10 bg-surface border-border"
+              aria-invalid={!!error}
+              aria-describedby={error ? "register-error" : undefined}
             />
           </div>
 
@@ -153,11 +157,13 @@ export default function RegisterPage() {
               placeholder="Re-enter your password"
               minLength={8}
               className="h-10 bg-surface border-border"
+              aria-invalid={!!error}
+              aria-describedby={error ? "register-error" : undefined}
             />
           </div>
 
           {error && (
-            <p className="text-xs text-destructive">{error}</p>
+            <p id="register-error" role="alert" className="text-xs text-destructive">{error}</p>
           )}
 
           <Button

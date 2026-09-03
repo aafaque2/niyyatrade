@@ -88,6 +88,9 @@ export const MarketDepthSchema = z.object({
   totalBuyQuantity: z.number(),
   totalSellQuantity: z.number(),
   timestamp: z.string().datetime(),
+  // True when the book is modeled from the last price (no venue data).
+  // The UI must label it indicative — never real liquidity.
+  isSynthetic: z.boolean().optional().default(false),
 });
 
 export type MarketDepth = z.infer<typeof MarketDepthSchema>;

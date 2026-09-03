@@ -230,6 +230,58 @@ export class AuthService {
     return { message: 'Your password has been updated. You can now sign in.' };
   }
 
+  /**
+   * Sliding session renewal: verifies the caller (guard already ran the JWT
+   * strategy, so a revoked/expired token never reaches here) and issues a
+   * fresh 7d token. The frontend calls this once on a 401 before signing out.
+   */
+  async refresh(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        activeFrameworkId: true,
+        currency: true,
+        tokenVersion: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      ver: user.tokenVersion,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        activeFrameworkId: user.activeFrameworkId,
+        currency: user.currency ?? 'USD',
+      },
+      token,
+    };
+  }
+
+  /**
+   * Revokes every session by bumping tokenVersion — all JWTs (cookie and
+   * Bearer) issued before this call fail the strategy's version check.
+   */
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    return { message: 'Signed out from all sessions' };
+  }
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

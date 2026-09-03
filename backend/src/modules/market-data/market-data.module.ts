@@ -27,13 +27,18 @@ function createRedisClient(url: string): Redis {
     MarketDataService,
     {
       provide: 'MARKET_DATA_PROVIDER',
-      useFactory: (configService: ConfigService): IMarketDataProvider => {
+      useFactory: (
+        configService: ConfigService,
+        redis: Redis,
+      ): IMarketDataProvider => {
         const isProd = configService.get<string>('NODE_ENV') === 'production';
         const fmpKey = configService.get<string>('FMP_API_KEY');
         const upstoxToken = configService.get<string>('UPSTOX_ACCESS_TOKEN');
 
         const yahoo2 = new YahooFinance2MarketDataProvider();
-        const fmp = fmpKey ? new FmpMarketDataProvider(configService) : null;
+        const fmp = fmpKey
+          ? new FmpMarketDataProvider(configService, redis)
+          : null;
 
         // Never let fabricated prices back real trades in production.
         if (isProd && (!fmp || !upstoxToken)) {
@@ -63,7 +68,7 @@ function createRedisClient(url: string): Redis {
 
         return new MultiMarketDataProvider(yahoo2, fallback, upstox);
       },
-      inject: [ConfigService],
+      inject: [ConfigService, 'REDIS_CLIENT'],
     },
     MockMarketDataProvider,
     FmpMarketDataProvider,

@@ -61,12 +61,30 @@ export class ComplianceService {
     frameworkId: string,
   ): Promise<void> {
     try {
+      // SCAN (not KEYS) — KEYS blocks the Redis event loop on large keyspaces.
       const pattern = `compliance:eval:*:${frameworkId}:${userId}`;
-      const keys = await this.redis.keys(pattern);
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
+      const found: string[] = [];
+      let cursor = '0';
+      do {
+        const [next, batch] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
+        cursor = next;
+        found.push(...batch);
+        // Cap a single invalidation pass to avoid runaway deletes
+        if (found.length >= 5000) break;
+      } while (cursor !== '0');
+      if (found.length > 0) {
+        // DEL in chunks to stay under arg limits
+        for (let i = 0; i < found.length; i += 500) {
+          await this.redis.del(...found.slice(i, i + 500));
+        }
         this.logger.log(
-          `Invalidated ${keys.length} compliance cache entries for user=${userId} framework=${frameworkId}`,
+          `Invalidated ${found.length} compliance cache entries for user=${userId} framework=${frameworkId}`,
         );
       }
     } catch (err) {

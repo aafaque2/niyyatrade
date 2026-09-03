@@ -1,6 +1,6 @@
 import axios from "axios";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/stores/auth-store";
+import { useAuthStore, type User } from "@/lib/stores/auth-store";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,6 +19,8 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
   timeout: 15000,
+  // Send the httpOnly session cookie (nt_auth) on same-site + CORS requests
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
@@ -33,14 +35,47 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const original = error.config as
+      | ({ _retry?: boolean; url?: string; headers?: Record<string, string> } & Record<string, unknown>)
+      | undefined;
+    const isAuthCall =
+      typeof original?.url === "string" && original.url.startsWith("/auth/");
     if (
       error.response?.status === 401 &&
       typeof window !== "undefined" &&
-      localStorage.getItem("auth_token")
+      localStorage.getItem("auth_token") &&
+      !isAuthCall &&
+      original &&
+      !original._retry
     ) {
+      // Single silent-renewal attempt: the httpOnly cookie may still be valid
+      // even when the Bearer token is stale. Only then sign the user out.
+      // (Guests have no local token, so this never fires for them.)
+      original._retry = true;
+      try {
+        const { data } = await api.post<{ data: { user: User; token: string } }>(
+          "/auth/refresh",
+        );
+        if (data?.data?.token) {
+          const store = useAuthStore.getState();
+          store.setAuth(data.data.user ?? store.user!, data.data.token);
+          original.headers = {
+            ...(original.headers ?? {}),
+            Authorization: `Bearer ${data.data.token}`,
+          };
+          return api.request(original);
+        }
+      } catch {
+        // Refresh failed — fall through to sign-out below.
+      }
       // Only fires for expired/invalidated sessions — a failed login attempt
       // has no token and is surfaced inline by the auth forms instead.
+      try {
+        await api.post("/auth/logout");
+      } catch {
+        // Best effort — the local session is cleared regardless.
+      }
       useAuthStore.getState().logout();
       toast.error("Your session has expired. Please sign in again.");
       const next = encodeURIComponent(
@@ -52,12 +87,15 @@ api.interceptors.response.use(
     }
 
     const data = error.response?.data;
+    // Backend envelope is { error: { message } }; ValidationPipe nests { message: [...] }
     const serverMessage =
-      typeof data?.message === "string"
-        ? data.message
-        : Array.isArray(data?.message) && data.message.length > 0
-          ? data.message[0]
-          : undefined;
+      typeof data?.error?.message === "string"
+        ? data.error.message
+        : typeof data?.message === "string"
+          ? data.message
+          : Array.isArray(data?.message) && data.message.length > 0
+            ? data.message[0]
+            : undefined;
 
     if (serverMessage) {
       error.message = serverMessage;

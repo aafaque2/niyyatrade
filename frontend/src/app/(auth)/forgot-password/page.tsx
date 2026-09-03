@@ -84,10 +84,12 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="h-10 bg-surface border-border"
+                aria-invalid={!!error}
+                aria-describedby={error ? "forgot-error" : undefined}
               />
             </div>
 
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && <p id="forgot-error" role="alert" className="text-xs text-destructive">{error}</p>}
 
             <Button
               type="submit"

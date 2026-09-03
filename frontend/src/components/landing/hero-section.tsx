@@ -43,7 +43,7 @@ export function HeroSection() {
 
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg leading-relaxed">
           Evaluate investments through ESG, Shariah, or custom compliance frameworks.
-          Understand <em>why</em> an investment passes or fails — before you risk a single rupee.
+          Understand <em>why</em> an investment passes or fails — before you risk real capital.
         </p>
 
         <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-md">

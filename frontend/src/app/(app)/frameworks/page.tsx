@@ -214,15 +214,11 @@ export default function FrameworksPage() {
                   <div key={f.id} className="relative">
                     <div
                       className={cn(
-                        "rounded-xl border p-4 transition-all duration-200 cursor-pointer",
+                        "rounded-xl border p-4 transition-all duration-200",
                         isViewing
                           ? cn("border-primary/30 ring-1", meta.activeRing, meta.activeBg)
                           : "border-border bg-surface/30 hover:border-border hover:bg-surface/50",
                       )}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setViewingSlug(isViewing ? null : f.slug); }}
-                      onClick={() => setViewingSlug(isViewing ? null : f.slug)}
                     >
                       <div className="flex items-center gap-3">
                         {/* Icon */}
@@ -266,6 +262,8 @@ export default function FrameworksPage() {
                             "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 cursor-pointer",
                             isEnabled ? "bg-primary" : "bg-border",
                           )}
+                          role="switch"
+                          aria-checked={isEnabled}
                           aria-label={`${isEnabled ? "Disable" : "Enable"} ${f.name}`}
                         >
                           <span
@@ -277,12 +275,18 @@ export default function FrameworksPage() {
                         </button>
                       </div>
 
-                      {/* View rules link */}
-                      <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-primary">
+                      {/* View rules toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setViewingSlug(isViewing ? null : f.slug)}
+                        aria-expanded={isViewing}
+                        aria-controls={`framework-detail-${f.slug}`}
+                        className="mt-3 flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                      >
                         <BookOpen className="h-3 w-3" />
                         {isViewing ? "Viewing rules" : "View rules"}
                         <ChevronRight className={cn("h-3 w-3 transition-transform", isViewing && "rotate-90")} />
-                      </div>
+                      </button>
                     </div>
 
                     {/* Connector arrow pointing to detail panel */}
@@ -373,6 +377,7 @@ export default function FrameworksPage() {
         <div>
           {viewingData ? (
             <div
+              id={`framework-detail-${viewingData.slug}`}
               className="rounded-xl border border-border bg-surface/30 p-5 transition-all duration-200"
               style={{ borderLeftWidth: "3px", borderLeftColor: FRAMEWORK_META[viewingData.slug]?.colorValue ?? "#94a3b8" }}
             >

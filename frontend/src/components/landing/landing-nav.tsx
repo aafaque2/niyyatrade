@@ -11,6 +11,8 @@ export function LandingNav() {
 
   useEffect(() => {
     useAuthStore.getState().hydrate();
+    // Mount-once hydration sync — intentionally sets state in effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHydrated(true);
   }, []);
 

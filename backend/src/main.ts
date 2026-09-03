@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/nestjs';
+import { z } from 'zod';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { getPinoAdapter } from './shared/utils/nest-logger.adapter';
@@ -15,56 +16,73 @@ Object.defineProperty(BigInt.prototype, 'toJSON', {
   },
 });
 
-function validateEnv() {
-  const required = ['JWT_SECRET', 'DATABASE_URL', 'REDIS_URL'];
-  const missing = required.filter((key) => !process.env[key]);
+const PLACEHOLDER_SECRETS = [
+  'dev-secret-change-in-production',
+  'change-me-in-production',
+  'secret',
+  'password',
+  'changeme',
+];
 
-  if (missing.length > 0) {
-    console.error(`Missing required env vars: ${missing.join(', ')}`);
-    process.exit(1);
-  }
+const envSchema = z.object({
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
+  JWT_SECRET: z
+    .string()
+    .min(16, 'JWT_SECRET must be at least 16 characters long')
+    .refine((s) => !PLACEHOLDER_SECRETS.includes(s), {
+      message: 'JWT_SECRET must be changed from the default/placeholder value',
+    }),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  FRONTEND_URL: z
+    .string()
+    .url('FRONTEND_URL must be a valid absolute URL')
+    .optional(),
+  FRONTEND_PREVIEW_URL: z
+    .string()
+    .url('FRONTEND_PREVIEW_URL must be a valid absolute URL')
+    .optional(),
+  JWT_EXPIRES_IN: z.string().optional(),
+  SENTRY_DSN: z.string().url('SENTRY_DSN must be a valid URL').optional(),
+  FMP_API_KEY: z.string().optional(),
+  UPSTOX_ACCESS_TOKEN: z.string().optional(),
+});
 
-  const placeholderSecrets = [
-    'dev-secret-change-in-production',
-    'change-me-in-production',
-  ];
-  if (placeholderSecrets.includes(process.env.JWT_SECRET ?? '')) {
-    console.error(
-      'JWT_SECRET must be changed from the default/placeholder value',
-    );
-    process.exit(1);
-  }
-  if ((process.env.JWT_SECRET ?? '').length < 16) {
-    console.error('JWT_SECRET must be at least 16 characters long');
-    process.exit(1);
-  }
+export type Env = z.infer<typeof envSchema>;
 
-  // Optional but valuable in production
-  if (process.env.FRONTEND_URL) {
-    try {
-      // Must be absolute URL
-      new URL(process.env.FRONTEND_URL);
-    } catch {
-      console.error('FRONTEND_URL must be a valid absolute URL');
-      process.exit(1);
+function validateEnv(): Env {
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      console.error(
+        `Invalid env var ${issue.path.join('.') || '(root)'}: ${issue.message}`,
+      );
     }
-  } else if (process.env.NODE_ENV === 'production') {
-    console.warn(
-      'FRONTEND_URL not set — CORS will fallback to localhost:3000 (not suitable for production)',
-    );
+    process.exit(1);
   }
+  const env = parsed.data;
 
-  if (process.env.PORT) {
-    const n = Number(process.env.PORT);
-    if (!Number.isInteger(n) || n < 1 || n > 65535) {
-      console.error('PORT must be an integer between 1 and 65535');
-      process.exit(1);
+  if (env.NODE_ENV === 'production') {
+    if (!env.FRONTEND_URL) {
+      console.warn(
+        'FRONTEND_URL not set — CORS will fallback to localhost:3000 (not suitable for production)',
+      );
+    }
+    if (!env.FMP_API_KEY || !env.UPSTOX_ACCESS_TOKEN) {
+      console.warn(
+        'FMP_API_KEY/UPSTOX_ACCESS_TOKEN not fully set — market-data fallbacks are reduced in production',
+      );
     }
   }
+
+  return env;
 }
 
 async function bootstrap() {
-  validateEnv();
+  const env = validateEnv();
 
   if (process.env.SENTRY_DSN) {
     Sentry.init({
@@ -81,9 +99,12 @@ async function bootstrap() {
 
   // Trust proxy (Render/Vercel) so req.ip / ThrottlerGuard see real client IP
   const httpAdapter = app.getHttpAdapter();
-  // Express adapter exposes underlying instance
+  // Express adapter exposes the underlying instance (untyped here)
   if (httpAdapter.getType() === 'express') {
-    httpAdapter.getInstance().set('trust proxy', 1);
+    const instance = httpAdapter.getInstance() as unknown as {
+      set?: (key: string, value: unknown) => void;
+    };
+    instance.set?.('trust proxy', 1);
   }
 
   app.use(
@@ -135,7 +156,7 @@ async function bootstrap() {
     SwaggerModule.setup('docs', app, document);
   }
 
-  const port = process.env.PORT || 4000;
+  const port = env.PORT;
   await app.listen(port);
 
   const logger = new Logger('Bootstrap');

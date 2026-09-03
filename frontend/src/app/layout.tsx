@@ -41,19 +41,19 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/logo.png",
-        width: 1024,
-        height: 1024,
-        alt: "NiyyaTrade",
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "NiyyaTrade — Trade with Intentions. Invest with Ethics.",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "NiyyaTrade — Framework-driven investing",
     description:
       "Practice investing with ESG, Shariah (AAOIFI), and BDS screening. $100,000 virtual capital, real market data, zero risk.",
-    images: ["/logo.png"],
+    images: ["/opengraph-image"],
   },
 };
 

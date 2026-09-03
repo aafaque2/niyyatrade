@@ -27,7 +27,9 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
    * then the remaining one. Previously only ONE fallback was attempted
    * (Indian never tried FMP, US never tried Upstox).
    */
-  private chain(ticker: string): Array<{ name: string; p: IMarketDataProvider }> {
+  private chain(
+    ticker: string,
+  ): Array<{ name: string; p: IMarketDataProvider }> {
     const indian = this.isIndianTicker(ticker);
     return [
       { name: 'primary', p: this.primary },
@@ -104,34 +106,67 @@ export class MultiMarketDataProvider implements IMarketDataProvider {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const [primaryResults, fmpResults, upstoxResults] =
-      await Promise.allSettled([
-        this.primary.search(query),
-        this.fmp.search(query),
-        this.upstox.search(query),
-      ]);
+    // When the query carries a region suffix (e.g. RELIANCE.NS) we know the
+    // region: query primary + region provider in parallel, and only hit the
+    // third when both come back empty. Plain-text names carry no region
+    // signal, so all three are queried to preserve recall.
+    const collect = (
+      settled: PromiseSettledResult<SearchResult[]>,
+      name: string,
+    ): SearchResult[] => {
+      if (settled.status === 'rejected') {
+        this.logger.warn(
+          `${name} search failed for "${query}": ${(settled.reason as Error).message}`,
+        );
+        return [];
+      }
+      return settled.value;
+    };
 
-    if (primaryResults.status === 'rejected') {
-      this.logger.warn(
-        `Primary search failed for "${query}": ${(primaryResults.reason as Error).message}`,
-      );
-    }
-    if (fmpResults.status === 'rejected') {
-      this.logger.warn(
-        `FMP search failed for "${query}": ${(fmpResults.reason as Error).message}`,
-      );
-    }
-    if (upstoxResults.status === 'rejected') {
-      this.logger.warn(
-        `Upstox search failed for "${query}": ${(upstoxResults.reason as Error).message}`,
-      );
-    }
+    let primary: SearchResult[];
+    let fmp: SearchResult[];
+    let upstox: SearchResult[];
 
-    const primary =
-      primaryResults.status === 'fulfilled' ? primaryResults.value : [];
-    const fmp = fmpResults.status === 'fulfilled' ? fmpResults.value : [];
-    const upstox =
-      upstoxResults.status === 'fulfilled' ? upstoxResults.value : [];
+    if (/\.(NS|BO|NSE|BSE|L|LN|DE|F|T|TO|AX|HK|SI)$/i.test(query)) {
+      const preferred = this.isIndianTicker(query)
+        ? [
+            { p: this.primary, name: 'Primary' },
+            { p: this.upstox, name: 'Upstox' },
+          ]
+        : [
+            { p: this.primary, name: 'Primary' },
+            { p: this.fmp, name: 'FMP' },
+          ];
+      const [first, second] = await Promise.allSettled(
+        preferred.map(({ p }) => p.search(query)),
+      );
+      primary = collect(first, preferred[0].name);
+      const secondResults = collect(second, preferred[1].name);
+      let thirdResults: SearchResult[] = [];
+      if (primary.length === 0 && secondResults.length === 0) {
+        const third = this.isIndianTicker(query) ? this.fmp : this.upstox;
+        const name = this.isIndianTicker(query) ? 'FMP' : 'Upstox';
+        try {
+          thirdResults = await third.search(query);
+        } catch (err) {
+          this.logger.warn(
+            `${name} search failed for "${query}": ${(err as Error).message}`,
+          );
+        }
+      }
+      fmp = this.isIndianTicker(query) ? thirdResults : secondResults;
+      upstox = this.isIndianTicker(query) ? secondResults : thirdResults;
+    } else {
+      const [primaryResults, fmpResults, upstoxResults] =
+        await Promise.allSettled([
+          this.primary.search(query),
+          this.fmp.search(query),
+          this.upstox.search(query),
+        ]);
+      primary = collect(primaryResults, 'Primary');
+      fmp = collect(fmpResults, 'FMP');
+      upstox = collect(upstoxResults, 'Upstox');
+    }
 
     const stripSuffix = (t: string) =>
       t.replace(/\.(NS|BO|NSE|BSE)$/i, '').toUpperCase();

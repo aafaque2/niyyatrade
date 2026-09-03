@@ -204,6 +204,7 @@ export class MockMarketDataProvider implements IMarketDataProvider {
       totalBuyQuantity: buy.reduce((s, l) => s + l.quantity, 0),
       totalSellQuantity: sell.reduce((s, l) => s + l.quantity, 0),
       timestamp: new Date().toISOString(),
+      isSynthetic: true,
     };
   }
 }

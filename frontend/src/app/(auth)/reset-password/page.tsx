@@ -115,6 +115,8 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 8 characters"
                 className="h-10 bg-surface border-border"
+                aria-invalid={!!error}
+                aria-describedby={error ? "reset-error" : undefined}
               />
             </div>
 
@@ -135,10 +137,12 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
                 className="h-10 bg-surface border-border"
+                aria-invalid={!!error}
+                aria-describedby={error ? "reset-error" : undefined}
               />
             </div>
 
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && <p id="reset-error" role="alert" className="text-xs text-destructive">{error}</p>}
 
             <Button
               type="submit"

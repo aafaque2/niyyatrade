@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { searchAssets, getQuotes, type MarketQuote, type SearchResult } from "@/lib/services/market-data";
@@ -113,10 +113,9 @@ export default function MarketsPage() {
   const isDebouncing = searchQuery !== debouncedQuery;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Reset to first page whenever filters/search change
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [debouncedQuery, selectedExchange, selectedSector]);
+  // Reset to the first page whenever filters/search change (done in the
+  // event handlers below, not an effect, to avoid cascading renders).
+  const resetPage = () => setVisibleCount(PAGE_SIZE);
 
   const {
     data: assetPages,
@@ -421,7 +420,7 @@ export default function MarketsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); resetPage(); }}
                 placeholder="Search ticker or company — e.g. RELIANCE, TCS, AAPL"
                 className="h-10 rounded-xl border-border bg-surface pl-10 pr-10 text-sm placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/20"
                 aria-busy={isDebouncing}
@@ -442,7 +441,8 @@ export default function MarketsPage() {
                   return (
                     <button
                       key={p.value}
-                      onClick={() => setSelectedExchange(p.value)}
+                      aria-pressed={active}
+                      onClick={() => { setSelectedExchange(p.value); resetPage(); }}
                       className={cn(
                         "h-8 shrink-0 rounded-full border px-3.5 text-xs font-medium transition-colors",
                         active
@@ -469,7 +469,8 @@ export default function MarketsPage() {
                 return (
                   <button
                     key={s}
-                    onClick={() => setSelectedSector(s)}
+                    aria-pressed={active}
+                    onClick={() => { setSelectedSector(s); resetPage(); }}
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-medium leading-none transition-colors",
                       active
@@ -488,6 +489,7 @@ export default function MarketsPage() {
                   setSelectedExchange("all");
                   setSelectedSector("All Sectors");
                   setSearchQuery("");
+                  resetPage();
                 }}
                 className="ml-auto text-xs font-medium text-primary hover:text-emerald-light"
               >
@@ -552,6 +554,7 @@ export default function MarketsPage() {
             ) : (
               <div className="scrollbar-green w-full overflow-x-auto overscroll-x-contain pb-1">
                 <table className="w-full min-w-[640px] lg:min-w-0 lg:table-fixed">
+                  <caption className="sr-only">Equities with live prices and 24-hour change</caption>
                   <colgroup>
                     <col className="w-[42%] lg:w-[38%]" />
                     <col className="w-[18%] lg:w-[16%]" />
@@ -561,7 +564,7 @@ export default function MarketsPage() {
                   </colgroup>
                   <thead>
                     <tr className="border-b border-border bg-surface/50">
-                      <th className="px-3 py-3 text-left lg:px-4">
+                      <th scope="col" aria-sort={sortField === "ticker" ? (sortDir === "asc" ? "ascending" : "descending") : "none"} className="px-3 py-3 text-left lg:px-4">
                         <button
                           onClick={() => handleSort("ticker")}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
@@ -570,7 +573,7 @@ export default function MarketsPage() {
                           <SortIcon active={sortField === "ticker"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="px-3 py-3 text-right lg:px-4">
+                      <th scope="col" aria-sort={sortField === "price" ? (sortDir === "asc" ? "ascending" : "descending") : "none"} className="px-3 py-3 text-right lg:px-4">
                         <button
                           onClick={() => handleSort("price")}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
@@ -579,7 +582,7 @@ export default function MarketsPage() {
                           <SortIcon active={sortField === "price"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="px-3 py-3 text-right lg:px-4">
+                      <th scope="col" aria-sort={sortField === "change" ? (sortDir === "asc" ? "ascending" : "descending") : "none"} className="px-3 py-3 text-right lg:px-4">
                         <button
                           onClick={() => handleSort("change")}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
@@ -588,10 +591,10 @@ export default function MarketsPage() {
                           <SortIcon active={sortField === "change"} dir={sortDir} />
                         </button>
                       </th>
-                      <th className="hidden px-3 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:table-cell lg:px-4">
+                      <th scope="col" className="hidden px-3 py-3 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground sm:table-cell lg:px-4">
                         Sector
                       </th>
-                      <th className="px-3 py-3 text-right lg:px-4">
+                      <th scope="col" className="px-3 py-3 text-right lg:px-4">
                         <span className="whitespace-nowrap text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Trade</span>
                       </th>
                     </tr>

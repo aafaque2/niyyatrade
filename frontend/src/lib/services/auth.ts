@@ -35,6 +35,15 @@ export async function getMe() {
   return data.data;
 }
 
+export async function refreshSession() {
+  const { data } = await api.post<AuthResponse>("/auth/refresh");
+  return data.data;
+}
+
+export async function logoutSession() {
+  await api.post("/auth/logout");
+}
+
 export async function requestPasswordReset(email: string) {
   const { data } = await api.post<{ message: string }>(
     "/auth/forgot-password",
