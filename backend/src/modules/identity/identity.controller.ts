@@ -88,6 +88,9 @@ export class IdentityController {
         });
 
         if (portfolio) {
+          // Currency-change wipe keeps the Portfolio row: clear children in
+          // FK-safe order (Transaction -> Order -> Position). See
+          // trading.service.resetPortfolio + migration 20260903000000.
           await this.prisma.$transaction(async (tx) => {
             await tx.transaction.deleteMany({
               where: { portfolioId: portfolio.id },

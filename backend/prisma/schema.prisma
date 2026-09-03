@@ -26,34 +26,32 @@ enum TransactionType {
 }
 
 model User {
-  id                 String              @id @default(uuid()) @db.Uuid
-  email              String              @unique @db.VarChar(255)
-  name               String?             @db.VarChar(255)
-  passwordHash       String?
-  authProviderId     String?             @db.VarChar(255)
-  activeFrameworkId  String?             @db.Uuid
-  currency           String              @default("USD") @db.VarChar(3)
-  tokenVersion       Int                 @default(0)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                String   @id @default(uuid()) @db.Uuid
+  email             String   @unique @db.VarChar(255)
+  name              String?  @db.VarChar(255)
+  passwordHash      String?
+  authProviderId    String?  @db.VarChar(255)
+  activeFrameworkId String?  @db.Uuid
+  currency          String   @default("USD") @db.VarChar(3)
+  tokenVersion      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  activeFramework    Framework?          @relation(fields: [activeFrameworkId], references: [id])
+  activeFramework     Framework?           @relation(fields: [activeFrameworkId], references: [id], onDelete: SetNull)
   portfolio           Portfolio?
   frameworkOverrides  FrameworkOverride[]
   watchlists          Watchlist[]
   complianceAudits    ComplianceAudit[]
   passwordResetTokens PasswordResetToken[]
-
-  @@index([email])
 }
 
 model PasswordResetToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  tokenHash String   @unique @db.VarChar(64)
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(64)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -67,7 +65,7 @@ model Portfolio {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   positions    Position[]
   orders       Order[]
   transactions Transaction[]
@@ -76,56 +74,59 @@ model Portfolio {
 }
 
 model Position {
-  id               String        @id @default(uuid()) @db.Uuid
-  portfolioId      String        @db.Uuid
-  assetTicker      String        @db.VarChar(20)
-  quantity         Decimal       @db.Decimal(15, 6)
+  id                String  @id @default(uuid()) @db.Uuid
+  portfolioId       String  @db.Uuid
+  assetTicker       String  @db.VarChar(20)
+  quantity          Decimal @db.Decimal(15, 6)
   averagePriceCents BigInt
 
-  portfolio Portfolio @relation(fields: [portfolioId], references: [id])
-  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker], onDelete: Restrict)
 
   @@unique([portfolioId, assetTicker])
   @@index([portfolioId, assetTicker])
 }
 
 model Order {
-  id                  String       @id @default(uuid()) @db.Uuid
-  portfolioId         String       @db.Uuid
-  assetTicker         String       @db.VarChar(20)
-  side                OrderSide
-  quantity            Decimal      @db.Decimal(15, 6)
-  targetPriceCents    BigInt?
-  executedPriceCents  BigInt?
-  status              OrderStatus  @default(PENDING)
-  executedAt          DateTime?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  id                 String      @id @default(uuid()) @db.Uuid
+  portfolioId        String      @db.Uuid
+  assetTicker        String      @db.VarChar(20)
+  side               OrderSide
+  quantity           Decimal     @db.Decimal(15, 6)
+  targetPriceCents   BigInt?
+  executedPriceCents BigInt?
+  status             OrderStatus @default(PENDING)
+  executedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  portfolio    Portfolio    @relation(fields: [portfolioId], references: [id])
-  asset        Asset        @relation(fields: [assetTicker], references: [ticker])
-  transaction  Transaction?
+  portfolio   Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset       Asset        @relation(fields: [assetTicker], references: [ticker], onDelete: Restrict)
+  transaction Transaction?
 
   @@index([portfolioId, status])
   @@index([portfolioId, createdAt])
+  @@index([status])
+  @@index([assetTicker])
 }
 
 model Transaction {
-  id                String          @id @default(uuid()) @db.Uuid
-  portfolioId       String          @db.Uuid
-  orderId           String          @unique @db.Uuid
-  transactionType   TransactionType
-  assetTicker       String          @db.VarChar(20)
-  quantity          Decimal         @db.Decimal(15, 6)
+  id                 String          @id @default(uuid()) @db.Uuid
+  portfolioId        String          @db.Uuid
+  orderId            String          @unique @db.Uuid
+  transactionType    TransactionType
+  assetTicker        String          @db.VarChar(20)
+  quantity           Decimal         @db.Decimal(15, 6)
   pricePerShareCents BigInt
-  totalAmountCents  BigInt
-  executedAt        DateTime        @default(now())
+  totalAmountCents   BigInt
+  executedAt         DateTime        @default(now())
 
-  portfolio Portfolio @relation(fields: [portfolioId], references: [id])
-  order     Order     @relation(fields: [orderId], references: [id])
-  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker], onDelete: Restrict)
 
   @@index([portfolioId, executedAt])
+  @@index([assetTicker])
 }
 
 model Asset {
@@ -139,10 +140,10 @@ model Asset {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  positions       Position[]
-  orders          Order[]
-  transactions    Transaction[]
-  watchlistItems  WatchlistItem[]
+  positions        Position[]
+  orders           Order[]
+  transactions     Transaction[]
+  watchlistItems   WatchlistItem[]
   complianceAudits ComplianceAudit[]
 
   @@index([sector])
@@ -151,16 +152,16 @@ model Asset {
 }
 
 model Framework {
-  id            String   @id @default(uuid()) @db.Uuid
-  slug          String   @unique @db.VarChar(50)
-  name          String   @db.VarChar(100)
-  defaultRules  Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid()) @db.Uuid
+  slug         String   @unique @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  defaultRules Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  overrides          FrameworkOverride[]
-  complianceAudits   ComplianceAudit[]
-  activeUsers        User[]
+  overrides        FrameworkOverride[]
+  complianceAudits ComplianceAudit[]
+  activeUsers      User[]
 }
 
 model FrameworkOverride {
@@ -169,10 +170,11 @@ model FrameworkOverride {
   frameworkId      String @db.Uuid
   customThresholds Json
 
-  user      User      @relation(fields: [userId], references: [id])
-  framework Framework @relation(fields: [frameworkId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  framework Framework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
 
   @@unique([userId, frameworkId])
+  @@index([frameworkId])
 }
 
 model Watchlist {
@@ -182,39 +184,41 @@ model Watchlist {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User              @relation(fields: [userId], references: [id])
-  items     WatchlistItem[]
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WatchlistItem[]
 
   @@index([userId])
 }
 
 model WatchlistItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  watchlistId String @db.Uuid
-  assetTicker String @db.VarChar(20)
-  addedAt   DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  watchlistId String   @db.Uuid
+  assetTicker String   @db.VarChar(20)
+  addedAt     DateTime @default(now())
 
-  watchlist Watchlist @relation(fields: [watchlistId], references: [id])
-  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker], onDelete: Restrict)
 
   @@unique([watchlistId, assetTicker])
+  @@index([assetTicker])
 }
 
 model ComplianceAudit {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @db.Uuid
-  assetTicker   String   @db.VarChar(20)
-  frameworkId   String   @db.Uuid
-  verdict       String   @db.VarChar(20)
-  rules         Json
-  evaluatedAt   DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  assetTicker String   @db.VarChar(20)
+  frameworkId String   @db.Uuid
+  verdict     String   @db.VarChar(20)
+  rules       Json
+  evaluatedAt DateTime @default(now())
 
-  user      User      @relation(fields: [userId], references: [id])
-  framework Framework @relation(fields: [frameworkId], references: [id])
-  asset     Asset     @relation(fields: [assetTicker], references: [ticker])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  framework Framework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetTicker], references: [ticker], onDelete: Restrict)
 
   @@index([userId, evaluatedAt])
   @@index([userId, assetTicker])
+  @@index([frameworkId])
 }
 
 model FxDailyRate {

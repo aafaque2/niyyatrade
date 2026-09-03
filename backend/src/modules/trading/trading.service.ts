@@ -914,6 +914,10 @@ export class TradingService {
 
     const startingBalance = getStartingBalance(user?.currency ?? 'USD');
 
+    // Reset keeps the Portfolio row, so children are cleared explicitly.
+    // Order matters: Transaction -> Order (FK Transaction.orderId, CASCADE as
+    // backstop) -> Position. Parent deletes (User/Portfolio/Watchlist) rely on
+    // schema-level ON DELETE CASCADE (migration 20260903000000).
     await this.prisma.$transaction(async (tx) => {
       await tx.transaction.deleteMany({
         where: { portfolioId: portfolio.id },
