@@ -24,7 +24,7 @@ export function HeroSection() {
     <section className="relative -mt-14 overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--primary)_0%,_transparent_50%)] opacity-[0.07]" />
 
-      <div className="relative mx-auto max-w-5xl px-6 pt-24 pb-16 text-center sm:pt-32 sm:pb-24">
+      <div className="relative mx-auto max-w-5xl px-6 pt-20 pb-16 text-center sm:pt-28 sm:pb-24">
         <Image
           src="/logo.png"
           alt="NiyyaTrade"
