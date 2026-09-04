@@ -39,7 +39,7 @@ export class FxService implements OnModuleInit {
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     // Deferred: ensureDailyRates() can hit network (10s timeout) + Redis + DB.
     // Must not block HTTP listen on cold boot — warm in background.
     setImmediate(() => {

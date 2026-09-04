@@ -18,7 +18,7 @@ function createRedisClient(url: string): Redis {
   providers: [
     {
       provide: 'REDIS_CLIENT',
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const url = configService.get<string>(
           'REDIS_URL',
           'redis://localhost:6379',

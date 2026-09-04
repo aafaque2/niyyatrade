@@ -18,7 +18,7 @@ export class AssetSyncService implements OnModuleInit {
   private readonly logger = new Logger(AssetSyncService.name);
   constructor(private readonly prisma: PrismaService) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     // Deferred: parsing a ~19k-entry JSON + a huge DB IN-query must not block
     // HTTP listen on cold boot. Run after the server is up.
     setImmediate(() => {
