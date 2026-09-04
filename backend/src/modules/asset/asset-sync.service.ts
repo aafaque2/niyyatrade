@@ -19,17 +19,25 @@ export class AssetSyncService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    try {
-      // Backfill any seed tickers missing from the DB (e.g. universe expanded
-      // after the initial seed). Upserts are idempotent; existing rows and
-      // user-discovered assets are untouched.
-      const res = await this.syncMissingFromSeed();
-      if (res.upserted > 0) {
-        this.logger.log(`Auto-seed backfilled: ${res.upserted} missing assets`);
-      }
-    } catch (e) {
-      this.logger.warn(`Auto-seed check failed: ${(e as Error).message}`);
-    }
+    // Deferred: parsing a ~19k-entry JSON + a huge DB IN-query must not block
+    // HTTP listen on cold boot. Run after the server is up.
+    setImmediate(() => {
+      void (async () => {
+        try {
+          // Backfill any seed tickers missing from the DB (e.g. universe expanded
+          // after the initial seed). Upserts are idempotent; existing rows and
+          // user-discovered assets are untouched.
+          const res = await this.syncMissingFromSeed();
+          if (res.upserted > 0) {
+            this.logger.log(
+              `Auto-seed backfilled: ${res.upserted} missing assets`,
+            );
+          }
+        } catch (e) {
+          this.logger.warn(`Auto-seed check failed: ${(e as Error).message}`);
+        }
+      })();
+    });
   }
 
   async syncMissingFromSeed(): Promise<{ upserted: number }> {

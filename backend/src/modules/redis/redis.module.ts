@@ -24,7 +24,11 @@ function createRedisClient(url: string): Redis {
           'redis://localhost:6379',
         );
         const client = createRedisClient(url);
-        await client.connect();
+        // Non-blocking: let HTTP listen first so Render health checks pass
+        // while Redis (also sleeping on free tier) wakes up. Commands queue
+        // until ready; failures are handled per-call-site.
+        void client.connect().catch(() => undefined);
+        client.on('error', () => undefined);
         return client;
       },
       inject: [ConfigService],

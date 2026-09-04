@@ -40,13 +40,15 @@ export class FxService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    try {
-      await this.ensureDailyRates();
-    } catch (err) {
-      this.logger.warn(
-        `FxService init failed: ${(err as Error).message} — using fixed rates`,
-      );
-    }
+    // Deferred: ensureDailyRates() can hit network (10s timeout) + Redis + DB.
+    // Must not block HTTP listen on cold boot — warm in background.
+    setImmediate(() => {
+      void this.ensureDailyRates().catch((err) => {
+        this.logger.warn(
+          `FxService init failed: ${(err as Error).message} — using fixed rates`,
+        );
+      });
+    });
   }
 
   // Daily at 00:00 IST (18:30 UTC)

@@ -141,23 +141,27 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  const config = new DocumentBuilder()
-    .setTitle('NiyyaTrade API')
-    .setDescription(
-      'Paper trading platform with compliance analysis — trade with intentions, invest with ethics.',
-    )
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  // Don't expose the full API surface (incl. bearer auth) in production.
+  // Swagger document creation walks the whole module graph — only pay that
+  // cost outside production so cold boots stay fast.
   if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('NiyyaTrade API')
+      .setDescription(
+        'Paper trading platform with compliance analysis — trade with intentions, invest with ethics.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    // Don't expose the full API surface (incl. bearer auth) in production.
     SwaggerModule.setup('docs', app, document);
   }
 
   const port = env.PORT;
-  await app.listen(port);
+  // Bind 0.0.0.0 explicitly — required on Render so the port is reachable
+  // for health checks as soon as we listen.
+  await app.listen(port, '0.0.0.0');
 
   const logger = new Logger('Bootstrap');
   logger.log(`Backend running on http://localhost:${port}/api/v1`);
